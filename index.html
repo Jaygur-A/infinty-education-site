@@ -14,6 +14,18 @@
         .hidden { display: none; }
         /* Simple transition for smoother appearance */
         .auth-container, .app-container { transition: opacity 0.5s ease-in-out; }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -78,8 +90,9 @@
         <header class="bg-green-600 text-white p-4 shadow-md">
             <div class="container mx-auto flex justify-between items-center">
                 <h1 class="text-xl font-bold">🎓 Infinity Education</h1>
-                <nav class="flex items-center space-x-4">
+                <nav class="flex items-center space-x-6">
                     <span id="user-email" class="font-semibold"></span>
+                    <button id="addRecordBtn" class="font-semibold hover:text-green-200">➕ Add Record</button>
                     <button id="logout-btn" class="font-semibold hover:text-green-200">Log Out</button>
                 </nav>
             </div>
@@ -88,9 +101,41 @@
         <main class="container mx-auto p-8">
              <div class="bg-white p-6 rounded-lg shadow">
                 <h2 class="text-2xl font-semibold text-green-700">Welcome to your Dashboard!</h2>
-                <p class="text-gray-600 mt-2">More features coming soon.</p>
+                <p class="text-gray-600 mt-2">Use the "Add Record" button to add a new student.</p>
             </div>
         </main>
+    </div>
+
+    <!-- Add Record Modal HTML -->
+    <div id="addRecordModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-5 border-b">
+                <h3 class="text-2xl font-semibold text-gray-800">Add New Student Record</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+
+            <!-- Modal Body with Form -->
+            <div class="p-6">
+                <form id="addStudentForm">
+                    <div class="mb-5">
+                        <label for="studentName" class="block mb-2 text-sm font-medium text-gray-700">Student Name</label>
+                        <input type="text" id="studentName" name="studentName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., Jane Doe" required>
+                    </div>
+                    <div class="mb-5">
+                        <label for="studentAddress" class="block mb-2 text-sm font-medium text-gray-700">Address</label>
+                        <input type="text" id="studentAddress" name="studentAddress" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., 123 Main St, Anytown" required>
+                    </div>
+                     <div class="mb-6">
+                        <label for="studentClass" class="block mb-2 text-sm font-medium text-gray-700">Class</label>
+                        <input type="text" id="studentClass" name="studentClass" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., Grade 5" required>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Submit Record</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->
@@ -110,7 +155,9 @@
             getFirestore, 
             doc, 
             getDoc, 
-            setDoc 
+            setDoc,
+            collection,
+            addDoc
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your web app's Firebase configuration
@@ -149,6 +196,10 @@
         const userEmailSpan = document.getElementById('user-email');
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
+        const addRecordBtn = document.getElementById('addRecordBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const addRecordModal = document.getElementById('addRecordModal');
+        const addStudentForm = document.getElementById('addStudentForm');
         
         // ===================================================================
         // CONFIGURATION
@@ -187,14 +238,11 @@
                 if (ALLOWED_DOMAINS.length > 0 && !ALLOWED_DOMAINS.includes(userDomain)) {
                     showMessage(`Access denied. Your domain (${userDomain}) is not authorized.`);
                     await signOut(auth);
-                    // The onAuthStateChanged will trigger again with user=null
                     return; 
                 }
 
-                // Check if user profile exists, create if not
                 await createUserProfileIfNeeded(user);
 
-                // Show the main application
                 userEmailSpan.textContent = user.email;
                 appContainer.classList.remove('hidden');
                 authContainer.classList.add('hidden');
@@ -206,13 +254,11 @@
             hideLoading();
         });
 
-        // Create user profile in Firestore if it doesn't exist
         async function createUserProfileIfNeeded(user) {
             const userRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userRef);
 
             if (!docSnap.exists()) {
-                // Document doesn't exist, create it
                 try {
                     await setDoc(userRef, {
                         uid: user.uid,
@@ -227,7 +273,6 @@
                     showMessage("Could not create your user profile.");
                 }
             } else {
-                 // Optional: Update last login time for existing users
                  try {
                     await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
                  } catch (error) {
@@ -236,15 +281,12 @@
             }
         }
 
-        // Google Sign-In
         googleSignInBtn.addEventListener('click', async () => {
             showLoading();
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
-                // onAuthStateChanged will handle the rest
             } catch (error) {
-                // Handle specific Google Auth errors
                 if (error.code === 'auth/popup-closed-by-user') {
                     showMessage('Sign-in process was cancelled.');
                 } else if (error.code === 'auth/account-exists-with-different-credential') {
@@ -257,7 +299,6 @@
             }
         });
 
-        // Email/Password Sign-In & Sign-Up
         emailPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoading();
@@ -265,35 +306,27 @@
             const password = document.getElementById('password').value;
 
             try {
-                // Try to sign in first
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged will handle success
             } catch (error) {
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    // If user doesn't exist, try to create a new account
                     try {
                         await createUserWithEmailAndPassword(auth, email, password);
-                        // onAuthStateChanged will handle success
                     } catch (createError) {
                         showMessage(getFriendlyAuthError(createError.code));
                         hideLoading();
                     }
                 } else {
-                    // Handle other sign-in errors
                     showMessage(getFriendlyAuthError(error.code));
                     hideLoading();
                 }
             }
         });
 
-        // Logout
         logoutBtn.addEventListener('click', async () => {
             showLoading();
             await signOut(auth);
-            // onAuthStateChanged will handle UI changes
         });
         
-        // Function to provide user-friendly error messages
         function getFriendlyAuthError(errorCode) {
             switch (errorCode) {
                 case 'auth/wrong-password':
@@ -309,6 +342,57 @@
                     return 'An unknown error occurred. Please try again.';
             }
         }
+
+        // ===================================================================
+        // STUDENT RECORD MODAL LOGIC
+        // ===================================================================
+        const showModal = () => addRecordModal.classList.remove('hidden');
+        const hideModal = () => addRecordModal.classList.add('hidden');
+
+        addRecordBtn.addEventListener('click', showModal);
+        closeModalBtn.addEventListener('click', hideModal);
+        addRecordModal.addEventListener('click', (event) => {
+            if (event.target === addRecordModal) {
+                hideModal();
+            }
+        });
+
+        addStudentForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            showLoading();
+
+            const studentName = document.getElementById('studentName').value;
+            const studentAddress = document.getElementById('studentAddress').value;
+            const studentClass = document.getElementById('studentClass').value;
+            const currentUser = auth.currentUser;
+
+            if (!currentUser) {
+                showMessage("You must be logged in to add a record.");
+                hideLoading();
+                return;
+            }
+
+            try {
+                // Add a new document with a generated ID to the "students" collection.
+                const docRef = await addDoc(collection(db, "students"), {
+                    name: studentName,
+                    address: studentAddress,
+                    class: studentClass,
+                    createdAt: new Date().toISOString(),
+                    createdBy: currentUser.uid // Link the record to the user who created it
+                });
+                
+                showMessage("Student record added successfully!", false); // false for success message
+                addStudentForm.reset();
+                hideModal();
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("Error adding student record. Please try again.");
+            }
+
+            hideLoading();
+        });
 
     </script>
 </body>
