@@ -3,10 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity Education</title>
+    <title>Infinity Education - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide elements by default */
+        .hidden { display: none; }
+        /* Simple transition for smoother appearance */
+        .auth-container, .app-container { transition: opacity 0.5s ease-in-out; }
+    </style>
 </head>
-<body>
-    <h1>Welcome to Infinity Education</h1>
-    <p>Site under construction.</p>
+<body class="bg-gray-50">
+
+    <!-- Critical Setup Error Message -->
+    <div id="critical-error-box" class="hidden p-4 bg-red-800 text-white text-center font-bold">
+        <p>CRITICAL ERROR: Firebase configuration is missing in your <code>index.html</code> file.</p>
+        <p class="text-sm font-normal mt-1">Please follow the setup guide to get your `firebaseConfig` object and paste it into the script section below.</p>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-500"></div>
+    </div>
+
+    <!-- Custom Message/Error Box -->
+    <div id="message-box" class="hidden fixed top-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-lg z-50">
+        <p id="message-text"></p>
+    </div>
+
+    <!-- Login Page Container -->
+    <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg">
+            <div class="flex flex-col items-center mb-6">
+                <img src="https://placehold.co/80x80/34D399/FFFFFF?text=🎓" alt="Infinity Education Logo" class="w-20 h-20 mb-4 rounded-full">
+                <h1 class="text-3xl font-bold text-gray-800">Infinity Education</h1>
+                <p class="text-gray-500 mt-1">Empowering Learning Through Technology</p>
+            </div>
+
+            <!-- Google Sign-In Button -->
+            <button id="google-signin-btn" class="w-full flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48" width="48px" height="48px"><path fill="#4285F4" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#34A853" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l5.657,5.657C40.074,36.336,44,30.651,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FBBC05" d="M10.21,28.641l5.657-5.657C14.801,22.08,14,23.004,14,24s0.801,1.92,1.864,2.887l-5.657,5.657C8.076,30.651,6,27.489,6,24S8.076,17.349,10.21,15.359z"></path><path fill="#EA4335" d="M10.21,15.359l5.657,5.657C17.199,20.08,18,19.156,18,18s-0.801-1.92-1.864-2.887l-5.657-5.657C11.924,8.076,15.511,6,20,6c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C17.511,4,11.924,8.076,10.21,15.359z"></path></svg>
+                Continue with Google
+            </button>
+
+            <div class="my-6 flex items-center">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <!-- Email/Password Form -->
+            <form id="email-password-form">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                    Log In with Email
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Container (Initially Hidden) -->
+    <div id="app-container" class="hidden">
+        <!-- Header -->
+        <header class="bg-green-600 text-white p-4 shadow-md">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">🎓 Infinity Education</h1>
+                <nav class="flex items-center space-x-4">
+                    <span id="user-email" class="font-semibold"></span>
+                    <button id="logout-btn" class="font-semibold hover:text-green-200">Log Out</button>
+                </nav>
+            </div>
+        </header>
+        <!-- Dashboard Content -->
+        <main class="container mx-auto p-8">
+             <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold text-green-700">Welcome to your Dashboard!</h2>
+                <p class="text-gray-600 mt-2">More features coming soon.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
+            authDomain: "infinity-education-c170b.firebaseapp.com",
+            projectId: "infinity-education-c170b",
+            storageBucket: "infinity-education-c170b.appspot.com",
+            messagingSenderId: "312781945568",
+            appId: "1:312781945568:web:04104d51e968dff9fa2e85",
+            measurementId: "G-FSGELW7P1Z"
+        };
+
+        // --- Check if Firebase config is valid ---
+        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza...")) {
+            document.getElementById('critical-error-box').classList.remove('hidden');
+            document.getElementById('auth-container').classList.add('hidden');
+            // Stop the script from running further to prevent more errors
+            throw new Error("Firebase configuration is missing or invalid. Halting execution.");
+        }
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ===================================================================
+        // DOM ELEMENTS
+        // ===================================================================
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const googleSignInBtn = document.getElementById('google-signin-btn');
+        const emailPasswordForm = document.getElementById('email-password-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userEmailSpan = document.getElementById('user-email');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        
+        // ===================================================================
+        // CONFIGURATION
+        // ===================================================================
+        // Add domains that are allowed to access the app. Leave empty to allow all.
+        // Example: const ALLOWED_DOMAINS = ['infinity-education.com', 'admin.com'];
+        const ALLOWED_DOMAINS = []; 
+
+        // ===================================================================
+        // HELPER FUNCTIONS
+        // ===================================================================
+        const showLoading = () => loadingOverlay.classList.remove('hidden');
+        const hideLoading = () => loadingOverlay.classList.add('hidden');
+        
+        const showMessage = (message, isError = true) => {
+            messageText.textContent = message;
+            messageBox.className = `fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
+        };
+
+        // ===================================================================
+        // AUTHENTICATION LOGIC
+        // ===================================================================
+
+        // Central auth state listener
+        onAuthStateChanged(auth, async (user) => {
+            showLoading();
+            if (user) {
+                // User is signed in.
+                const userDomain = user.email.split('@')[1];
+                
+                // Domain-based security check
+                if (ALLOWED_DOMAINS.length > 0 && !ALLOWED_DOMAINS.includes(userDomain)) {
+                    showMessage(`Access denied. Your domain (${userDomain}) is not authorized.`);
+                    await signOut(auth);
+                    // The onAuthStateChanged will trigger again with user=null
+                    return; 
+                }
+
+                // Check if user profile exists, create if not
+                await createUserProfileIfNeeded(user);
+
+                // Show the main application
+                userEmailSpan.textContent = user.email;
+                appContainer.classList.remove('hidden');
+                authContainer.classList.add('hidden');
+            } else {
+                // User is signed out.
+                appContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+            }
+            hideLoading();
+        });
+
+        // Create user profile in Firestore if it doesn't exist
+        async function createUserProfileIfNeeded(user) {
+            const userRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userRef);
+
+            if (!docSnap.exists()) {
+                // Document doesn't exist, create it
+                try {
+                    await setDoc(userRef, {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName || user.email.split('@')[0],
+                        photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
+                        createdAt: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    });
+                } catch (error) {
+                    console.error("Error creating user profile:", error);
+                    showMessage("Could not create your user profile.");
+                }
+            } else {
+                 // Optional: Update last login time for existing users
+                 try {
+                    await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
+                 } catch (error) {
+                    console.error("Error updating last login:", error);
+                 }
+            }
+        }
+
+        // Google Sign-In
+        googleSignInBtn.addEventListener('click', async () => {
+            showLoading();
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle the rest
+            } catch (error) {
+                // Handle specific Google Auth errors
+                if (error.code === 'auth/popup-closed-by-user') {
+                    showMessage('Sign-in process was cancelled.');
+                } else if (error.code === 'auth/account-exists-with-different-credential') {
+                    showMessage('An account already exists with this email. Try logging in with a different method.');
+                } else {
+                    showMessage('Could not sign in with Google. Please try again.');
+                    console.error("Google Sign-In Error:", error);
+                }
+                hideLoading();
+            }
+        });
+
+        // Email/Password Sign-In & Sign-Up
+        emailPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // Try to sign in first
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle success
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    // If user doesn't exist, try to create a new account
+                    try {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        // onAuthStateChanged will handle success
+                    } catch (createError) {
+                        showMessage(getFriendlyAuthError(createError.code));
+                        hideLoading();
+                    }
+                } else {
+                    // Handle other sign-in errors
+                    showMessage(getFriendlyAuthError(error.code));
+                    hideLoading();
+                }
+            }
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            showLoading();
+            await signOut(auth);
+            // onAuthStateChanged will handle UI changes
+        });
+        
+        // Function to provide user-friendly error messages
+        function getFriendlyAuthError(errorCode) {
+            switch (errorCode) {
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    return 'Incorrect email or password. Please try again.';
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                case 'auth/email-already-in-use':
+                    return 'An account with this email already exists.';
+                default:
+                    return 'An unknown error occurred. Please try again.';
+            }
+        }
+
+    </script>
 </body>
 </html>
