@@ -17,6 +17,14 @@
             display: flex; justify-content: center; align-items: center;
             z-index: 50;
         }
+        .skill-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .skill-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -92,18 +100,31 @@
         <main class="container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-2xl font-bold text-gray-700 mb-6">Aligned Skills</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Placeholders for Core Skill Charts -->
-                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Vitality</h3></div>
-                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Integrity</h3></div>
-                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Curiosity</h3></div>
-                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Critical Thinking</h3></div>
+                <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="skill-card p-4 border rounded-lg" data-skill="Vitality"><h3 class="font-bold text-center">Vitality</h3></div>
+                    <div class="skill-card p-4 border rounded-lg" data-skill="Integrity"><h3 class="font-bold text-center">Integrity</h3></div>
+                    <div class="skill-card p-4 border rounded-lg" data-skill="Curiosity"><h3 class="font-bold text-center">Curiosity</h3></div>
+                    <div class="skill-card p-4 border rounded-lg" data-skill="Critical Thinking"><h3 class="font-bold text-center">Critical Thinking</h3></div>
                 </div>
             </div>
+            
+            <!-- Anecdote Display Section -->
+            <div id="anecdote-display-container" class="hidden bg-white p-8 rounded-lg shadow mt-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="anecdote-list-title" class="text-2xl font-bold text-gray-700"></h2>
+                    <button id="close-anecdote-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+                <div id="anecdote-list" class="space-y-4">
+                    <!-- Anecdotes will be dynamically inserted here -->
+                </div>
+                 <div id="no-anecdotes-message" class="hidden text-center py-10">
+                    <p class="text-gray-500">No anecdotes found for this skill.</p>
+                </div>
+            </div>
+
             <div class="bg-white p-8 rounded-lg shadow mt-8">
                 <h2 class="text-2xl font-bold text-gray-700 mb-6">Micro-Skills</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                    <!-- Placeholders for Micro Skill Charts -->
                     <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Mindset</h3></div>
                     <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Physical Conditioning</h3></div>
                     <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Health</h3></div>
@@ -157,7 +178,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
@@ -202,10 +223,17 @@
         const addAnecdoteModal = document.getElementById('addAnecdoteModal');
         const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
         const addAnecdoteForm = document.getElementById('addAnecdoteForm');
+        const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
+        const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
+        const anecdoteListTitle = document.getElementById('anecdote-list-title');
+        const anecdoteList = document.getElementById('anecdote-list');
+        const noAnecdotesMessage = document.getElementById('no-anecdotes-message');
+        const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
         
         // App State
         let currentStudentId = null;
         let unsubscribeFromStudents;
+        let unsubscribeFromAnecdotes;
 
         // Helper Functions
         const showLoading = () => loadingOverlay.classList.remove('hidden');
@@ -227,11 +255,13 @@
             authContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
             studentDetailContainer.classList.add('hidden');
+            if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
         };
         const showStudentDetailPage = async (studentId) => {
             currentStudentId = studentId;
             authContainer.classList.add('hidden');
             appContainer.classList.add('hidden');
+            anecdoteDisplayContainer.classList.add('hidden');
             try {
                 const studentRef = doc(db, "students", studentId);
                 const docSnap = await getDoc(studentRef);
@@ -257,6 +287,7 @@
             } else {
                 showLoginPage();
                 if (unsubscribeFromStudents) unsubscribeFromStudents();
+                if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
             }
             hideLoading();
         });
@@ -271,7 +302,7 @@
             }
         }
         
-        // Student Data Logic
+        // Data Logic
         function listenForStudentRecords() {
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (querySnapshot) => {
@@ -288,11 +319,37 @@
             });
         }
 
+        function listenForAnecdotes(studentId, coreSkill) {
+            if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes(); // Unsubscribe from previous listener
+
+            anecdoteListTitle.textContent = `Anecdotes for ${coreSkill}`;
+            const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
+            
+            unsubscribeFromAnecdotes = onSnapshot(q, (querySnapshot) => {
+                anecdoteList.innerHTML = '';
+                noAnecdotesMessage.classList.toggle('hidden', !querySnapshot.empty);
+                anecdoteDisplayContainer.classList.remove('hidden');
+
+                querySnapshot.forEach((doc) => {
+                    const anecdote = doc.data();
+                    const anecdoteCard = document.createElement('div');
+                    anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
+                    anecdoteCard.innerHTML = `
+                        <p class="font-semibold text-gray-800">${anecdote.microSkill}</p>
+                        <p class="text-gray-600 mt-1">${anecdote.text}</p>
+                        <p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt).toLocaleDateString()}</p>
+                    `;
+                    anecdoteList.appendChild(anecdoteCard);
+                });
+            });
+        }
+
         // Modal Logic
         addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
         addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
         closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+        closeAnecdoteDisplayBtn.addEventListener('click', () => anecdoteDisplayContainer.classList.add('hidden'));
 
         addStudentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -317,10 +374,7 @@
 
         addAnecdoteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentStudentId) {
-                showMessage("No student selected.");
-                return;
-            }
+            if (!currentStudentId) return showMessage("No student selected.");
             showLoading();
             try {
                 await addDoc(collection(db, "anecdotes"), {
@@ -341,21 +395,24 @@
             hideLoading();
         });
 
-        // Event Listeners for Buttons
+        // Event Listeners
         backToDashboardBtn.addEventListener('click', showDashboard);
         
+        alignedSkillsGrid.addEventListener('click', (e) => {
+            const skillCard = e.target.closest('.skill-card');
+            if (skillCard) {
+                const skill = skillCard.dataset.skill;
+                listenForAnecdotes(currentStudentId, skill);
+            }
+        });
+
         googleSignInBtn.addEventListener('click', async () => {
             showLoading();
             const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
+            try { await signInWithPopup(auth, provider); } catch (error) {
                 if (error.code === 'auth/popup-closed-by-user') showMessage('Sign-in process was cancelled.');
                 else if (error.code === 'auth/account-exists-with-different-credential') showMessage('An account with this email already exists.');
-                else {
-                    showMessage('Could not sign in with Google. Please try again.');
-                    console.error("Google Sign-In Error:", error);
-                }
+                else { showMessage('Could not sign in with Google.'); console.error("Google Sign-In Error:", error); }
                 hideLoading();
             }
         });
@@ -365,20 +422,11 @@
             showLoading();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
+            try { await signInWithEmailAndPassword(auth, email, password); } catch (error) {
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    try {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                    } catch (createError) {
-                        showMessage(getFriendlyAuthError(createError.code));
-                        hideLoading();
-                    }
-                } else {
-                    showMessage(getFriendlyAuthError(error.code));
-                    hideLoading();
-                }
+                    try { await createUserWithEmailAndPassword(auth, email, password); } 
+                    catch (createError) { showMessage(getFriendlyAuthError(createError.code)); hideLoading(); }
+                } else { showMessage(getFriendlyAuthError(error.code)); hideLoading(); }
             }
         });
         
