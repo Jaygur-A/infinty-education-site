@@ -10,20 +10,11 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Hide elements by default */
         .hidden { display: none; }
-        /* Simple transition for smoother appearance */
-        .auth-container, .app-container { transition: opacity 0.5s ease-in-out; }
         .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             z-index: 50;
         }
     </style>
@@ -32,8 +23,7 @@
 
     <!-- Critical Setup Error Message -->
     <div id="critical-error-box" class="hidden p-4 bg-red-800 text-white text-center font-bold">
-        <p>CRITICAL ERROR: Firebase configuration is missing in your <code>index.html</code> file.</p>
-        <p class="text-sm font-normal mt-1">Please follow the setup guide to get your `firebaseConfig` object and paste it into the script section below.</p>
+        <p>CRITICAL ERROR: Firebase configuration is missing.</p>
     </div>
 
     <!-- Loading Overlay -->
@@ -54,39 +44,21 @@
                 <h1 class="text-3xl font-bold text-gray-800">Infinity Education</h1>
                 <p class="text-gray-500 mt-1">Empowering Learning Through Technology</p>
             </div>
-
-            <!-- Google Sign-In Button -->
             <button id="google-signin-btn" class="w-full flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48" width="48px" height="48px"><path fill="#4285F4" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#34A853" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l5.657,5.657C40.074,36.336,44,30.651,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FBBC05" d="M10.21,28.641l5.657-5.657C14.801,22.08,14,23.004,14,24s0.801,1.92,1.864,2.887l-5.657,5.657C8.076,30.651,6,27.489,6,24S8.076,17.349,10.21,15.359z"></path><path fill="#EA4335" d="M10.21,15.359l5.657,5.657C17.199,20.08,18,19.156,18,18s-0.801-1.92-1.864-2.887l-5.657-5.657C11.924,8.076,15.511,6,20,6c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C17.511,4,11.924,8.076,10.21,15.359z"></path></svg>
+                <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#34A853" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l5.657,5.657C40.074,36.336,44,30.651,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FBBC05" d="M10.21,28.641l5.657-5.657C14.801,22.08,14,23.004,14,24s0.801,1.92,1.864,2.887l-5.657,5.657C8.076,30.651,6,27.489,6,24S8.076,17.349,10.21,15.359z"></path><path fill="#EA4335" d="M10.21,15.359l5.657,5.657C17.199,20.08,18,19.156,18,18s-0.801-1.92-1.864-2.887l-5.657-5.657C11.924,8.076,15.511,6,20,6c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C17.511,4,11.924,8.076,10.21,15.359z"></path></svg>
                 Continue with Google
             </button>
-
-            <div class="my-6 flex items-center">
-                <div class="flex-grow border-t border-gray-300"></div>
-                <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
-                <div class="flex-grow border-t border-gray-300"></div>
-            </div>
-
-            <!-- Email/Password Form -->
+            <div class="my-6 flex items-center"><div class="flex-grow border-t border-gray-300"></div><span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span><div class="flex-grow border-t border-gray-300"></div></div>
             <form id="email-password-form">
-                <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
-                </div>
-                <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                    <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                    Log In with Email
-                </button>
+                <div class="mb-4"><label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required></div>
+                <div class="mb-6"><label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password *</label><input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500" required></div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">Log In with Email</button>
             </form>
         </div>
     </div>
 
-    <!-- Main Application Container (Initially Hidden) -->
+    <!-- Main Application Container (Dashboard) -->
     <div id="app-container" class="hidden">
-        <!-- Header -->
         <header class="bg-green-600 text-white p-4 shadow-md">
             <div class="container mx-auto flex justify-between items-center">
                 <h1 class="text-xl font-bold">🎓 Infinity Education</h1>
@@ -97,77 +69,96 @@
                 </nav>
             </div>
         </header>
-        <!-- Dashboard Content -->
         <main class="container mx-auto p-8">
              <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
-                <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    <!-- Student cards will be dynamically inserted here -->
+                <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
+                <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Student Detail Page Container (Initially Hidden) -->
+    <div id="student-detail-container" class="hidden">
+        <header class="bg-orange-100 text-orange-800 p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 id="student-detail-name" class="text-2xl font-bold"></h1>
+                <div>
+                    <button id="add-anecdote-btn" class="bg-green-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-800 mr-4">Add Anecdote</button>
+                    <button id="back-to-dashboard-btn" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700">Back to Dashboard</button>
                 </div>
-                <div id="no-students-message" class="hidden text-center py-10">
-                    <p class="text-gray-500">No students found. Click "Add Record" to get started.</p>
+            </div>
+        </header>
+        <main class="container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow">
+                <h2 class="text-2xl font-bold text-gray-700 mb-6">Aligned Skills</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Placeholders for Core Skill Charts -->
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Vitality</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Integrity</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Curiosity</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Critical Thinking</h3></div>
+                </div>
+            </div>
+            <div class="bg-white p-8 rounded-lg shadow mt-8">
+                <h2 class="text-2xl font-bold text-gray-700 mb-6">Micro-Skills</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    <!-- Placeholders for Micro Skill Charts -->
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Mindset</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Physical Conditioning</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Health</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Connection</h3></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Purpose</h3></div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Add Record Modal HTML -->
+    <!-- Add Record Modal -->
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-5 border-b">
-                <h3 class="text-2xl font-semibold text-gray-800">Add New Student Record</h3>
-                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
-            </div>
-
-            <!-- Modal Body with Form -->
-            <div class="p-6">
-                <form id="addStudentForm">
-                    <div class="mb-5">
-                        <label for="studentName" class="block mb-2 text-sm font-medium text-gray-700">Student Name</label>
-                        <input type="text" id="studentName" name="studentName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., Jane Doe" required>
-                    </div>
-                    <div class="mb-5">
-                        <label for="studentAddress" class="block mb-2 text-sm font-medium text-gray-700">Address</label>
-                        <input type="text" id="studentAddress" name="studentAddress" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., 123 Main St, Anytown" required>
-                    </div>
-                     <div class="mb-6">
-                        <label for="studentClass" class="block mb-2 text-sm font-medium text-gray-700">Class</label>
-                        <input type="text" id="studentClass" name="studentClass" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5" placeholder="e.g., Grade 5" required>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Submit Record</button>
-                </form>
-            </div>
+            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student Record</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
+            <div class="p-6"><form id="addStudentForm">
+                <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-5"><label for="studentAddress" class="block mb-2 text-sm font-medium">Address</label><input type="text" id="studentAddress" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
+            </form></div>
+        </div>
+    </div>
+    
+    <!-- Add Anecdote Modal -->
+    <div id="addAnecdoteModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
+            <div class="p-6"><form id="addAnecdoteForm">
+                <div class="mb-5">
+                    <label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label>
+                    <select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                        <option>Vitality</option><option>Integrity</option><option>Curiosity</option><option>Critical Thinking</option>
+                    </select>
+                </div>
+                <div class="mb-5">
+                    <label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label>
+                    <select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                        <option>Mindset</option><option>Physical Conditioning</option><option>Health</option><option>Connection</option><option>Purpose</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label>
+                    <textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea>
+                </div>
+                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
+            </form></div>
         </div>
     </div>
 
     <!-- Firebase SDK -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged,
-            GoogleAuthProvider,
-            signInWithPopup,
-            signInWithEmailAndPassword,
-            createUserWithEmailAndPassword,
-            signOut
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            setDoc,
-            collection,
-            addDoc,
-            query,
-            onSnapshot
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
             authDomain: "infinity-education-c170b.firebaseapp.com",
@@ -178,24 +169,21 @@
             measurementId: "G-FSGELW7P1Z"
         };
 
-        // --- Check if Firebase config is valid ---
         if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza...")) {
             document.getElementById('critical-error-box').classList.remove('hidden');
             document.getElementById('auth-container').classList.add('hidden');
-            throw new Error("Firebase configuration is missing or invalid. Halting execution.");
+            throw new Error("Firebase configuration is missing.");
         }
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ===================================================================
-        // DOM ELEMENTS
-        // ===================================================================
+        // DOM Elements
         const loadingOverlay = document.getElementById('loading-overlay');
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
+        const studentDetailContainer = document.getElementById('student-detail-container');
         const googleSignInBtn = document.getElementById('google-signin-btn');
         const emailPasswordForm = document.getElementById('email-password-form');
         const logoutBtn = document.getElementById('logout-btn');
@@ -208,57 +196,67 @@
         const addStudentForm = document.getElementById('addStudentForm');
         const studentGrid = document.getElementById('student-grid');
         const noStudentsMessage = document.getElementById('no-students-message');
+        const studentDetailName = document.getElementById('student-detail-name');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const addAnecdoteBtn = document.getElementById('add-anecdote-btn');
+        const addAnecdoteModal = document.getElementById('addAnecdoteModal');
+        const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
+        const addAnecdoteForm = document.getElementById('addAnecdoteForm');
         
-        // ===================================================================
-        // CONFIGURATION
-        // ===================================================================
-        const ALLOWED_DOMAINS = []; 
+        // App State
+        let currentStudentId = null;
+        let unsubscribeFromStudents;
 
-        // ===================================================================
-        // HELPER FUNCTIONS
-        // ===================================================================
+        // Helper Functions
         const showLoading = () => loadingOverlay.classList.remove('hidden');
         const hideLoading = () => loadingOverlay.classList.add('hidden');
-        
         const showMessage = (message, isError = true) => {
             messageText.textContent = message;
             messageBox.className = `fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
             messageBox.classList.remove('hidden');
-            setTimeout(() => {
-                messageBox.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => messageBox.classList.add('hidden'), 5000);
         };
 
-        // ===================================================================
-        // AUTHENTICATION LOGIC
-        // ===================================================================
-        let unsubscribeFromStudents; // To hold the listener function
+        // Page Navigation
+        const showLoginPage = () => {
+            authContainer.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            studentDetailContainer.classList.add('hidden');
+        };
+        const showDashboard = () => {
+            authContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            studentDetailContainer.classList.add('hidden');
+        };
+        const showStudentDetailPage = async (studentId) => {
+            currentStudentId = studentId;
+            authContainer.classList.add('hidden');
+            appContainer.classList.add('hidden');
+            try {
+                const studentRef = doc(db, "students", studentId);
+                const docSnap = await getDoc(studentRef);
+                if (docSnap.exists()) {
+                    studentDetailName.textContent = docSnap.data().name;
+                } else {
+                    studentDetailName.textContent = "Student Not Found";
+                }
+            } catch (error) {
+                studentDetailName.textContent = "Error loading student";
+            }
+            studentDetailContainer.classList.remove('hidden');
+        };
 
+        // Auth Logic
         onAuthStateChanged(auth, async (user) => {
             showLoading();
             if (user) {
-                const userDomain = user.email.split('@')[1];
-                if (ALLOWED_DOMAINS.length > 0 && !ALLOWED_DOMAINS.includes(userDomain)) {
-                    showMessage(`Access denied. Your domain (${userDomain}) is not authorized.`);
-                    await signOut(auth);
-                    return; 
-                }
-
                 await createUserProfileIfNeeded(user);
-                
-                // Start listening for student records
                 listenForStudentRecords();
-
+                showDashboard();
                 userEmailSpan.textContent = user.email;
-                appContainer.classList.remove('hidden');
-                authContainer.classList.add('hidden');
             } else {
-                appContainer.classList.add('hidden');
-                authContainer.classList.remove('hidden');
-                // Stop listening for students when logged out
-                if (unsubscribeFromStudents) {
-                    unsubscribeFromStudents();
-                }
+                showLoginPage();
+                if (unsubscribeFromStudents) unsubscribeFromStudents();
             }
             hideLoading();
         });
@@ -267,24 +265,85 @@
             const userRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(userRef);
             if (!docSnap.exists()) {
-                try {
-                    await setDoc(userRef, {
-                        uid: user.uid, email: user.email,
-                        displayName: user.displayName || user.email.split('@')[0],
-                        photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
-                        createdAt: new Date().toISOString(), lastLogin: new Date().toISOString()
-                    });
-                } catch (error) {
-                    console.error("Error creating user profile:", error);
-                    showMessage("Could not create your user profile.");
-                }
+                await setDoc(userRef, { uid: user.uid, email: user.email, displayName: user.displayName || user.email.split('@')[0], photoURL: user.photoURL, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() });
             } else {
-                 try {
-                    await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
-                 } catch (error) { console.error("Error updating last login:", error); }
+                await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
             }
         }
+        
+        // Student Data Logic
+        function listenForStudentRecords() {
+            const q = query(collection(db, "students"));
+            unsubscribeFromStudents = onSnapshot(q, (querySnapshot) => {
+                studentGrid.innerHTML = '';
+                noStudentsMessage.classList.toggle('hidden', !querySnapshot.empty);
+                querySnapshot.forEach((doc) => {
+                    const student = doc.data();
+                    const studentCard = document.createElement('div');
+                    studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
+                    studentCard.innerHTML = `<div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl font-bold text-red-700">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
+                    studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
+                    studentGrid.appendChild(studentCard);
+                });
+            });
+        }
 
+        // Modal Logic
+        addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
+        addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
+        closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+
+        addStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            try {
+                await addDoc(collection(db, "students"), {
+                    name: document.getElementById('studentName').value,
+                    address: document.getElementById('studentAddress').value,
+                    class: document.getElementById('studentClass').value,
+                    createdAt: new Date().toISOString(),
+                    createdBy: auth.currentUser.uid
+                });
+                showMessage("Student record added successfully!", false);
+                addStudentForm.reset();
+                addRecordModal.classList.add('hidden');
+            } catch (error) {
+                showMessage("Error adding student record.");
+                console.error("Error adding student: ", error);
+            }
+            hideLoading();
+        });
+
+        addAnecdoteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentStudentId) {
+                showMessage("No student selected.");
+                return;
+            }
+            showLoading();
+            try {
+                await addDoc(collection(db, "anecdotes"), {
+                    studentId: currentStudentId,
+                    coreSkill: document.getElementById('coreSkill').value,
+                    microSkill: document.getElementById('microSkill').value,
+                    text: document.getElementById('anecdoteText').value,
+                    createdAt: new Date().toISOString(),
+                    createdBy: auth.currentUser.uid
+                });
+                showMessage("Anecdote saved successfully!", false);
+                addAnecdoteForm.reset();
+                addAnecdoteModal.classList.add('hidden');
+            } catch (error) {
+                showMessage("Error saving anecdote.");
+                console.error("Error adding anecdote: ", error);
+            }
+            hideLoading();
+        });
+
+        // Event Listeners for Buttons
+        backToDashboardBtn.addEventListener('click', showDashboard);
+        
         googleSignInBtn.addEventListener('click', async () => {
             showLoading();
             const provider = new GoogleAuthProvider();
@@ -292,7 +351,7 @@
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 if (error.code === 'auth/popup-closed-by-user') showMessage('Sign-in process was cancelled.');
-                else if (error.code === 'auth/account-exists-with-different-credential') showMessage('An account already exists with this email.');
+                else if (error.code === 'auth/account-exists-with-different-credential') showMessage('An account with this email already exists.');
                 else {
                     showMessage('Could not sign in with Google. Please try again.');
                     console.error("Google Sign-In Error:", error);
@@ -300,7 +359,7 @@
                 hideLoading();
             }
         });
-
+        
         emailPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoading();
@@ -322,12 +381,9 @@
                 }
             }
         });
-
-        logoutBtn.addEventListener('click', async () => {
-            showLoading();
-            await signOut(auth);
-        });
         
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
         function getFriendlyAuthError(errorCode) {
             switch (errorCode) {
                 case 'auth/wrong-password': case 'auth/invalid-credential': return 'Incorrect email or password.';
@@ -337,84 +393,6 @@
                 default: return 'An unknown error occurred.';
             }
         }
-
-        // ===================================================================
-        // STUDENT DATA LOGIC
-        // ===================================================================
-        function listenForStudentRecords() {
-            const studentsRef = collection(db, "students");
-            const q = query(studentsRef); // Can add 'where' or 'orderBy' clauses here later
-
-            unsubscribeFromStudents = onSnapshot(q, (querySnapshot) => {
-                studentGrid.innerHTML = ''; // Clear existing grid
-                if (querySnapshot.empty) {
-                    noStudentsMessage.classList.remove('hidden');
-                } else {
-                    noStudentsMessage.classList.add('hidden');
-                }
-
-                querySnapshot.forEach((doc) => {
-                    const student = doc.data();
-                    const studentCard = document.createElement('div');
-                    studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
-                    studentCard.setAttribute('data-id', doc.id);
-
-                    studentCard.innerHTML = `
-                        <div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all">
-                            <span class="text-2xl font-bold text-red-700">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span>
-                        </div>
-                        <p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>
-                    `;
-                    // Add click listener for future detail page
-                    studentCard.addEventListener('click', () => {
-                        // For now, just show an alert. Later this will navigate to a student page.
-                        alert(`You clicked on ${student.name} (ID: ${doc.id})`);
-                    });
-                    studentGrid.appendChild(studentCard);
-                });
-            });
-        }
-
-        // ===================================================================
-        // STUDENT RECORD MODAL LOGIC
-        // ===================================================================
-        const showModal = () => addRecordModal.classList.remove('hidden');
-        const hideModal = () => addRecordModal.classList.add('hidden');
-
-        addRecordBtn.addEventListener('click', showModal);
-        closeModalBtn.addEventListener('click', hideModal);
-        addRecordModal.addEventListener('click', (event) => {
-            if (event.target === addRecordModal) hideModal();
-        });
-
-        addStudentForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            showLoading();
-            const studentName = document.getElementById('studentName').value;
-            const studentAddress = document.getElementById('studentAddress').value;
-            const studentClass = document.getElementById('studentClass').value;
-            const currentUser = auth.currentUser;
-
-            if (!currentUser) {
-                showMessage("You must be logged in to add a record.");
-                hideLoading();
-                return;
-            }
-
-            try {
-                await addDoc(collection(db, "students"), {
-                    name: studentName, address: studentAddress, class: studentClass,
-                    createdAt: new Date().toISOString(), createdBy: currentUser.uid
-                });
-                showMessage("Student record added successfully!", false);
-                addStudentForm.reset();
-                hideModal();
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessage("Error adding student record. Please try again.");
-            }
-            hideLoading();
-        });
 
     </script>
 </body>
