@@ -320,15 +320,19 @@
         }
 
         function listenForAnecdotes(studentId, coreSkill) {
-            if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes(); // Unsubscribe from previous listener
+            if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
 
+            // Clear previous content and set up the view for new data
             anecdoteListTitle.textContent = `Anecdotes for ${coreSkill}`;
+            anecdoteList.innerHTML = '';
+            noAnecdotesMessage.classList.add('hidden');
+            anecdoteDisplayContainer.classList.remove('hidden');
+            
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
             
             unsubscribeFromAnecdotes = onSnapshot(q, (querySnapshot) => {
-                anecdoteList.innerHTML = '';
+                anecdoteList.innerHTML = ''; // Clear list again to prevent duplicates on updates
                 noAnecdotesMessage.classList.toggle('hidden', !querySnapshot.empty);
-                anecdoteDisplayContainer.classList.remove('hidden');
 
                 querySnapshot.forEach((doc) => {
                     const anecdote = doc.data();
