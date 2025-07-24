@@ -6,6 +6,8 @@
     <title>Infinity Education - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js library for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -113,6 +115,10 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="anecdote-list-title" class="text-2xl font-bold text-gray-700"></h2>
                     <button id="close-anecdote-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+                <!-- Chart Container -->
+                <div class="mb-6">
+                    <canvas id="anecdote-chart"></canvas>
                 </div>
                 <div id="anecdote-list" class="space-y-4">
                     <!-- Anecdotes will be dynamically inserted here -->
@@ -229,11 +235,13 @@
         const anecdoteList = document.getElementById('anecdote-list');
         const noAnecdotesMessage = document.getElementById('no-anecdotes-message');
         const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
+        const anecdoteChartCanvas = document.getElementById('anecdote-chart');
         
         // App State
         let currentStudentId = null;
         let unsubscribeFromStudents;
         let unsubscribeFromAnecdotes;
+        let anecdoteChart = null; // To hold the chart instance
 
         // Helper Functions
         const showLoading = () => loadingOverlay.classList.remove('hidden');
@@ -256,6 +264,10 @@
             appContainer.classList.remove('hidden');
             studentDetailContainer.classList.add('hidden');
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
+            if (anecdoteChart) {
+                anecdoteChart.destroy();
+                anecdoteChart = null;
+            }
         };
         const showStudentDetailPage = async (studentId) => {
             currentStudentId = studentId;
@@ -322,7 +334,6 @@
         function listenForAnecdotes(studentId, coreSkill) {
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
 
-            // Clear previous content and set up the view for new data
             anecdoteListTitle.textContent = `Anecdotes for ${coreSkill}`;
             anecdoteList.innerHTML = '';
             noAnecdotesMessage.classList.add('hidden');
@@ -331,11 +342,16 @@
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
             
             unsubscribeFromAnecdotes = onSnapshot(q, (querySnapshot) => {
-                anecdoteList.innerHTML = ''; // Clear list again to prevent duplicates on updates
+                anecdoteList.innerHTML = ''; 
                 noAnecdotesMessage.classList.toggle('hidden', !querySnapshot.empty);
-
+                
+                const microSkillCounts = { 'Mindset': 0, 'Physical Conditioning': 0, 'Health': 0, 'Connection': 0, 'Purpose': 0 };
+                
                 querySnapshot.forEach((doc) => {
                     const anecdote = doc.data();
+                    if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
+                        microSkillCounts[anecdote.microSkill]++;
+                    }
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
                     anecdoteCard.innerHTML = `
@@ -345,6 +361,43 @@
                     `;
                     anecdoteList.appendChild(anecdoteCard);
                 });
+
+                renderAnecdoteChart(microSkillCounts);
+            });
+        }
+
+        function renderAnecdoteChart(data) {
+            if (anecdoteChart) {
+                anecdoteChart.destroy();
+            }
+            const ctx = anecdoteChartCanvas.getContext('2d');
+            anecdoteChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: '# of Anecdotes',
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(52, 211, 153, 0.5)',
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
             });
         }
 
@@ -353,7 +406,13 @@
         closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
         addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
         closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
-        closeAnecdoteDisplayBtn.addEventListener('click', () => anecdoteDisplayContainer.classList.add('hidden'));
+        closeAnecdoteDisplayBtn.addEventListener('click', () => {
+            anecdoteDisplayContainer.classList.add('hidden');
+            if (anecdoteChart) {
+                anecdoteChart.destroy();
+                anecdoteChart = null;
+            }
+        });
 
         addStudentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
