@@ -168,16 +168,15 @@
                 if (!response.ok) throw new Error(`Make.com webhook error: ${response.statusText}`);
                 
                 const data = await response.json();
-                
-                // Make.com's "Search for Messages" returns a different structure
-                const messages = data.messages?.[0]?.message || [];
+                const messages = data.messages || [];
 
                 slackList.innerHTML = '';
-                noSlackMessages.classList.toggle('hidden', messages.length > 0);
+                noSlackMessages.classList.toggle('hidden', messages.length === 0);
 
                 messages.slice(0, 5).forEach(msg => {
                     const messageCard = document.createElement('div');
                     messageCard.className = 'p-4 border-l-4 border-purple-500 bg-gray-50 rounded-r-lg';
+                    // CORRECTED: The data from the aggregator is the message object itself.
                     messageCard.innerHTML = `
                         <div class="flex justify-between items-center">
                             <p class="font-bold text-gray-800">${msg.user_profile?.real_name || 'Unknown User'}</p>
