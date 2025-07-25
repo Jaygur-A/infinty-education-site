@@ -330,6 +330,8 @@
 
         function openChat(recipient) {
             chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
+            // Store recipient's ID on the element for the form to use
+            chatWithUser.dataset.recipientId = recipient.uid; 
             showView(chatView);
             
             const currentUser = auth.currentUser;
@@ -381,13 +383,15 @@
             addAnecdoteForm.reset();
             addAnecdoteModal.classList.add('hidden');
         });
+        
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = messageInput.value;
             if (text.trim() === '') return;
             
-            // This logic was missing its recipient variable. It is now fixed.
             const recipientId = chatWithUser.dataset.recipientId;
+            if (!recipientId) return; // Safety check
+
             const currentUser = auth.currentUser;
             const chatID = [currentUser.uid, recipientId].sort().join('_');
             const messagesRef = collection(db, "chats", chatID, "messages");
