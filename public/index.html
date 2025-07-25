@@ -238,14 +238,26 @@
             loadingOverlay.classList.add('hidden');
         });
 
-        async function createUserProfileIfNeeded(user) { /* ... same as before ... */ }
+        async function createUserProfileIfNeeded(user) {
+            const userRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userRef);
+            if (!docSnap.exists()) {
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email.split('@')[0],
+                    photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
+                    createdAt: serverTimestamp()
+                });
+            }
+        }
         
         // Data Logic
         function listenForStudentRecords() {
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
+                noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
@@ -282,7 +294,7 @@
                     if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) microSkillCounts[anecdote.microSkill]++;
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
-                    anecdoteCard.innerHTML = `<p class="font-semibold text-gray-800">${anecdote.microSkill}</p><p class="text-gray-600 mt-1">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt).toLocaleDateString()}</p>`;
+                    anecdoteCard.innerHTML = `<p class="font-semibold text-gray-800">${anecdote.microSkill}</p><p class="text-gray-600 mt-1">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt?.toDate()).toLocaleDateString()}</p>`;
                     anecdoteList.appendChild(anecdoteCard);
                 });
                 renderAnecdoteChart(microSkillCounts);
@@ -300,8 +312,58 @@
         }
 
         // CHAT LOGIC
-        function listenForUsers() { /* ... same as before ... */ }
-        function openChat(recipient) { /* ... same as before ... */ }
+        function listenForUsers() {
+            const usersRef = collection(db, "users");
+            unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
+                userList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.uid === auth.currentUser.uid) return;
+                    const userCard = document.createElement('div');
+                    userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+                    userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
+                    userCard.addEventListener('click', () => openChat(userData));
+                    userList.appendChild(userCard);
+                });
+            });
+        }
+
+        function openChat(recipient) {
+            chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
+            showView(chatView);
+            
+            const currentUser = auth.currentUser;
+            const chatID = [currentUser.uid, recipient.uid].sort().join('_');
+            const messagesRef = collection(db, "chats", chatID, "messages");
+            const q = query(messagesRef, orderBy("timestamp", "desc"));
+
+            if (unsubscribeFromMessages) unsubscribeFromMessages();
+            unsubscribeFromMessages = onSnapshot(q, (snapshot) => {
+                messageList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isSender = msg.senderId === currentUser.uid;
+                    const messageEl = document.createElement('div');
+                    messageEl.className = `p-3 rounded-lg max-w-xs mb-2 ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
+                    messageEl.textContent = msg.text;
+                    messageList.appendChild(messageEl);
+                });
+            });
+
+            messageForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const text = messageInput.value;
+                if (text.trim() === '') return;
+                
+                await addDoc(messagesRef, {
+                    text: text,
+                    senderId: currentUser.uid,
+                    recipientId: recipient.uid,
+                    timestamp: serverTimestamp()
+                });
+                messageInput.value = '';
+            };
+        }
 
         // Event Listeners
         dashboardBtn.addEventListener('click', () => showView(dashboardView));
