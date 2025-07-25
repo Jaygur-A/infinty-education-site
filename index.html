@@ -80,10 +80,23 @@
             </div>
         </header>
         <main class="container mx-auto p-8">
-             <div class="bg-white p-8 rounded-lg shadow">
+             <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
                 <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
                 <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
+            </div>
+            <!-- NEW CHATWOOT SECTION -->
+            <div class="bg-white p-8 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Recent Messages</h2>
+                    <a id="view-all-messages-btn" href="#" target="_blank" class="text-green-600 font-semibold hover:underline">View All</a>
+                </div>
+                <div id="chatwoot-list" class="space-y-4">
+                    <!-- Chatwoot messages will be dynamically inserted here -->
+                </div>
+                <div id="no-messages-message" class="hidden text-center py-10">
+                    <p class="text-gray-500">Could not load messages or none found.</p>
+                </div>
             </div>
         </main>
     </div>
@@ -110,22 +123,14 @@
                 </div>
             </div>
             
-            <!-- Anecdote Display Section -->
             <div id="anecdote-display-container" class="hidden bg-white p-8 rounded-lg shadow mt-8">
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="anecdote-list-title" class="text-2xl font-bold text-gray-700"></h2>
                     <button id="close-anecdote-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                 </div>
-                <!-- Chart Container -->
-                <div class="mb-6">
-                    <canvas id="anecdote-chart"></canvas>
-                </div>
-                <div id="anecdote-list" class="space-y-4">
-                    <!-- Anecdotes will be dynamically inserted here -->
-                </div>
-                 <div id="no-anecdotes-message" class="hidden text-center py-10">
-                    <p class="text-gray-500">No anecdotes found for this skill.</p>
-                </div>
+                <div class="mb-6"><canvas id="anecdote-chart"></canvas></div>
+                <div id="anecdote-list" class="space-y-4"></div>
+                 <div id="no-anecdotes-message" class="hidden text-center py-10"><p class="text-gray-500">No anecdotes found.</p></div>
             </div>
 
             <div class="bg-white p-8 rounded-lg shadow mt-8">
@@ -141,10 +146,10 @@
         </main>
     </div>
 
-    <!-- Add Record Modal -->
+    <!-- Modals -->
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
-            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student Record</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
+            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="addStudentForm">
                 <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-5"><label for="studentAddress" class="block mb-2 text-sm font-medium">Address</label><input type="text" id="studentAddress" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
@@ -153,28 +158,13 @@
             </form></div>
         </div>
     </div>
-    
-    <!-- Add Anecdote Modal -->
     <div id="addAnecdoteModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="addAnecdoteForm">
-                <div class="mb-5">
-                    <label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label>
-                    <select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
-                        <option>Vitality</option><option>Integrity</option><option>Curiosity</option><option>Critical Thinking</option>
-                    </select>
-                </div>
-                <div class="mb-5">
-                    <label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label>
-                    <select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
-                        <option>Mindset</option><option>Physical Conditioning</option><option>Health</option><option>Connection</option><option>Purpose</option>
-                    </select>
-                </div>
-                <div class="mb-6">
-                    <label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label>
-                    <textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea>
-                </div>
+                <div class="mb-5"><label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label><select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Vitality</option><option>Integrity</option><option>Curiosity</option><option>Critical Thinking</option></select></div>
+                <div class="mb-5"><label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label><select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Mindset</option><option>Physical Conditioning</option><option>Health</option><option>Connection</option><option>Purpose</option></select></div>
+                <div class="mb-6"><label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label><textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
             </form></div>
         </div>
@@ -196,6 +186,14 @@
             measurementId: "G-FSGELW7P1Z"
         };
 
+        // ===================================================================
+        // CHATWOOT CONFIGURATION
+        // ===================================================================
+        const CHATWOOT_URL = "https://app.chatwoot.com/"; // e.g., "https://app.chatwoot.com"
+        const CHATWOOT_ACCOUNT_ID = "129109"; // e.g., "12345"
+        const CHATWOOT_API_TOKEN = "NxvwLj8m1xtW6RGfkk8uc1hF"; // Your API Access Token from Profile Settings
+
+        // --- Check Firebase config ---
         if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza...")) {
             document.getElementById('critical-error-box').classList.remove('hidden');
             document.getElementById('auth-container').classList.add('hidden');
@@ -236,12 +234,15 @@
         const noAnecdotesMessage = document.getElementById('no-anecdotes-message');
         const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
         const anecdoteChartCanvas = document.getElementById('anecdote-chart');
+        const chatwootList = document.getElementById('chatwoot-list');
+        const noMessagesMessage = document.getElementById('no-messages-message');
+        const viewAllMessagesBtn = document.getElementById('view-all-messages-btn');
         
         // App State
         let currentStudentId = null;
         let unsubscribeFromStudents;
         let unsubscribeFromAnecdotes;
-        let anecdoteChart = null; // To hold the chart instance
+        let anecdoteChart = null;
 
         // Helper Functions
         const showLoading = () => loadingOverlay.classList.remove('hidden');
@@ -277,11 +278,7 @@
             try {
                 const studentRef = doc(db, "students", studentId);
                 const docSnap = await getDoc(studentRef);
-                if (docSnap.exists()) {
-                    studentDetailName.textContent = docSnap.data().name;
-                } else {
-                    studentDetailName.textContent = "Student Not Found";
-                }
+                studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
             } catch (error) {
                 studentDetailName.textContent = "Error loading student";
             }
@@ -294,6 +291,7 @@
             if (user) {
                 await createUserProfileIfNeeded(user);
                 listenForStudentRecords();
+                fetchChatwootMessages();
                 showDashboard();
                 userEmailSpan.textContent = user.email;
             } else {
@@ -333,145 +331,104 @@
 
         function listenForAnecdotes(studentId, coreSkill) {
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
-
             anecdoteListTitle.textContent = `Anecdotes for ${coreSkill}`;
             anecdoteList.innerHTML = '';
             noAnecdotesMessage.classList.add('hidden');
             anecdoteDisplayContainer.classList.remove('hidden');
-            
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
-            
             unsubscribeFromAnecdotes = onSnapshot(q, (querySnapshot) => {
                 anecdoteList.innerHTML = ''; 
                 noAnecdotesMessage.classList.toggle('hidden', !querySnapshot.empty);
-                
                 const microSkillCounts = { 'Mindset': 0, 'Physical Conditioning': 0, 'Health': 0, 'Connection': 0, 'Purpose': 0 };
-                
                 querySnapshot.forEach((doc) => {
                     const anecdote = doc.data();
-                    if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
-                        microSkillCounts[anecdote.microSkill]++;
-                    }
+                    if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) microSkillCounts[anecdote.microSkill]++;
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
-                    anecdoteCard.innerHTML = `
-                        <p class="font-semibold text-gray-800">${anecdote.microSkill}</p>
-                        <p class="text-gray-600 mt-1">${anecdote.text}</p>
-                        <p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt).toLocaleDateString()}</p>
-                    `;
+                    anecdoteCard.innerHTML = `<p class="font-semibold text-gray-800">${anecdote.microSkill}</p><p class="text-gray-600 mt-1">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt).toLocaleDateString()}</p>`;
                     anecdoteList.appendChild(anecdoteCard);
                 });
-
                 renderAnecdoteChart(microSkillCounts);
             });
         }
 
         function renderAnecdoteChart(data) {
-            if (anecdoteChart) {
-                anecdoteChart.destroy();
-            }
+            if (anecdoteChart) anecdoteChart.destroy();
             const ctx = anecdoteChartCanvas.getContext('2d');
             anecdoteChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: Object.keys(data),
-                    datasets: [{
-                        label: '# of Anecdotes',
-                        data: Object.values(data),
-                        backgroundColor: 'rgba(52, 211, 153, 0.5)',
-                        borderColor: 'rgba(5, 150, 105, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
+                data: { labels: Object.keys(data), datasets: [{ label: '# of Anecdotes', data: Object.values(data), backgroundColor: 'rgba(52, 211, 153, 0.5)', borderColor: 'rgba(5, 150, 105, 1)', borderWidth: 1 }] },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
             });
         }
 
-        // Modal Logic
+        async function fetchChatwootMessages() {
+            if (!CHATWOOT_URL || !CHATWOOT_ACCOUNT_ID || !CHATWOOT_API_TOKEN) {
+                noMessagesMessage.textContent = "Chatwoot integration is not configured.";
+                noMessagesMessage.classList.remove('hidden');
+                viewAllMessagesBtn.classList.add('hidden');
+                return;
+            }
+            viewAllMessagesBtn.href = `${CHATWOOT_URL}/app/accounts/${CHATWOOT_ACCOUNT_ID}/dashboard`;
+            const apiUrl = `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations`;
+            try {
+                const response = await fetch(apiUrl, { headers: { 'api_access_token': CHATWOOT_API_TOKEN } });
+                if (!response.ok) throw new Error(`Chatwoot API error: ${response.statusText}`);
+                const data = await response.json();
+                const conversations = data.payload;
+                chatwootList.innerHTML = '';
+                noMessagesMessage.classList.toggle('hidden', conversations.length > 0);
+                conversations.slice(0, 5).forEach(convo => {
+                    const lastMessage = convo.messages[convo.messages.length - 1];
+                    const contact = convo.meta.sender;
+                    const messageCard = document.createElement('div');
+                    messageCard.className = 'p-4 border-l-4 border-green-500 bg-gray-50 rounded-r-lg';
+                    messageCard.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-gray-800">${contact.name || 'Unknown Contact'}</p><p class="text-xs text-gray-500">${new Date(lastMessage.created_at * 1000).toLocaleString()}</p></div><p class="text-gray-600 mt-1 truncate">${lastMessage.content || 'No content'}</p>`;
+                    chatwootList.appendChild(messageCard);
+                });
+            } catch (error) {
+                console.error("Error fetching Chatwoot messages:", error);
+                noMessagesMessage.textContent = "Failed to load Chatwoot messages.";
+                noMessagesMessage.classList.remove('hidden');
+            }
+        }
+
+        // Modal Logic & Event Listeners
         addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
         addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
         closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
         closeAnecdoteDisplayBtn.addEventListener('click', () => {
             anecdoteDisplayContainer.classList.add('hidden');
-            if (anecdoteChart) {
-                anecdoteChart.destroy();
-                anecdoteChart = null;
-            }
+            if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
         });
-
         addStudentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoading();
+            e.preventDefault(); showLoading();
             try {
-                await addDoc(collection(db, "students"), {
-                    name: document.getElementById('studentName').value,
-                    address: document.getElementById('studentAddress').value,
-                    class: document.getElementById('studentClass').value,
-                    createdAt: new Date().toISOString(),
-                    createdBy: auth.currentUser.uid
-                });
+                await addDoc(collection(db, "students"), { name: document.getElementById('studentName').value, address: document.getElementById('studentAddress').value, class: document.getElementById('studentClass').value, createdAt: new Date().toISOString(), createdBy: auth.currentUser.uid });
                 showMessage("Student record added successfully!", false);
                 addStudentForm.reset();
                 addRecordModal.classList.add('hidden');
-            } catch (error) {
-                showMessage("Error adding student record.");
-                console.error("Error adding student: ", error);
-            }
+            } catch (error) { showMessage("Error adding student record."); console.error("Error adding student: ", error); }
             hideLoading();
         });
-
         addAnecdoteForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentStudentId) return showMessage("No student selected.");
-            showLoading();
+            e.preventDefault(); if (!currentStudentId) return showMessage("No student selected."); showLoading();
             try {
-                await addDoc(collection(db, "anecdotes"), {
-                    studentId: currentStudentId,
-                    coreSkill: document.getElementById('coreSkill').value,
-                    microSkill: document.getElementById('microSkill').value,
-                    text: document.getElementById('anecdoteText').value,
-                    createdAt: new Date().toISOString(),
-                    createdBy: auth.currentUser.uid
-                });
+                await addDoc(collection(db, "anecdotes"), { studentId: currentStudentId, coreSkill: document.getElementById('coreSkill').value, microSkill: document.getElementById('microSkill').value, text: document.getElementById('anecdoteText').value, createdAt: new Date().toISOString(), createdBy: auth.currentUser.uid });
                 showMessage("Anecdote saved successfully!", false);
                 addAnecdoteForm.reset();
                 addAnecdoteModal.classList.add('hidden');
-            } catch (error) {
-                showMessage("Error saving anecdote.");
-                console.error("Error adding anecdote: ", error);
-            }
+            } catch (error) { showMessage("Error saving anecdote."); console.error("Error adding anecdote: ", error); }
             hideLoading();
         });
-
-        // Event Listeners
         backToDashboardBtn.addEventListener('click', showDashboard);
-        
         alignedSkillsGrid.addEventListener('click', (e) => {
             const skillCard = e.target.closest('.skill-card');
-            if (skillCard) {
-                const skill = skillCard.dataset.skill;
-                listenForAnecdotes(currentStudentId, skill);
-            }
+            if (skillCard) listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
         });
-
         googleSignInBtn.addEventListener('click', async () => {
-            showLoading();
-            const provider = new GoogleAuthProvider();
+            showLoading(); const provider = new GoogleAuthProvider();
             try { await signInWithPopup(auth, provider); } catch (error) {
                 if (error.code === 'auth/popup-closed-by-user') showMessage('Sign-in process was cancelled.');
                 else if (error.code === 'auth/account-exists-with-different-credential') showMessage('An account with this email already exists.');
@@ -479,10 +436,8 @@
                 hideLoading();
             }
         });
-        
         emailPasswordForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoading();
+            e.preventDefault(); showLoading();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             try { await signInWithEmailAndPassword(auth, email, password); } catch (error) {
@@ -492,9 +447,7 @@
                 } else { showMessage(getFriendlyAuthError(error.code)); hideLoading(); }
             }
         });
-        
         logoutBtn.addEventListener('click', () => signOut(auth));
-
         function getFriendlyAuthError(errorCode) {
             switch (errorCode) {
                 case 'auth/wrong-password': case 'auth/invalid-credential': return 'Incorrect email or password.';
