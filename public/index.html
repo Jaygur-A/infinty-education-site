@@ -257,7 +257,11 @@
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
+                if (snapshot.empty) {
+                    noStudentsMessage.classList.remove('hidden');
+                } else {
+                    noStudentsMessage.classList.add('hidden');
+                }
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
@@ -288,6 +292,7 @@
             unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
                 anecdoteList.innerHTML = ''; 
                 noAnecdotesMessage.classList.toggle('hidden', !snapshot.empty);
+                console.log(`Found ${snapshot.size} anecdotes for ${coreSkill}`); // Debugging log
                 const microSkillCounts = { 'Mindset': 0, 'Physical Conditioning': 0, 'Health': 0, 'Connection': 0, 'Purpose': 0 };
                 snapshot.forEach(doc => {
                     const anecdote = doc.data();
@@ -298,6 +303,8 @@
                     anecdoteList.appendChild(anecdoteCard);
                 });
                 renderAnecdoteChart(microSkillCounts);
+            }, (error) => {
+                console.error("Error fetching anecdotes: ", error); // Error log for debugging
             });
         }
 
@@ -330,7 +337,6 @@
 
         function openChat(recipient) {
             chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
-            // Store recipient's ID on the element for the form to use
             chatWithUser.dataset.recipientId = recipient.uid; 
             showView(chatView);
             
@@ -390,7 +396,7 @@
             if (text.trim() === '') return;
             
             const recipientId = chatWithUser.dataset.recipientId;
-            if (!recipientId) return; // Safety check
+            if (!recipientId) return;
 
             const currentUser = auth.currentUser;
             const chatID = [currentUser.uid, recipientId].sort().join('_');
