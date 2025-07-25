@@ -85,23 +85,18 @@
                 <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
                 <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
             </div>
-            <!-- NEW CHATWOOT SECTION -->
             <div class="bg-white p-8 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-gray-800">Recent Messages</h2>
-                    <a id="view-all-messages-btn" href="#" target="_blank" class="text-green-600 font-semibold hover:underline">View All</a>
+                    <button id="view-all-messages-btn" class="text-green-600 font-semibold hover:underline">View All</button>
                 </div>
-                <div id="chatwoot-list" class="space-y-4">
-                    <!-- Chatwoot messages will be dynamically inserted here -->
-                </div>
-                <div id="no-messages-message" class="hidden text-center py-10">
-                    <p class="text-gray-500">Could not load messages or none found.</p>
-                </div>
+                <div id="chatwoot-list-preview" class="space-y-4"></div>
+                <div id="no-messages-preview" class="hidden text-center py-10"><p class="text-gray-500">Could not load messages or none found.</p></div>
             </div>
         </main>
     </div>
 
-    <!-- Student Detail Page Container (Initially Hidden) -->
+    <!-- Student Detail Page Container -->
     <div id="student-detail-container" class="hidden">
         <header class="bg-orange-100 text-orange-800 p-4">
             <div class="container mx-auto flex justify-between items-center">
@@ -142,6 +137,22 @@
                     <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Connection</h3></div>
                     <div class="p-4 border rounded-lg"><h3 class="font-bold text-center">Purpose</h3></div>
                 </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chatwoot Full Page Container -->
+    <div id="chatwoot-full-container" class="hidden">
+        <header class="bg-blue-600 text-white p-4 shadow-md">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">✉️ All Messages</h1>
+                <button id="chatwoot-back-btn" class="font-semibold hover:text-blue-200">Back to Dashboard</button>
+            </div>
+        </header>
+        <main class="container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow">
+                <div id="chatwoot-list-full" class="space-y-4"></div>
+                <div id="no-messages-full" class="hidden text-center py-10"><p class="text-gray-500">Could not load messages or none found.</p></div>
             </div>
         </main>
     </div>
@@ -189,9 +200,9 @@
         // ===================================================================
         // CHATWOOT CONFIGURATION
         // ===================================================================
-        const CHATWOOT_URL = "https://app.chatwoot.com/"; // e.g., "https://app.chatwoot.com"
-        const CHATWOOT_ACCOUNT_ID = "129109"; // e.g., "12345"
-        const CHATWOOT_API_TOKEN = "NxvwLj8m1xtW6RGfkk8uc1hF"; // Your API Access Token from Profile Settings
+        const CHATWOOT_URL = "https://app.chatwoot.com";
+        const CHATWOOT_ACCOUNT_ID = "129109";
+        const CHATWOOT_API_TOKEN = "NxvwLj8m1xtW6RGfkk8uc1hF";
 
         // --- Check Firebase config ---
         if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza...")) {
@@ -234,9 +245,13 @@
         const noAnecdotesMessage = document.getElementById('no-anecdotes-message');
         const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
         const anecdoteChartCanvas = document.getElementById('anecdote-chart');
-        const chatwootList = document.getElementById('chatwoot-list');
-        const noMessagesMessage = document.getElementById('no-messages-message');
+        const chatwootFullContainer = document.getElementById('chatwoot-full-container');
         const viewAllMessagesBtn = document.getElementById('view-all-messages-btn');
+        const chatwootBackBtn = document.getElementById('chatwoot-back-btn');
+        const chatwootListPreview = document.getElementById('chatwoot-list-preview');
+        const noMessagesPreview = document.getElementById('no-messages-preview');
+        const chatwootListFull = document.getElementById('chatwoot-list-full');
+        const noMessagesFull = document.getElementById('no-messages-full');
         
         // App State
         let currentStudentId = null;
@@ -259,21 +274,21 @@
             authContainer.classList.remove('hidden');
             appContainer.classList.add('hidden');
             studentDetailContainer.classList.add('hidden');
+            chatwootFullContainer.classList.add('hidden');
         };
         const showDashboard = () => {
             authContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
             studentDetailContainer.classList.add('hidden');
+            chatwootFullContainer.classList.add('hidden');
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
-            if (anecdoteChart) {
-                anecdoteChart.destroy();
-                anecdoteChart = null;
-            }
+            if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
         };
         const showStudentDetailPage = async (studentId) => {
             currentStudentId = studentId;
             authContainer.classList.add('hidden');
             appContainer.classList.add('hidden');
+            chatwootFullContainer.classList.add('hidden');
             anecdoteDisplayContainer.classList.add('hidden');
             try {
                 const studentRef = doc(db, "students", studentId);
@@ -284,6 +299,13 @@
             }
             studentDetailContainer.classList.remove('hidden');
         };
+        const showChatwootPage = () => {
+            authContainer.classList.add('hidden');
+            appContainer.classList.add('hidden');
+            studentDetailContainer.classList.add('hidden');
+            chatwootFullContainer.classList.remove('hidden');
+            fetchChatwootMessages(false); // Fetch all messages for the full view
+        };
 
         // Auth Logic
         onAuthStateChanged(auth, async (user) => {
@@ -291,7 +313,7 @@
             if (user) {
                 await createUserProfileIfNeeded(user);
                 listenForStudentRecords();
-                fetchChatwootMessages();
+                fetchChatwootMessages(true); // Fetch preview for dashboard
                 showDashboard();
                 userEmailSpan.textContent = user.email;
             } else {
@@ -362,34 +384,36 @@
             });
         }
 
-        async function fetchChatwootMessages() {
+        async function fetchChatwootMessages(isPreview) {
             if (!CHATWOOT_URL || !CHATWOOT_ACCOUNT_ID || !CHATWOOT_API_TOKEN) {
-                noMessagesMessage.textContent = "Chatwoot integration is not configured.";
-                noMessagesMessage.classList.remove('hidden');
+                noMessagesPreview.textContent = "Chatwoot integration is not configured.";
+                noMessagesPreview.classList.remove('hidden');
                 viewAllMessagesBtn.classList.add('hidden');
                 return;
             }
-            viewAllMessagesBtn.href = `${CHATWOOT_URL}/app/accounts/${CHATWOOT_ACCOUNT_ID}/dashboard`;
+            const listElement = isPreview ? chatwootListPreview : chatwootListFull;
+            const noMessageElement = isPreview ? noMessagesPreview : noMessagesFull;
             const apiUrl = `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations`;
             try {
                 const response = await fetch(apiUrl, { headers: { 'api_access_token': CHATWOOT_API_TOKEN } });
                 if (!response.ok) throw new Error(`Chatwoot API error: ${response.statusText}`);
                 const data = await response.json();
                 const conversations = data.payload;
-                chatwootList.innerHTML = '';
-                noMessagesMessage.classList.toggle('hidden', conversations.length > 0);
-                conversations.slice(0, 5).forEach(convo => {
+                listElement.innerHTML = '';
+                noMessageElement.classList.toggle('hidden', conversations.length > 0);
+                const conversationsToDisplay = isPreview ? conversations.slice(0, 5) : conversations;
+                conversationsToDisplay.forEach(convo => {
                     const lastMessage = convo.messages[convo.messages.length - 1];
                     const contact = convo.meta.sender;
                     const messageCard = document.createElement('div');
                     messageCard.className = 'p-4 border-l-4 border-green-500 bg-gray-50 rounded-r-lg';
                     messageCard.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-gray-800">${contact.name || 'Unknown Contact'}</p><p class="text-xs text-gray-500">${new Date(lastMessage.created_at * 1000).toLocaleString()}</p></div><p class="text-gray-600 mt-1 truncate">${lastMessage.content || 'No content'}</p>`;
-                    chatwootList.appendChild(messageCard);
+                    listElement.appendChild(messageCard);
                 });
             } catch (error) {
                 console.error("Error fetching Chatwoot messages:", error);
-                noMessagesMessage.textContent = "Failed to load Chatwoot messages.";
-                noMessagesMessage.classList.remove('hidden');
+                noMessageElement.textContent = "Failed to load Chatwoot messages.";
+                noMessageElement.classList.remove('hidden');
             }
         }
 
@@ -448,6 +472,8 @@
             }
         });
         logoutBtn.addEventListener('click', () => signOut(auth));
+        viewAllMessagesBtn.addEventListener('click', showChatwootPage);
+        chatwootBackBtn.addEventListener('click', showDashboard);
         function getFriendlyAuthError(errorCode) {
             switch (errorCode) {
                 case 'auth/wrong-password': case 'auth/invalid-credential': return 'Incorrect email or password.';
