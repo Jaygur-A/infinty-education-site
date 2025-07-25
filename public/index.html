@@ -91,7 +91,7 @@
                 <div id="message-list" class="p-4 h-96 overflow-y-auto flex flex-col-reverse"></div>
                 <div class="p-4 border-t">
                     <form id="message-form" class="flex items-center">
-                        <input type="text" id="message-input" class="flex-grow border rounded-lg p-2 mr-4" placeholder="Type your message..." required>
+                        <input type="text" id="message-input" class="flex-grow border rounded-lg p-2 mr-4" placeholder="Type your message..." required autocomplete="off">
                         <button type="submit" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg">Send</button>
                     </form>
                 </div>
@@ -294,7 +294,6 @@
                     if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) microSkillCounts[anecdote.microSkill]++;
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
-                    // FIX: Handle both Timestamp and ISO string dates
                     const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate() : new Date(anecdote.createdAt);
                     anecdoteCard.innerHTML = `<p class="font-semibold text-gray-800">${anecdote.microSkill}</p><p class="text-gray-600 mt-1">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
                     anecdoteList.appendChild(anecdoteCard);
