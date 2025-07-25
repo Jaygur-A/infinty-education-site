@@ -6,18 +6,24 @@
 import fetch from 'node-fetch';
 
 export default async (req, res) => {
+  console.log("Function invoked."); // New log
+
   // These values will be securely stored in Kinsta's environment variables, not here in the code.
   const SLACK_TOKEN = process.env.VITE_SLACK_API_TOKEN;
   const SLACK_CHANNEL_ID = process.env.VITE_SLACK_CHANNEL_ID;
 
   // Check if the secrets are configured
   if (!SLACK_TOKEN || !SLACK_CHANNEL_ID) {
+    console.error("Error: Slack environment variables not configured."); // New log
     return res.status(500).json({ error: 'Slack environment variables not configured.' });
   }
+  
+  console.log("Found environment variables. Channel ID:", SLACK_CHANNEL_ID); // New log
 
   const slackApiUrl = `https://slack.com/api/conversations.history?channel=${SLACK_CHANNEL_ID}&limit=10`;
 
   try {
+    console.log("Calling Slack API..."); // New log
     // Call the Slack API
     const slackResponse = await fetch(slackApiUrl, {
       headers: {
@@ -25,6 +31,8 @@ export default async (req, res) => {
         'Content-Type': 'application/json',
       },
     });
+    
+    console.log("Slack API response status:", slackResponse.status); // New log
 
     if (!slackResponse.ok) {
       const errorData = await slackResponse.json();
@@ -33,13 +41,14 @@ export default async (req, res) => {
     }
 
     const slackData = await slackResponse.json();
+    console.log("Successfully fetched data from Slack."); // New log
 
     // Send the messages back to the front-end
     res.status(200).json({
       messages: slackData.messages || [],
     });
   } catch (error) {
-    console.error('Error fetching from Slack:', error);
+    console.error('Fatal error fetching from Slack:', error); // New log
     res.status(500).json({ error: error.message });
   }
 };
