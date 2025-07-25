@@ -286,16 +286,68 @@
             hideLoading();
         });
 
-        async function createUserProfileIfNeeded(user) { /* ... same as before ... */ }
+        async function createUserProfileIfNeeded(user) {
+            const userRef = doc(db, "users", user.uid);
+            const docSnap = await getDoc(userRef);
+            if (!docSnap.exists()) {
+                await setDoc(userRef, { uid: user.uid, email: user.email, displayName: user.displayName || user.email.split('@')[0], photoURL: user.photoURL, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() });
+            } else {
+                await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
+            }
+        }
         
         // Data Logic
-        function listenForStudentRecords() { /* ... same as before ... */ }
-        function listenForAnecdotes(studentId, coreSkill) { /* ... same as before ... */ }
-        function renderAnecdoteChart(data) { /* ... same as before ... */ }
+        function listenForStudentRecords() {
+            const q = query(collection(db, "students"));
+            unsubscribeFromStudents = onSnapshot(q, (querySnapshot) => {
+                studentGrid.innerHTML = '';
+                noStudentsMessage.classList.toggle('hidden', !querySnapshot.empty);
+                querySnapshot.forEach((doc) => {
+                    const student = doc.data();
+                    const studentCard = document.createElement('div');
+                    studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
+                    studentCard.innerHTML = `<div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl font-bold text-red-700">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
+                    studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
+                    studentGrid.appendChild(studentCard);
+                });
+            });
+        }
+
+        function listenForAnecdotes(studentId, coreSkill) {
+            if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
+            anecdoteListTitle.textContent = `Anecdotes for ${coreSkill}`;
+            anecdoteList.innerHTML = '';
+            noAnecdotesMessage.classList.add('hidden');
+            anecdoteDisplayContainer.classList.remove('hidden');
+            const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
+            unsubscribeFromAnecdotes = onSnapshot(q, (querySnapshot) => {
+                anecdoteList.innerHTML = ''; 
+                noAnecdotesMessage.classList.toggle('hidden', !querySnapshot.empty);
+                const microSkillCounts = { 'Mindset': 0, 'Physical Conditioning': 0, 'Health': 0, 'Connection': 0, 'Purpose': 0 };
+                querySnapshot.forEach((doc) => {
+                    const anecdote = doc.data();
+                    if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) microSkillCounts[anecdote.microSkill]++;
+                    const anecdoteCard = document.createElement('div');
+                    anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
+                    anecdoteCard.innerHTML = `<p class="font-semibold text-gray-800">${anecdote.microSkill}</p><p class="text-gray-600 mt-1">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${new Date(anecdote.createdAt).toLocaleDateString()}</p>`;
+                    anecdoteList.appendChild(anecdoteCard);
+                });
+                renderAnecdoteChart(microSkillCounts);
+            });
+        }
+
+        function renderAnecdoteChart(data) {
+            if (anecdoteChart) anecdoteChart.destroy();
+            const ctx = anecdoteChartCanvas.getContext('2d');
+            anecdoteChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: Object.keys(data), datasets: [{ label: '# of Anecdotes', data: Object.values(data), backgroundColor: 'rgba(52, 211, 153, 0.5)', borderColor: 'rgba(5, 150, 105, 1)', borderWidth: 1 }] },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+            });
+        }
 
         // SLACK LOGIC
         async function fetchSlackMessages() {
-            // Kinsta automatically maps the file in /functions to /api/filename
             const serverlessFunctionUrl = '/api/get-slack-messages'; 
             try {
                 const response = await fetch(serverlessFunctionUrl);
@@ -318,8 +370,69 @@
         }
 
         // Modal Logic & Event Listeners
-        // ... all event listeners and modal functions remain the same ...
+        addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
+        addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
+        closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+        closeAnecdoteDisplayBtn.addEventListener('click', () => {
+            anecdoteDisplayContainer.classList.add('hidden');
+            if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
+        });
+        addStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); showLoading();
+            try {
+                await addDoc(collection(db, "students"), { name: document.getElementById('studentName').value, address: document.getElementById('studentAddress').value, class: document.getElementById('studentClass').value, createdAt: new Date().toISOString(), createdBy: auth.currentUser.uid });
+                showMessage("Student record added successfully!", false);
+                addStudentForm.reset();
+                addRecordModal.classList.add('hidden');
+            } catch (error) { showMessage("Error adding student record."); console.error("Error adding student: ", error); }
+            hideLoading();
+        });
+        addAnecdoteForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); if (!currentStudentId) return showMessage("No student selected."); showLoading();
+            try {
+                await addDoc(collection(db, "anecdotes"), { studentId: currentStudentId, coreSkill: document.getElementById('coreSkill').value, microSkill: document.getElementById('microSkill').value, text: document.getElementById('anecdoteText').value, createdAt: new Date().toISOString(), createdBy: auth.currentUser.uid });
+                showMessage("Anecdote saved successfully!", false);
+                addAnecdoteForm.reset();
+                addAnecdoteModal.classList.add('hidden');
+            } catch (error) { showMessage("Error saving anecdote."); console.error("Error adding anecdote: ", error); }
+            hideLoading();
+        });
+        backToDashboardBtn.addEventListener('click', showDashboard);
+        alignedSkillsGrid.addEventListener('click', (e) => {
+            const skillCard = e.target.closest('.skill-card');
+            if (skillCard) listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
+        });
+        googleSignInBtn.addEventListener('click', async () => {
+            showLoading(); const provider = new GoogleAuthProvider();
+            try { await signInWithPopup(auth, provider); } catch (error) {
+                if (error.code === 'auth/popup-closed-by-user') showMessage('Sign-in process was cancelled.');
+                else if (error.code === 'auth/account-exists-with-different-credential') showMessage('An account with this email already exists.');
+                else { showMessage('Could not sign in with Google.'); console.error("Google Sign-In Error:", error); }
+                hideLoading();
+            }
+        });
+        emailPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); showLoading();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try { await signInWithEmailAndPassword(auth, email, password); } catch (error) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    try { await createUserWithEmailAndPassword(auth, email, password); } 
+                    catch (createError) { showMessage(getFriendlyAuthError(createError.code)); hideLoading(); }
+                } else { showMessage(getFriendlyAuthError(error.code)); hideLoading(); }
+            }
+        });
+        logoutBtn.addEventListener('click', () => signOut(auth));
+        function getFriendlyAuthError(errorCode) {
+            switch (errorCode) {
+                case 'auth/wrong-password': case 'auth/invalid-credential': return 'Incorrect email or password.';
+                case 'auth/invalid-email': return 'Please enter a valid email address.';
+                case 'auth/weak-password': return 'Password should be at least 6 characters.';
+                case 'auth/email-already-in-use': return 'An account with this email already exists.';
+                default: return 'An unknown error occurred.';
+            }
+        }
     </script>
-    <!-- NOTE: The rest of the script (modals, auth, data logic) is omitted for brevity but is unchanged -->
 </body>
-</html>
+</ht
