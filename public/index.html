@@ -257,7 +257,7 @@
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
+                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
@@ -349,20 +349,6 @@
                     messageList.appendChild(messageEl);
                 });
             });
-
-            messageForm.onsubmit = async (e) => {
-                e.preventDefault();
-                const text = messageInput.value;
-                if (text.trim() === '') return;
-                
-                await addDoc(messagesRef, {
-                    text: text,
-                    senderId: currentUser.uid,
-                    recipientId: recipient.uid,
-                    timestamp: serverTimestamp()
-                });
-                messageInput.value = '';
-            };
         }
 
         // Event Listeners
@@ -394,6 +380,25 @@
             await addDoc(collection(db, "anecdotes"), { studentId: currentStudentId, coreSkill: document.getElementById('coreSkill').value, microSkill: document.getElementById('microSkill').value, text: document.getElementById('anecdoteText').value, createdAt: serverTimestamp(), createdBy: auth.currentUser.uid });
             addAnecdoteForm.reset();
             addAnecdoteModal.classList.add('hidden');
+        });
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value;
+            if (text.trim() === '') return;
+            
+            // This logic was missing its recipient variable. It is now fixed.
+            const recipientId = chatWithUser.dataset.recipientId;
+            const currentUser = auth.currentUser;
+            const chatID = [currentUser.uid, recipientId].sort().join('_');
+            const messagesRef = collection(db, "chats", chatID, "messages");
+
+            await addDoc(messagesRef, {
+                text: text,
+                senderId: currentUser.uid,
+                recipientId: recipientId,
+                timestamp: serverTimestamp()
+            });
+            messageInput.value = '';
         });
     </script>
 </body>
