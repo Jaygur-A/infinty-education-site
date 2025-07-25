@@ -85,13 +85,14 @@
                 <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
                 <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
             </div>
+            <!-- SLACK SECTION -->
             <div class="bg-white p-8 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-gray-800">Recent Messages</h2>
-                    <button id="view-all-messages-btn" class="text-green-600 font-semibold hover:underline">View All</button>
+                    <a href="https://slack.com" target="_blank" class="text-green-600 font-semibold hover:underline">View in Slack</a>
                 </div>
-                <div id="chatwoot-list-preview" class="space-y-4"></div>
-                <div id="no-messages-preview" class="hidden text-center py-10"><p class="text-gray-500">Could not load messages or none found.</p></div>
+                <div id="slack-list" class="space-y-4"></div>
+                <div id="no-slack-messages" class="hidden text-center py-10"><p class="text-gray-500">Could not load messages or none found.</p></div>
             </div>
         </main>
     </div>
@@ -141,22 +142,6 @@
         </main>
     </div>
 
-    <!-- Chatwoot Full Page Container -->
-    <div id="chatwoot-full-container" class="hidden">
-        <header class="bg-blue-600 text-white p-4 shadow-md">
-            <div class="container mx-auto flex justify-between items-center">
-                <h1 class="text-xl font-bold">✉️ All Messages</h1>
-                <button id="chatwoot-back-btn" class="font-semibold hover:text-blue-200">Back to Dashboard</button>
-            </div>
-        </header>
-        <main class="container mx-auto p-8">
-            <div class="bg-white p-8 rounded-lg shadow">
-                <div id="chatwoot-list-full" class="space-y-4"></div>
-                <div id="no-messages-full" class="hidden text-center py-10"><p class="text-gray-500">Could not load messages or none found.</p></div>
-            </div>
-        </main>
-    </div>
-
     <!-- Modals -->
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
@@ -197,14 +182,6 @@
             measurementId: "G-FSGELW7P1Z"
         };
 
-        // ===================================================================
-        // CHATWOOT CONFIGURATION
-        // ===================================================================
-        const CHATWOOT_URL = "https://app.chatwoot.com";
-        const CHATWOOT_ACCOUNT_ID = "129109";
-        const CHATWOOT_API_TOKEN = "NxvwLj8m1xtW6RGfkk8uc1hF";
-
-        // --- Check Firebase config ---
         if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza...")) {
             document.getElementById('critical-error-box').classList.remove('hidden');
             document.getElementById('auth-container').classList.add('hidden');
@@ -245,13 +222,8 @@
         const noAnecdotesMessage = document.getElementById('no-anecdotes-message');
         const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
         const anecdoteChartCanvas = document.getElementById('anecdote-chart');
-        const chatwootFullContainer = document.getElementById('chatwoot-full-container');
-        const viewAllMessagesBtn = document.getElementById('view-all-messages-btn');
-        const chatwootBackBtn = document.getElementById('chatwoot-back-btn');
-        const chatwootListPreview = document.getElementById('chatwoot-list-preview');
-        const noMessagesPreview = document.getElementById('no-messages-preview');
-        const chatwootListFull = document.getElementById('chatwoot-list-full');
-        const noMessagesFull = document.getElementById('no-messages-full');
+        const slackList = document.getElementById('slack-list');
+        const noSlackMessages = document.getElementById('no-slack-messages');
         
         // App State
         let currentStudentId = null;
@@ -274,13 +246,11 @@
             authContainer.classList.remove('hidden');
             appContainer.classList.add('hidden');
             studentDetailContainer.classList.add('hidden');
-            chatwootFullContainer.classList.add('hidden');
         };
         const showDashboard = () => {
             authContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
             studentDetailContainer.classList.add('hidden');
-            chatwootFullContainer.classList.add('hidden');
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
             if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
         };
@@ -288,7 +258,6 @@
             currentStudentId = studentId;
             authContainer.classList.add('hidden');
             appContainer.classList.add('hidden');
-            chatwootFullContainer.classList.add('hidden');
             anecdoteDisplayContainer.classList.add('hidden');
             try {
                 const studentRef = doc(db, "students", studentId);
@@ -299,13 +268,6 @@
             }
             studentDetailContainer.classList.remove('hidden');
         };
-        const showChatwootPage = () => {
-            authContainer.classList.add('hidden');
-            appContainer.classList.add('hidden');
-            studentDetailContainer.classList.add('hidden');
-            chatwootFullContainer.classList.remove('hidden');
-            fetchChatwootMessages(false); // Fetch all messages for the full view
-        };
 
         // Auth Logic
         onAuthStateChanged(auth, async (user) => {
@@ -313,7 +275,7 @@
             if (user) {
                 await createUserProfileIfNeeded(user);
                 listenForStudentRecords();
-                fetchChatwootMessages(true); // Fetch preview for dashboard
+                fetchSlackMessages();
                 showDashboard();
                 userEmailSpan.textContent = user.email;
             } else {
@@ -384,36 +346,26 @@
             });
         }
 
-        async function fetchChatwootMessages(isPreview) {
-            if (!CHATWOOT_URL || !CHATWOOT_ACCOUNT_ID || !CHATWOOT_API_TOKEN) {
-                noMessagesPreview.textContent = "Chatwoot integration is not configured.";
-                noMessagesPreview.classList.remove('hidden');
-                viewAllMessagesBtn.classList.add('hidden');
-                return;
-            }
-            const listElement = isPreview ? chatwootListPreview : chatwootListFull;
-            const noMessageElement = isPreview ? noMessagesPreview : noMessagesFull;
-            const apiUrl = `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations`;
+        // SLACK LOGIC
+        async function fetchSlackMessages() {
+            const serverlessFunctionUrl = '/api/get-slack-messages'; 
             try {
-                const response = await fetch(apiUrl, { headers: { 'api_access_token': CHATWOOT_API_TOKEN } });
-                if (!response.ok) throw new Error(`Chatwoot API error: ${response.statusText}`);
+                const response = await fetch(serverlessFunctionUrl);
+                if (!response.ok) throw new Error(`Serverless function error: ${response.statusText}`);
                 const data = await response.json();
-                const conversations = data.payload;
-                listElement.innerHTML = '';
-                noMessageElement.classList.toggle('hidden', conversations.length > 0);
-                const conversationsToDisplay = isPreview ? conversations.slice(0, 5) : conversations;
-                conversationsToDisplay.forEach(convo => {
-                    const lastMessage = convo.messages[convo.messages.length - 1];
-                    const contact = convo.meta.sender;
+                const messages = data.messages;
+                slackList.innerHTML = '';
+                noSlackMessages.classList.toggle('hidden', messages.length > 0);
+                messages.slice(0, 5).forEach(msg => {
                     const messageCard = document.createElement('div');
-                    messageCard.className = 'p-4 border-l-4 border-green-500 bg-gray-50 rounded-r-lg';
-                    messageCard.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-gray-800">${contact.name || 'Unknown Contact'}</p><p class="text-xs text-gray-500">${new Date(lastMessage.created_at * 1000).toLocaleString()}</p></div><p class="text-gray-600 mt-1 truncate">${lastMessage.content || 'No content'}</p>`;
-                    listElement.appendChild(messageCard);
+                    messageCard.className = 'p-4 border-l-4 border-purple-500 bg-gray-50 rounded-r-lg';
+                    messageCard.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-gray-800">${msg.user || 'Unknown User'}</p><p class="text-xs text-gray-500">${new Date(msg.ts * 1000).toLocaleString()}</p></div><p class="text-gray-600 mt-1">${msg.text || 'No content'}</p>`;
+                    slackList.appendChild(messageCard);
                 });
             } catch (error) {
-                console.error("Error fetching Chatwoot messages:", error);
-                noMessageElement.textContent = "Failed to load Chatwoot messages.";
-                noMessageElement.classList.remove('hidden');
+                console.error("Error fetching Slack messages:", error);
+                noSlackMessages.textContent = "Failed to load Slack messages. Ensure the backend function is deployed.";
+                noSlackMessages.classList.remove('hidden');
             }
         }
 
@@ -472,8 +424,6 @@
             }
         });
         logoutBtn.addEventListener('click', () => signOut(auth));
-        viewAllMessagesBtn.addEventListener('click', showChatwootPage);
-        chatwootBackBtn.addEventListener('click', showDashboard);
         function getFriendlyAuthError(errorCode) {
             switch (errorCode) {
                 case 'auth/wrong-password': case 'auth/invalid-credential': return 'Incorrect email or password.';
@@ -483,7 +433,6 @@
                 default: return 'An unknown error occurred.';
             }
         }
-
     </script>
 </body>
-</html>
+</ht
