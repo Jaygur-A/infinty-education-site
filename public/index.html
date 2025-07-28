@@ -25,7 +25,6 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        /* Make the chart labels clickable */
         #anecdote-chart {
             cursor: pointer;
         }
@@ -157,6 +156,10 @@
                 <div class="mb-5"><label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label><select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Vitality</option><option>Integrity</option><option>Curiosity</option><option>Critical Thinking</option></select></div>
                 <div class="mb-5"><label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label><select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Mindset</option><option>Physical Conditioning</option><option>Health</option><option>Connection</option><option>Purpose</option></select></div>
                 <div class="mb-6"><label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label><textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
+                <div class="mb-6">
+                    <label for="anecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
+                    <input type="file" id="anecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
+                </div>
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
             </form></div>
         </div>
@@ -167,6 +170,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
@@ -181,6 +185,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         // DOM Elements
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -352,7 +357,8 @@
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
                     const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate() : new Date(anecdote.createdAt);
-                    anecdoteCard.innerHTML = `<p class="text-gray-600">${anecdote.text}</p><p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
+                    const imageHtml = anecdote.imageUrl ? `<img src="${anecdote.imageUrl}" alt="Anecdote Image" class="mt-2 rounded-lg max-w-full h-auto">` : '';
+                    anecdoteCard.innerHTML = `<p class="text-gray-600">${anecdote.text}</p>${imageHtml}<p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
                     microSkillAnecdoteList.appendChild(anecdoteCard);
                 });
             });
@@ -423,9 +429,31 @@
         });
         addAnecdoteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await addDoc(collection(db, "anecdotes"), { studentId: currentStudentId, coreSkill: document.getElementById('coreSkill').value, microSkill: document.getElementById('microSkill').value, text: document.getElementById('anecdoteText').value, createdAt: serverTimestamp(), createdBy: auth.currentUser.uid });
-            addAnecdoteForm.reset();
-            addAnecdoteModal.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+            const anecdoteData = {
+                studentId: currentStudentId,
+                coreSkill: document.getElementById('coreSkill').value,
+                microSkill: document.getElementById('microSkill').value,
+                text: document.getElementById('anecdoteText').value,
+                createdAt: serverTimestamp(),
+                createdBy: auth.currentUser.uid,
+                imageUrl: null
+            };
+            const imageFile = document.getElementById('anecdoteImage').files[0];
+            try {
+                if (imageFile) {
+                    const storageRef = ref(storage, `anecdotes/${currentStudentId}/${Date.now()}-${imageFile.name}`);
+                    const uploadResult = await uploadBytes(storageRef, imageFile);
+                    anecdoteData.imageUrl = await getDownloadURL(uploadResult.ref);
+                }
+                await addDoc(collection(db, "anecdotes"), anecdoteData);
+                addAnecdoteForm.reset();
+                addAnecdoteModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Error adding anecdote:", error);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
         });
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
