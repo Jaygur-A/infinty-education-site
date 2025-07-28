@@ -361,4 +361,90 @@
         // CHAT LOGIC
         function listenForUsers() {
             const usersRef = collection(db, "users");
-            unsubscribeFromUsers = onSnapshot(us
+            unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
+                userList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.uid === auth.currentUser.uid) return;
+                    const userCard = document.createElement('div');
+                    userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+                    userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
+                    userCard.addEventListener('click', () => openChat(userData));
+                    userList.appendChild(userCard);
+                });
+            });
+        }
+
+        function openChat(recipient) {
+            chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
+            chatWithUser.dataset.recipientId = recipient.uid; 
+            showView(chatView);
+            const currentUser = auth.currentUser;
+            const chatID = [currentUser.uid, recipient.uid].sort().join('_');
+            const messagesRef = collection(db, "chats", chatID, "messages");
+            const q = query(messagesRef, orderBy("timestamp", "desc"));
+            if (unsubscribeFromMessages) unsubscribeFromMessages();
+            unsubscribeFromMessages = onSnapshot(q, (snapshot) => {
+                messageList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isSender = msg.senderId === currentUser.uid;
+                    const messageEl = document.createElement('div');
+                    messageEl.className = `p-3 rounded-lg max-w-xs mb-2 ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
+                    messageEl.textContent = msg.text;
+                    messageList.appendChild(messageEl);
+                });
+            });
+        }
+
+        // Event Listeners
+        dashboardBtn.addEventListener('click', () => showView(dashboardView));
+        messagesBtn.addEventListener('click', () => { showView(messagesView); listenForUsers(); });
+        backToMessagesBtn.addEventListener('click', () => showView(messagesView));
+        googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
+        logoutBtn.addEventListener('click', () => signOut(auth));
+        addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
+        addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
+        closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+        closeAnecdoteDisplayBtn.addEventListener('click', () => {
+            anecdoteDisplayContainer.classList.add('hidden');
+            if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
+        });
+        alignedSkillsGrid.addEventListener('click', (e) => {
+            const skillCard = e.target.closest('.skill-card');
+            if (skillCard) listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
+        });
+        addStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "students"), { name: document.getElementById('studentName').value, class: document.getElementById('studentClass').value, address: document.getElementById('studentAddress').value, createdAt: serverTimestamp(), createdBy: auth.currentUser.uid });
+            addStudentForm.reset();
+            addRecordModal.classList.add('hidden');
+        });
+        addAnecdoteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addDoc(collection(db, "anecdotes"), { studentId: currentStudentId, coreSkill: document.getElementById('coreSkill').value, microSkill: document.getElementById('microSkill').value, text: document.getElementById('anecdoteText').value, createdAt: serverTimestamp(), createdBy: auth.currentUser.uid });
+            addAnecdoteForm.reset();
+            addAnecdoteModal.classList.add('hidden');
+        });
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value;
+            if (text.trim() === '') return;
+            const recipientId = chatWithUser.dataset.recipientId;
+            if (!recipientId) return;
+            const currentUser = auth.currentUser;
+            const chatID = [currentUser.uid, recipientId].sort().join('_');
+            const messagesRef = collection(db, "chats", chatID, "messages");
+            await addDoc(messagesRef, {
+                text: text,
+                senderId: currentUser.uid,
+                recipientId: recipientId,
+                timestamp: serverTimestamp()
+            });
+            messageInput.value = '';
+        });
+        backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
+    </script>
+</body>
+</html>
