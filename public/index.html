@@ -239,6 +239,16 @@
         let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes;
         let anecdoteChart = null;
 
+        // Helper Functions
+        const showMessage = (message, isError = true) => {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            messageText.textContent = message;
+            messageBox.className = `fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => messageBox.classList.add('hidden'), 5000);
+        };
+
         // Page Navigation
         const showView = (viewToShow) => {
             [dashboardView, messagesView, chatView, studentDetailView, microSkillDetailView].forEach(view => view.classList.add('hidden'));
@@ -452,10 +462,12 @@
                     anecdoteData.imageUrl = await getDownloadURL(uploadResult.ref);
                 }
                 await addDoc(collection(db, "anecdotes"), anecdoteData);
+                showMessage("Anecdote saved successfully!", false);
                 addAnecdoteForm.reset();
                 addAnecdoteModal.classList.add('hidden');
             } catch (error) {
                 console.error("Error adding anecdote:", error);
+                showMessage("Failed to save anecdote. Check permissions and try again.");
             } finally {
                 loadingOverlay.classList.add('hidden');
             }
