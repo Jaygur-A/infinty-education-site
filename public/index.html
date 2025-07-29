@@ -37,6 +37,11 @@
         <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-500"></div>
     </div>
 
+    <!-- Custom Message/Error Box -->
+    <div id="message-box" class="hidden fixed top-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-lg z-50">
+        <p id="message-text"></p>
+    </div>
+
     <!-- Login Page Container -->
     <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg">
@@ -69,6 +74,10 @@
         
         <!-- Admin Dashboard View -->
         <main id="dashboard-view" class="container mx-auto p-8">
+             <div class="bg-white p-8 rounded-lg shadow mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Total Anecdote Counts by Core Skill</h2>
+                <canvas id="all-skills-chart"></canvas>
+             </div>
              <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
                 <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
@@ -243,12 +252,14 @@
         const microSkillAnecdoteList = document.getElementById('micro-skill-anecdote-list');
         const noMicroSkillAnecdotesMessage = document.getElementById('no-micro-skill-anecdotes-message');
         const backToStudentDetailBtn = document.getElementById('back-to-student-detail-btn');
+        const allSkillsChartCanvas = document.getElementById('all-skills-chart');
         
         // App State
         let currentStudentId = null;
         let currentCoreSkill = null;
-        let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes;
+        let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
         let anecdoteChart = null;
+        let allSkillsChart = null;
 
         // Helper Functions
         const showMessage = (message, isError = true) => {
@@ -278,6 +289,7 @@
                     showView(dashboardView);
                     addRecordBtn.classList.remove('hidden');
                     listenForStudentRecords();
+                    listenForAllAnecdotes();
                 } else {
                     showView(parentDashboardView);
                     addRecordBtn.classList.add('hidden');
@@ -292,6 +304,7 @@
                 if (unsubscribeFromStudents) unsubscribeFromStudents();
                 if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
                 if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
+                if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
             }
             loadingOverlay.classList.add('hidden');
         });
@@ -316,11 +329,7 @@
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                if (snapshot.empty) {
-                    noStudentsMessage.classList.remove('hidden');
-                } else {
-                    noStudentsMessage.classList.add('hidden');
-                }
+                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
@@ -399,6 +408,53 @@
                     anecdoteCard.innerHTML = `<p class="text-gray-600">${anecdote.text}</p>${imageHtml}<p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
                     microSkillAnecdoteList.appendChild(anecdoteCard);
                 });
+            });
+        }
+
+        function listenForAllAnecdotes() {
+            if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
+            const q = query(collection(db, "anecdotes"));
+            unsubscribeFromAllAnecdotes = onSnapshot(q, (snapshot) => {
+                const coreSkillCounts = { 'Vitality': 0, 'Integrity': 0, 'Curiosity': 0, 'Critical Thinking': 0 };
+                snapshot.forEach(doc => {
+                    const anecdote = doc.data();
+                    if (coreSkillCounts.hasOwnProperty(anecdote.coreSkill)) {
+                        coreSkillCounts[anecdote.coreSkill]++;
+                    }
+                });
+                renderAllSkillsChart(coreSkillCounts);
+            });
+        }
+
+        function renderAllSkillsChart(data) {
+            if (allSkillsChart) allSkillsChart.destroy();
+            const ctx = allSkillsChartCanvas.getContext('2d');
+            allSkillsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Total Anecdotes',
+                        data: Object.values(data),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(75, 192, 192, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
             });
         }
 
