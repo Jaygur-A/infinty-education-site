@@ -72,7 +72,8 @@
              <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
                 <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
-             </div>
+                <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
+            </div>
         </main>
         
         <!-- Parent Dashboard View -->
@@ -222,6 +223,8 @@
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const studentGrid = document.getElementById('student-grid');
+        const noStudentsMessage = document.getElementById('no-students-message');
+        const studentDetailName = document.getElementById('student-detail-name');
         const addRecordBtn = document.getElementById('addRecordBtn');
         const addRecordModal = document.getElementById('addRecordModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
@@ -230,7 +233,6 @@
         const addAnecdoteModal = document.getElementById('addAnecdoteModal');
         const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
         const addAnecdoteForm = document.getElementById('addAnecdoteForm');
-        const studentDetailName = document.getElementById('student-detail-name');
         const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
         const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
         const anecdoteListTitle = document.getElementById('anecdote-list-title');
@@ -314,7 +316,7 @@
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                document.getElementById('no-students-message').classList.toggle('hidden', !snapshot.empty);
+                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
