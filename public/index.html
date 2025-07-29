@@ -152,7 +152,7 @@
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="addStudentForm">
                 <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-5"><label for="studentAddress" class="block mb-2 text-sm font-medium">Address</label><input type="text" id="studentAddress" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-5"><label for="studentGrade" class="block mb-2 text-sm font-medium">Grade</label><input type="text" id="studentGrade" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
             </form></div>
@@ -496,7 +496,13 @@
         });
         addStudentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await addDoc(collection(db, "students"), { name: document.getElementById('studentName').value, class: document.getElementById('studentClass').value, address: document.getElementById('studentAddress').value, createdAt: serverTimestamp(), createdBy: auth.currentUser.uid });
+            await addDoc(collection(db, "students"), { 
+                name: document.getElementById('studentName').value, 
+                grade: document.getElementById('studentGrade').value, 
+                class: document.getElementById('studentClass').value, 
+                createdAt: serverTimestamp(), 
+                createdBy: auth.currentUser.uid 
+            });
             addStudentForm.reset();
             addRecordModal.classList.add('hidden');
         });
