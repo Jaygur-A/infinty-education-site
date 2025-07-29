@@ -405,7 +405,7 @@
                     const anecdoteCard = document.createElement('div');
                     anecdoteCard.className = 'p-4 border rounded-lg bg-gray-50';
                     const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate() : new Date(anecdote.createdAt);
-                    const imageHtml = anecdote.imageUrl ? `<img src="${anecdote.imageUrl}" alt="Anecdote Image" class="mt-2 rounded-lg max-w-full h-auto">` : '';
+                    const imageHtml = anecdote.imageUrl ? `<img src="${anecdote.imageUrl}" alt="Anecdote Image" class="mt-2 rounded-lg max-w-full h-auto max-h-96">` : '';
                     anecdoteCard.innerHTML = `<p class="text-gray-600">${anecdote.text}</p>${imageHtml}<p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
                     microSkillAnecdoteList.appendChild(anecdoteCard);
                 });
