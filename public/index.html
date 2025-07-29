@@ -89,6 +89,7 @@
             <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Select a User to Message</h2>
                 <div id="user-list" class="space-y-2"></div>
+                <div id="no-users-message" class="hidden text-center py-10"><p class="text-gray-500">No conversations found.</p></div>
             </div>
         </main>
 
@@ -215,6 +216,7 @@
         const chatView = document.getElementById('chat-view');
         const studentDetailView = document.getElementById('student-detail-view');
         const userList = document.getElementById('user-list');
+        const noUsersMessage = document.getElementById('no-users-message');
         const chatWithUser = document.getElementById('chat-with-user');
         const backToMessagesBtn = document.getElementById('back-to-messages-btn');
         const messageList = document.getElementById('message-list');
@@ -397,20 +399,53 @@
         }
 
         // CHAT LOGIC
-        function listenForUsers() {
-            const usersRef = collection(db, "users");
-            unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
-                userList.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const userData = doc.data();
-                    if (userData.uid === auth.currentUser.uid) return;
-                    const userCard = document.createElement('div');
-                    userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
-                    userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
-                    userCard.addEventListener('click', () => openChat(userData));
-                    userList.appendChild(userCard);
+        async function listenForUsers() {
+            const currentUser = auth.currentUser;
+            if (!currentUser) return;
+
+            if (unsubscribeFromUsers) unsubscribeFromUsers();
+            userList.innerHTML = '';
+
+            if (currentUser.uid === ADMIN_UID) {
+                // Admin: Show all users
+                const usersRef = collection(db, "users");
+                unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
+                    userList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        if (userData.uid === currentUser.uid) return;
+                        const userCard = document.createElement('div');
+                        userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+                        userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
+                        userCard.addEventListener('click', () => openChat(userData));
+                        userList.appendChild(userCard);
+                    });
                 });
-            });
+            } else {
+                // Parent: Show only users they have a chat with
+                const chatsRef = collection(db, "chats");
+                const q = query(chatsRef, where("participants", "array-contains", currentUser.uid));
+                unsubscribeFromUsers = onSnapshot(q, async (snapshot) => {
+                    userList.innerHTML = '';
+                    noUsersMessage.classList.toggle('hidden', snapshot.empty);
+                    for (const chatDoc of snapshot.docs) {
+                        const participants = chatDoc.data().participants;
+                        const otherUserId = participants.find(uid => uid !== currentUser.uid);
+                        if (otherUserId) {
+                            const userRef = doc(db, "users", otherUserId);
+                            const userSnap = await getDoc(userRef);
+                            if (userSnap.exists()) {
+                                const userData = userSnap.data();
+                                const userCard = document.createElement('div');
+                                userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+                                userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
+                                userCard.addEventListener('click', () => openChat(userData));
+                                userList.appendChild(userCard);
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         function openChat(recipient) {
@@ -504,6 +539,13 @@
             const currentUser = auth.currentUser;
             const chatID = [currentUser.uid, recipientId].sort().join('_');
             const messagesRef = collection(db, "chats", chatID, "messages");
+            
+            const chatDocRef = doc(db, "chats", chatID);
+            await setDoc(chatDocRef, {
+                participants: [currentUser.uid, recipientId],
+                lastMessage: text
+            }, { merge: true });
+
             await addDoc(messagesRef, {
                 text: text,
                 senderId: currentUser.uid,
