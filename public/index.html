@@ -37,11 +37,6 @@
         <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-500"></div>
     </div>
 
-    <!-- Custom Message/Error Box -->
-    <div id="message-box" class="hidden fixed top-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-lg z-50">
-        <p id="message-text"></p>
-    </div>
-
     <!-- Login Page Container -->
     <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg">
@@ -72,7 +67,7 @@
             </div>
         </header>
         
-        <!-- Dashboard View -->
+        <!-- Admin Dashboard View -->
         <main id="dashboard-view" class="container mx-auto p-8">
              <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
@@ -81,6 +76,14 @@
             </div>
         </main>
         
+        <!-- Parent Dashboard View -->
+        <main id="parent-dashboard-view" class="hidden container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow">
+                <h2 class="text-3xl font-bold text-gray-800">Welcome!</h2>
+                <p class="text-gray-600 mt-2">This is your personal dashboard. More features coming soon!</p>
+            </div>
+        </main>
+
         <!-- Messages View -->
         <main id="messages-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
@@ -192,6 +195,11 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
+        // ===================================================================
+        // AUTHORIZATION CONFIGURATION
+        // ===================================================================
+        const ADMIN_UID = "qogikivAnTej3fWMPHhBrjsfbQu2";
+
         // DOM Elements
         const loadingOverlay = document.getElementById('loading-overlay');
         const authContainer = document.getElementById('auth-container');
@@ -202,6 +210,7 @@
         const dashboardBtn = document.getElementById('dashboard-btn');
         const messagesBtn = document.getElementById('messages-btn');
         const dashboardView = document.getElementById('dashboard-view');
+        const parentDashboardView = document.getElementById('parent-dashboard-view');
         const messagesView = document.getElementById('messages-view');
         const chatView = document.getElementById('chat-view');
         const studentDetailView = document.getElementById('student-detail-view');
@@ -251,7 +260,7 @@
 
         // Page Navigation
         const showView = (viewToShow) => {
-            [dashboardView, messagesView, chatView, studentDetailView, microSkillDetailView].forEach(view => view.classList.add('hidden'));
+            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView].forEach(view => view.classList.add('hidden'));
             viewToShow.classList.remove('hidden');
         };
 
@@ -262,8 +271,16 @@
                 await createUserProfileIfNeeded(user);
                 appContainer.classList.remove('hidden');
                 authContainer.classList.add('hidden');
-                showView(dashboardView);
-                listenForStudentRecords();
+                
+                if (user.uid === ADMIN_UID) {
+                    showView(dashboardView);
+                    addRecordBtn.classList.remove('hidden');
+                    listenForStudentRecords();
+                } else {
+                    showView(parentDashboardView);
+                    addRecordBtn.classList.add('hidden');
+                }
+
                 userEmailSpan.textContent = user.email;
             } else {
                 appContainer.classList.add('hidden');
@@ -419,7 +436,13 @@
         }
 
         // Event Listeners
-        dashboardBtn.addEventListener('click', () => showView(dashboardView));
+        dashboardBtn.addEventListener('click', () => {
+             if (auth.currentUser.uid === ADMIN_UID) {
+                showView(dashboardView);
+            } else {
+                showView(parentDashboardView);
+            }
+        });
         messagesBtn.addEventListener('click', () => { showView(messagesView); listenForUsers(); });
         backToMessagesBtn.addEventListener('click', () => showView(messagesView));
         googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
