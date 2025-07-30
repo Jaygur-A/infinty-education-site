@@ -6,7 +6,6 @@
     <title>Infinity Education</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js library for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -32,17 +31,14 @@
 </head>
 <body class="bg-gray-50">
 
-    <!-- Loading Overlay -->
     <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
         <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-500"></div>
     </div>
 
-    <!-- Custom Message/Error Box -->
     <div id="message-box" class="hidden fixed top-5 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-lg z-50">
         <p id="message-text"></p>
     </div>
 
-    <!-- Login Page Container -->
     <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg">
             <div class="flex flex-col items-center mb-6">
@@ -57,7 +53,6 @@
         </div>
     </div>
 
-    <!-- Main Application Container -->
     <div id="app-container" class="hidden">
         <header class="bg-green-600 text-white p-4 shadow-md">
             <div class="container mx-auto flex justify-between items-center">
@@ -72,7 +67,6 @@
             </div>
         </header>
         
-        <!-- Admin Dashboard View -->
         <main id="dashboard-view" class="container mx-auto p-8">
              <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
@@ -85,7 +79,6 @@
              </div>
         </main>
         
-        <!-- Parent Dashboard View -->
         <main id="parent-dashboard-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-3xl font-bold text-gray-800">Welcome!</h2>
@@ -93,7 +86,6 @@
             </div>
         </main>
 
-        <!-- Messages View -->
         <main id="messages-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Select a User to Message</h2>
@@ -102,7 +94,6 @@
             </div>
         </main>
 
-        <!-- Chat View -->
         <main id="chat-view" class="hidden container mx-auto p-8">
             <div class="bg-white rounded-lg shadow">
                 <div class="p-4 border-b flex justify-between items-center">
@@ -112,14 +103,17 @@
                 <div id="message-list" class="p-4 h-96 overflow-y-auto flex flex-col-reverse"></div>
                 <div class="p-4 border-t">
                     <form id="message-form" class="flex items-center">
-                        <input type="text" id="message-input" class="flex-grow border rounded-lg p-2 mr-4" placeholder="Type your message..." required autocomplete="off">
+                        <input type="file" id="file-input" class="hidden">
+                        <button type="button" id="attach-file-btn" class="text-gray-500 hover:text-green-600 p-2 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        </button>
+                        <input type="text" id="message-input" class="flex-grow border rounded-lg p-2 mr-4" placeholder="Type your message..." autocomplete="off">
                         <button type="submit" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg">Send</button>
                     </form>
                 </div>
             </div>
         </main>
 
-        <!-- Student Detail View -->
         <main id="student-detail-view" class="hidden container mx-auto p-8">
              <div class="bg-white p-8 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-6">
@@ -142,7 +136,6 @@
             </div>
         </main>
 
-        <!-- Micro-Skill Detail View -->
         <main id="micro-skill-detail-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-6">
@@ -155,7 +148,6 @@
         </main>
     </div>
 
-    <!-- Modals -->
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
@@ -183,7 +175,13 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <div id="image-modal" class="modal-backdrop hidden">
+        <div class="relative max-w-4xl max-h-4/5">
+            <button id="close-image-modal-btn" class="absolute -top-10 right-0 text-white text-4xl font-bold">&times;</button>
+            <img id="modal-image" src="" alt="Enlarged chat image" class="object-contain w-full h-full">
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -202,7 +200,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-		window.auth = auth;
+        window.auth = auth; // Expose auth for debugging
         const db = getFirestore(app);
         const storage = getStorage(app);
 
@@ -254,6 +252,11 @@
         const noMicroSkillAnecdotesMessage = document.getElementById('no-micro-skill-anecdotes-message');
         const backToStudentDetailBtn = document.getElementById('back-to-student-detail-btn');
         const allSkillsChartCanvas = document.getElementById('all-skills-chart');
+        const attachFileBtn = document.getElementById('attach-file-btn');
+        const fileInput = document.getElementById('file-input');
+        const imageModal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const closeImageModalBtn = document.getElementById('close-image-modal-btn');
         
         // App State
         let currentStudentId = null;
@@ -524,8 +527,34 @@
                     const msg = doc.data();
                     const isSender = msg.senderId === currentUser.uid;
                     const messageEl = document.createElement('div');
-                    messageEl.className = `p-3 rounded-lg max-w-xs mb-2 ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
-                    messageEl.textContent = msg.text;
+                    messageEl.className = `p-3 rounded-lg max-w-xs mb-2 break-words ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
+
+                    let contentHTML = '';
+
+                    // Display file if it exists
+                    if (msg.fileUrl) {
+                        if (msg.fileType && msg.fileType.startsWith('image/')) {
+                            // Display image preview
+                            contentHTML += `
+                                <img src="${msg.fileUrl}" alt="Image preview" class="chat-image-preview rounded-lg max-w-full h-auto cursor-pointer mb-2">
+                            `;
+                        } else {
+                            // Display a generic file link
+                            contentHTML += `
+                                <a href="${msg.fileUrl}" download="${msg.fileName || 'file'}" target="_blank" class="flex items-center p-2 bg-gray-300 rounded-lg hover:bg-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span class="truncate">${msg.fileName || 'Download File'}</span>
+                                </a>
+                            `;
+                        }
+                    }
+
+                    // Display text message/caption
+                    if (msg.text) {
+                        contentHTML += `<p>${msg.text}</p>`;
+                    }
+                    
+                    messageEl.innerHTML = contentHTML;
                     messageList.appendChild(messageEl);
                 });
             });
@@ -597,30 +626,78 @@
                 loadingOverlay.classList.add('hidden');
             }
         });
+        
+        attachFileBtn.addEventListener('click', () => fileInput.click());
+
+        messageList.addEventListener('click', (e) => {
+            if (e.target && e.target.classList.contains('chat-image-preview')) {
+                modalImage.src = e.target.src;
+                imageModal.classList.remove('hidden');
+            }
+        });
+
+        closeImageModalBtn.addEventListener('click', () => imageModal.classList.add('hidden'));
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) {
+                imageModal.classList.add('hidden');
+            }
+        });
+
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = messageInput.value;
-            if (text.trim() === '') return;
+            const file = fileInput.files[0];
+
+            if (text.trim() === '' && !file) return;
+
+            loadingOverlay.classList.remove('hidden');
+
             const recipientId = chatWithUser.dataset.recipientId;
             if (!recipientId) return;
+
             const currentUser = auth.currentUser;
             const chatID = [currentUser.uid, recipientId].sort().join('_');
             const messagesRef = collection(db, "chats", chatID, "messages");
-            
             const chatDocRef = doc(db, "chats", chatID);
-            await setDoc(chatDocRef, {
-                participants: [currentUser.uid, recipientId],
-                lastMessage: text
-            }, { merge: true });
 
-            await addDoc(messagesRef, {
-                text: text,
-                senderId: currentUser.uid,
-                recipientId: recipientId,
-                timestamp: serverTimestamp()
-            });
-            messageInput.value = '';
+            try {
+                let fileUrl = null;
+                let fileName = null;
+                let fileType = null;
+
+                if (file) {
+                    const storageRef = ref(storage, `chats/${chatID}/${Date.now()}-${file.name}`);
+                    const uploadResult = await uploadBytes(storageRef, file);
+                    fileUrl = await getDownloadURL(uploadResult.ref);
+                    fileName = file.name;
+                    fileType = file.type;
+                }
+                
+                await addDoc(messagesRef, {
+                    text: text,
+                    senderId: currentUser.uid,
+                    recipientId: recipientId,
+                    timestamp: serverTimestamp(),
+                    fileUrl,
+                    fileName,
+                    fileType
+                });
+
+                await setDoc(chatDocRef, {
+                    participants: [currentUser.uid, recipientId],
+                    lastMessage: file ? (text || 'File sent') : text
+                }, { merge: true });
+
+                messageInput.value = '';
+                fileInput.value = ''; // Clear the file input
+            } catch (error) {
+                console.error("Error sending message: ", error);
+                showMessage("Failed to send message.");
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
         });
+
         backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
     </script>
 </body>
