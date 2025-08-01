@@ -346,7 +346,7 @@
             const q = query(collection(db, "students"));
             unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
                 studentGrid.innerHTML = '';
-                noStudentsMessage.classList.toggle('hidden', snapshot.empty);
+                noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
                 snapshot.forEach(doc => {
                     const student = doc.data();
                     const studentCard = document.createElement('div');
