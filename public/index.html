@@ -101,6 +101,15 @@
                     <button id="back-to-messages-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to List</button>
                 </div>
                 <div id="message-list" class="p-4 h-96 overflow-y-auto flex flex-col-reverse"></div>
+                <div id="file-preview-container" class="hidden p-4 border-t">
+                    <div class="bg-gray-100 p-2 rounded-lg flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img id="file-preview-image" src="" class="w-12 h-12 object-cover rounded-md mr-3">
+                            <span id="file-preview-name" class="text-sm text-gray-700"></span>
+                        </div>
+                        <button id="remove-file-btn" class="text-gray-500 hover:text-red-600">&times;</button>
+                    </div>
+                </div>
                 <div class="p-4 border-t">
                     <form id="message-form" class="flex items-center">
                         <input type="file" id="file-input" class="hidden">
@@ -257,6 +266,10 @@
         const imageModal = document.getElementById('image-modal');
         const modalImage = document.getElementById('modal-image');
         const closeImageModalBtn = document.getElementById('close-image-modal-btn');
+        const filePreviewContainer = document.getElementById('file-preview-container');
+        const filePreviewImage = document.getElementById('file-preview-image');
+        const filePreviewName = document.getElementById('file-preview-name');
+        const removeFileBtn = document.getElementById('remove-file-btn');
         
         // App State
         let currentStudentId = null;
@@ -643,6 +656,29 @@
             }
         });
 
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                filePreviewName.textContent = file.name;
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        filePreviewImage.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // Generic file icon placeholder
+                    filePreviewImage.src = 'https://placehold.co/100x100/E2E8F0/4A5568?text=FILE';
+                }
+                filePreviewContainer.classList.remove('hidden');
+            }
+        });
+
+        removeFileBtn.addEventListener('click', () => {
+            fileInput.value = ''; // Clear the file input
+            filePreviewContainer.classList.add('hidden');
+        });
+
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = messageInput.value;
@@ -690,6 +726,7 @@
 
                 messageInput.value = '';
                 fileInput.value = ''; // Clear the file input
+                filePreviewContainer.classList.add('hidden'); // Hide preview after sending
             } catch (error) {
                 console.error("Error sending message: ", error);
                 showMessage("Failed to send message.");
