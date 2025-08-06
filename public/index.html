@@ -87,6 +87,10 @@
         </main>
 
         <main id="messages-view" class="hidden container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Messages Sent This Week</h2>
+                <canvas id="messages-chart"></canvas>
+            </div>
             <div class="bg-white p-8 rounded-lg shadow">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Select a User to Message</h2>
                 <div id="user-list" class="space-y-2"></div>
@@ -194,7 +198,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -270,6 +274,7 @@
         const filePreviewImage = document.getElementById('file-preview-image');
         const filePreviewName = document.getElementById('file-preview-name');
         const removeFileBtn = document.getElementById('remove-file-btn');
+        const messagesChartCanvas = document.getElementById('messages-chart');
         
         // App State
         let currentStudentId = null;
@@ -277,6 +282,7 @@
         let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
         let anecdoteChart = null;
         let allSkillsChart = null;
+        let messagesChart = null;
 
         // Helper Functions
         const showMessage = (message, isError = true) => {
@@ -286,6 +292,18 @@
             messageBox.className = `fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
             messageBox.classList.remove('hidden');
             setTimeout(() => messageBox.classList.add('hidden'), 5000);
+        };
+        
+        const getWeekDates = () => {
+            const today = new Date();
+            const day = today.getDay(); // 0 is Sunday, 1 is Monday
+            const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+            const startOfWeek = new Date(today.setDate(diff));
+            startOfWeek.setHours(0, 0, 0, 0);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            return { start: startOfWeek, end: endOfWeek };
         };
 
         // Page Navigation
@@ -572,6 +590,65 @@
                 });
             });
         }
+        
+        function listenForAdminMessages() {
+            const currentUser = auth.currentUser;
+            if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+
+            const { start, end } = getWeekDates();
+            
+            const messagesCollectionGroup = collectionGroup(db, 'messages');
+            const q = query(messagesCollectionGroup, 
+                where("senderId", "==", ADMIN_UID),
+                where("timestamp", ">=", start),
+                where("timestamp", "<=", end),
+                orderBy("timestamp", "asc")
+            );
+
+            onSnapshot(q, (snapshot) => {
+                const dailyCounts = {
+                    'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
+                };
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+                snapshot.forEach(doc => {
+                    const message = doc.data();
+                    const date = message.timestamp.toDate();
+                    const dayIndex = date.getDay();
+                    const dayName = dayNames[dayIndex];
+                    if (dayName) {
+                        dailyCounts[dayName]++;
+                    }
+                });
+
+                renderMessagesChart(dailyCounts);
+            });
+        }
+
+        function renderMessagesChart(data) {
+            if (messagesChart) messagesChart.destroy();
+            const ctx = messagesChartCanvas.getContext('2d');
+            messagesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: 'Messages Sent',
+                        data: Object.values(data),
+                        backgroundColor: 'rgba(52, 211, 153, 0.5)',
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
 
         // Event Listeners
         dashboardBtn.addEventListener('click', () => {
@@ -581,7 +658,13 @@
                 showView(parentDashboardView);
             }
         });
-        messagesBtn.addEventListener('click', () => { showView(messagesView); listenForUsers(); });
+        messagesBtn.addEventListener('click', () => {
+            showView(messagesView);
+            listenForUsers();
+            if (auth.currentUser.uid === ADMIN_UID) {
+                listenForAdminMessages();
+            }
+        });
         backToMessagesBtn.addEventListener('click', () => showView(messagesView));
         googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
         logoutBtn.addEventListener('click', () => signOut(auth));
