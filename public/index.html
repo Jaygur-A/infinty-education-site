@@ -84,6 +84,14 @@
                 <h2 class="text-3xl font-bold text-gray-800">Welcome!</h2>
                 <p class="text-gray-600 mt-2">This is your personal dashboard. More features coming soon!</p>
             </div>
+            
+            <div class="mt-8 bg-red-50 border border-red-200 p-6 rounded-lg">
+                <h3 class="text-xl font-bold text-red-800">Delete Account</h3>
+                <p class="text-red-700 mt-2">This action is permanent and cannot be undone. All of your personal information, including chat history and uploaded files, will be permanently removed.</p>
+                <button id="delete-account-btn" class="mt-4 bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">
+                    Delete My Account
+                </button>
+            </div>
         </main>
 
         <main id="messages-view" class="hidden container mx-auto p-8">
@@ -195,11 +203,26 @@
         </div>
     </div>
 
+    <div id="delete-confirm-modal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="p-6 text-center">
+                <h3 class="text-2xl font-semibold mb-4">Are you absolutely sure?</h3>
+                <p class="text-gray-600 mb-6">This will permanently delete your account and all associated data. This action cannot be undone.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-delete-btn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button id="confirm-delete-btn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Yes, delete it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
@@ -216,6 +239,7 @@
         window.auth = auth; // Expose auth for debugging
         const db = getFirestore(app);
         const storage = getStorage(app);
+        const functions = getFunctions(app);
 
         // ===================================================================
         // AUTHORIZATION CONFIGURATION
@@ -275,6 +299,10 @@
         const filePreviewName = document.getElementById('file-preview-name');
         const removeFileBtn = document.getElementById('remove-file-btn');
         const messagesChartCanvas = document.getElementById('messages-chart');
+        const deleteAccountBtn = document.getElementById('delete-account-btn');
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
         
         // App State
         let currentStudentId = null;
@@ -591,23 +619,21 @@
             });
         }
         
-		function listenForAdminMessages() {
+        function listenForAdminMessages() {
             const currentUser = auth.currentUser;
             if (!currentUser || currentUser.uid !== ADMIN_UID) return;
 
             const { start, end } = getWeekDates();
             
-            // Format the dates for the title
             const options = { month: 'long', day: 'numeric' };
             const formattedStartDate = start.toLocaleDateString('en-US', options);
             const formattedEndDate = end.toLocaleDateString('en-US', options);
 
-            // Set the dynamic title
             const chartTitleEl = document.getElementById('messages-chart-title');
             if (chartTitleEl) {
                 chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
             }
-
+            
             const messagesCollectionGroup = collectionGroup(db, 'messages');
             const q = query(messagesCollectionGroup, 
                 where("senderId", "==", ADMIN_UID),
@@ -637,14 +663,13 @@
                 renderMessagesChart(dailyCounts);
             }, (error) => {
                 console.error("Error fetching admin messages:", error);
-                // Also reset the title if there's an error
                 if (chartTitleEl) {
                     chartTitleEl.textContent = 'Messages Sent This Week';
                 }
                 showMessage("Could not load message chart. See console for details.");
             });
         }
-		
+
         function renderMessagesChart(data) {
             if (messagesChart) messagesChart.destroy();
             const ctx = messagesChartCanvas.getContext('2d');
@@ -839,6 +864,34 @@
         });
 
         backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
+
+        // Event Listeners for Account Deletion
+        deleteAccountBtn.addEventListener('click', () => {
+            deleteConfirmModal.classList.remove('hidden');
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteConfirmModal.classList.add('hidden');
+        });
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            loadingOverlay.classList.remove('hidden');
+            deleteConfirmModal.classList.add('hidden');
+
+            const deleteUserData = httpsCallable(functions, 'deleteUserData');
+            try {
+                const result = await deleteUserData();
+                console.log(result.data.message); 
+                // The onAuthStateChanged listener will automatically handle the UI
+                // by logging the user out and showing the auth screen.
+                showMessage("Your account has been successfully deleted.", false);
+            } catch (error) {
+                console.error("Deletion failed:", error);
+                showMessage("Could not delete your account. Please try again.");
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+
     </script>
 </body>
 </html>
