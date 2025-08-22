@@ -58,11 +58,21 @@
             <div class="container mx-auto flex justify-between items-center">
                 <h1 class="text-xl font-bold">🎓 Infinity Education</h1>
                 <nav class="flex items-center space-x-6">
-                    <span id="user-email" class="font-semibold"></span>
                     <button id="dashboard-btn" class="font-semibold hover:text-green-200">Dashboard</button>
                     <button id="messages-btn" class="font-semibold hover:text-green-200">✉️ Messages</button>
                     <button id="addRecordBtn" class="font-semibold hover:text-green-200">➕ Add Record</button>
-                    <button id="logout-btn" class="font-semibold hover:text-green-200">Log Out</button>
+                    
+                    <div id="profile-menu-container" class="relative">
+                        <button id="profile-menu-btn" class="font-semibold hover:text-green-200 flex items-center">
+                            <span id="user-email-display"></span>
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                            <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
+                        </div>
+                    </div>
+
                 </nav>
             </div>
         </header>
@@ -84,8 +94,23 @@
                 <h2 class="text-3xl font-bold text-gray-800">Welcome!</h2>
                 <p class="text-gray-600 mt-2">This is your personal dashboard. More features coming soon!</p>
             </div>
-            
-            <div class="mt-8 bg-red-50 border border-red-200 p-6 rounded-lg">
+        </main>
+        
+        <main id="profile-view" class="hidden container mx-auto p-8">
+            <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Your Profile</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Full Name</label>
+                        <p id="profile-name" class="text-lg text-gray-800"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Email Address</label>
+                        <p id="profile-email" class="text-lg text-gray-800"></p>
+                    </div>
+                </div>
+            </div>
+             <div class="mt-8 max-w-2xl mx-auto bg-red-50 border border-red-200 p-6 rounded-lg">
                 <h3 class="text-xl font-bold text-red-800">Delete Account</h3>
                 <p class="text-red-700 mt-2">This action is permanent and cannot be undone. All of your personal information, including chat history and uploaded files, will be permanently removed.</p>
                 <button id="delete-account-btn" class="mt-4 bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">
@@ -93,6 +118,7 @@
                 </button>
             </div>
         </main>
+
 
         <main id="messages-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow mb-8">
@@ -251,12 +277,12 @@
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const googleSignInBtn = document.getElementById('google-signin-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const userEmailSpan = document.getElementById('user-email');
+        const userEmailDisplay = document.getElementById('user-email-display');
         const dashboardBtn = document.getElementById('dashboard-btn');
         const messagesBtn = document.getElementById('messages-btn');
         const dashboardView = document.getElementById('dashboard-view');
         const parentDashboardView = document.getElementById('parent-dashboard-view');
+        const profileView = document.getElementById('profile-view');
         const messagesView = document.getElementById('messages-view');
         const chatView = document.getElementById('chat-view');
         const studentDetailView = document.getElementById('student-detail-view');
@@ -303,6 +329,12 @@
         const deleteConfirmModal = document.getElementById('delete-confirm-modal');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const profileMenuBtn = document.getElementById('profile-menu-btn');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const profileLink = document.getElementById('profile-link');
+        const logoutLink = document.getElementById('logout-link');
+        const profileName = document.getElementById('profile-name');
+        const profileEmail = document.getElementById('profile-email');
         
         // App State
         let currentStudentId = null;
@@ -336,7 +368,7 @@
 
         // Page Navigation
         const showView = (viewToShow) => {
-            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView].forEach(view => view.classList.add('hidden'));
+            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView].forEach(view => view.classList.add('hidden'));
             viewToShow.classList.remove('hidden');
         };
 
@@ -358,7 +390,7 @@
                     addRecordBtn.classList.add('hidden');
                 }
 
-                userEmailSpan.textContent = user.email;
+                userEmailDisplay.textContent = user.email;
             } else {
                 appContainer.classList.add('hidden');
                 authContainer.classList.remove('hidden');
@@ -590,25 +622,9 @@
 
                     let contentHTML = '';
 
-                    // Display file if it exists
-                    if (msg.fileUrl) {
-                        if (msg.fileType && msg.fileType.startsWith('image/')) {
-                            // Display image preview
-                            contentHTML += `
-                                <img src="${msg.fileUrl}" alt="Image preview" class="chat-image-preview rounded-lg max-w-full h-auto cursor-pointer mb-2">
-                            `;
-                        } else {
-                            // Display a generic file link
-                            contentHTML += `
-                                <a href="${msg.fileUrl}" download="${msg.fileName || 'file'}" target="_blank" class="flex items-center p-2 bg-gray-300 rounded-lg hover:bg-gray-400">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                    <span class="truncate">${msg.fileName || 'Download File'}</span>
-                                </a>
-                            `;
-                        }
+                    if (msg.fileUrl && msg.fileType && msg.fileType.startsWith('image/')) {
+                        contentHTML += `<img src="${msg.fileUrl}" alt="Image preview" class="chat-image-preview rounded-lg max-w-full h-auto cursor-pointer mb-2">`;
                     }
-
-                    // Display text message/caption
                     if (msg.text) {
                         contentHTML += `<p>${msg.text}</p>`;
                     }
@@ -643,9 +659,7 @@
             );
 
             onSnapshot(q, (snapshot) => {
-                const dailyCounts = {
-                    'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
-                };
+                const dailyCounts = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
                 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
                 snapshot.forEach(doc => {
@@ -659,13 +673,10 @@
                         }
                     }
                 });
-
                 renderMessagesChart(dailyCounts);
             }, (error) => {
                 console.error("Error fetching admin messages:", error);
-                if (chartTitleEl) {
-                    chartTitleEl.textContent = 'Messages Sent This Week';
-                }
+                if (chartTitleEl) { chartTitleEl.textContent = 'Messages Sent This Week'; }
                 showMessage("Could not load message chart. See console for details.");
             });
         }
@@ -686,10 +697,7 @@
                     }]
                 },
                 options: {
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                        x: { grid: { display: false } }
-                    },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } },
                     plugins: { legend: { display: false } }
                 }
             });
@@ -710,9 +718,36 @@
                 listenForAdminMessages();
             }
         });
+
+        profileLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (user) {
+                profileName.textContent = user.displayName || 'Not available';
+                profileEmail.textContent = user.email;
+                showView(profileView);
+                profileDropdown.classList.add('hidden');
+            }
+        });
+
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            signOut(auth);
+            profileDropdown.classList.add('hidden');
+        });
+        
+        profileMenuBtn.addEventListener('click', () => {
+            profileDropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('profile-menu-container').contains(e.target)) {
+                profileDropdown.classList.add('hidden');
+            }
+        });
+
         backToMessagesBtn.addEventListener('click', () => showView(messagesView));
         googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
-        logoutBtn.addEventListener('click', () => signOut(auth));
         addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
         addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
@@ -790,12 +825,9 @@
                 filePreviewName.textContent = file.name;
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                        filePreviewImage.src = e.target.result;
-                    };
+                    reader.onload = (e) => { filePreviewImage.src = e.target.result; };
                     reader.readAsDataURL(file);
                 } else {
-                    // Generic file icon placeholder
                     filePreviewImage.src = 'https://placehold.co/100x100/E2E8F0/4A5568?text=FILE';
                 }
                 filePreviewContainer.classList.remove('hidden');
@@ -803,7 +835,7 @@
         });
 
         removeFileBtn.addEventListener('click', () => {
-            fileInput.value = ''; // Clear the file input
+            fileInput.value = '';
             filePreviewContainer.classList.add('hidden');
         });
 
@@ -813,9 +845,7 @@
             const file = fileInput.files[0];
 
             if (text.trim() === '' && !file) return;
-
             loadingOverlay.classList.remove('hidden');
-
             const recipientId = chatWithUser.dataset.recipientId;
             if (!recipientId) return;
 
@@ -825,10 +855,7 @@
             const chatDocRef = doc(db, "chats", chatID);
 
             try {
-                let fileUrl = null;
-                let fileName = null;
-                let fileType = null;
-
+                let fileUrl = null, fileName = null, fileType = null;
                 if (file) {
                     const storageRef = ref(storage, `chats/${chatID}/${Date.now()}-${file.name}`);
                     const uploadResult = await uploadBytes(storageRef, file);
@@ -838,13 +865,8 @@
                 }
                 
                 await addDoc(messagesRef, {
-                    text: text,
-                    senderId: currentUser.uid,
-                    recipientId: recipientId,
-                    timestamp: serverTimestamp(),
-                    fileUrl,
-                    fileName,
-                    fileType
+                    text: text, senderId: currentUser.uid, recipientId: recipientId,
+                    timestamp: serverTimestamp(), fileUrl, fileName, fileType
                 });
 
                 await setDoc(chatDocRef, {
@@ -853,8 +875,8 @@
                 }, { merge: true });
 
                 messageInput.value = '';
-                fileInput.value = ''; // Clear the file input
-                filePreviewContainer.classList.add('hidden'); // Hide preview after sending
+                fileInput.value = '';
+                filePreviewContainer.classList.add('hidden');
             } catch (error) {
                 console.error("Error sending message: ", error);
                 showMessage("Failed to send message.");
@@ -865,7 +887,6 @@
 
         backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
 
-        // Event Listeners for Account Deletion
         deleteAccountBtn.addEventListener('click', () => {
             deleteConfirmModal.classList.remove('hidden');
         });
@@ -882,8 +903,6 @@
             try {
                 const result = await deleteUserData();
                 console.log(result.data.message); 
-                // The onAuthStateChanged listener will automatically handle the UI
-                // by logging the user out and showing the auth screen.
                 showMessage("Your account has been successfully deleted.", false);
             } catch (error) {
                 console.error("Deletion failed:", error);
