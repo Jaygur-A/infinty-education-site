@@ -72,7 +72,6 @@
                             <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
                         </div>
                     </div>
-
                 </nav>
             </div>
         </header>
@@ -110,7 +109,7 @@
                     </div>
                 </div>
             </div>
-             <div class="mt-8 max-w-2xl mx-auto bg-red-50 border border-red-200 p-6 rounded-lg">
+            <div class="mt-8 max-w-2xl mx-auto bg-red-50 border border-red-200 p-6 rounded-lg">
                 <h3 class="text-xl font-bold text-red-800">Delete Account</h3>
                 <p class="text-red-700 mt-2">This action is permanent and cannot be undone. All of your personal information, including chat history and uploaded files, will be permanently removed.</p>
                 <button id="delete-account-btn" class="mt-4 bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">
@@ -118,7 +117,6 @@
                 </button>
             </div>
         </main>
-
 
         <main id="messages-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow mb-8">
@@ -167,11 +165,12 @@
                     <h2 id="student-detail-name" class="text-3xl font-bold text-gray-800"></h2>
                     <button id="add-anecdote-btn" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700">Add Anecdote</button>
                 </div>
-                <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <div class="skill-card p-4 border rounded-lg" data-skill="Vitality"><h3 class="font-bold text-center">Vitality</h3></div>
                     <div class="skill-card p-4 border rounded-lg" data-skill="Integrity"><h3 class="font-bold text-center">Integrity</h3></div>
                     <div class="skill-card p-4 border rounded-lg" data-skill="Curiosity"><h3 class="font-bold text-center">Curiosity</h3></div>
                     <div class="skill-card p-4 border rounded-lg" data-skill="Critical Thinking"><h3 class="font-bold text-center">Critical Thinking</h3></div>
+                    <div class="skill-card p-4 border rounded-lg" data-skill="Fields of Knowledge"><h3 class="font-bold text-center">Fields of Knowledge</h3></div>
                 </div>
             </div>
             <div id="anecdote-display-container" class="hidden bg-white p-8 rounded-lg shadow mt-8">
@@ -210,8 +209,20 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="addAnecdoteForm">
-                <div class="mb-5"><label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label><select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Vitality</option><option>Integrity</option><option>Curiosity</option><option>Critical Thinking</option></select></div>
-                <div class="mb-5"><label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label><select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"><option>Mindset</option><option>Physical Conditioning</option><option>Health</option><option>Connection</option><option>Purpose</option></select></div>
+                <div class="mb-5">
+                    <label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label>
+                    <select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                        <option>Vitality</option>
+                        <option>Integrity</option>
+                        <option>Curiosity</option>
+                        <option>Critical Thinking</option>
+                        <option>Fields of Knowledge</option>
+                    </select>
+                </div>
+                <div class="mb-5">
+                    <label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label>
+                    <select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
+                </div>
                 <div class="mb-6"><label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label><textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
                 <div class="mb-6">
                     <label for="anecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
@@ -268,6 +279,17 @@
         const functions = getFunctions(app);
 
         // ===================================================================
+        // DATA STRUCTURES
+        // ===================================================================
+        const skillMap = {
+            'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
+            'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
+            'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
+            'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'],
+            'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
+        };
+
+        // ===================================================================
         // AUTHORIZATION CONFIGURATION
         // ===================================================================
         const ADMIN_UID = "qogikivAnTej3fWMPHhBrjsfbQu2";
@@ -304,6 +326,8 @@
         const addAnecdoteModal = document.getElementById('addAnecdoteModal');
         const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
         const addAnecdoteForm = document.getElementById('addAnecdoteForm');
+        const coreSkillSelect = document.getElementById('coreSkill');
+        const microSkillSelect = document.getElementById('microSkill');
         const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
         const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
         const anecdoteListTitle = document.getElementById('anecdote-list-title');
@@ -364,6 +388,17 @@
             endOfWeek.setDate(startOfWeek.getDate() + 6);
             endOfWeek.setHours(23, 59, 59, 999);
             return { start: startOfWeek, end: endOfWeek };
+        };
+
+        const updateMicroSkillsDropdown = (selectedCoreSkill) => {
+            microSkillSelect.innerHTML = ''; // Clear existing options
+            const microSkills = skillMap[selectedCoreSkill] || [];
+            microSkills.forEach(skill => {
+                const option = document.createElement('option');
+                option.value = skill;
+                option.textContent = skill;
+                microSkillSelect.appendChild(option);
+            });
         };
 
         // Page Navigation
@@ -450,9 +485,16 @@
             if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
             anecdoteListTitle.textContent = `Anecdote Counts for ${coreSkill}`;
             anecdoteDisplayContainer.classList.remove('hidden');
+            
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
+            
             unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
-                const microSkillCounts = { 'Mindset': 0, 'Physical Conditioning': 0, 'Health': 0, 'Connection': 0, 'Purpose': 0 };
+                const microSkillsForCore = skillMap[coreSkill] || [];
+                const microSkillCounts = {};
+                microSkillsForCore.forEach(skill => {
+                    microSkillCounts[skill] = 0;
+                });
+
                 snapshot.forEach(doc => {
                     const anecdote = doc.data();
                     if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
@@ -510,7 +552,7 @@
             if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
             const q = query(collection(db, "anecdotes"));
             unsubscribeFromAllAnecdotes = onSnapshot(q, (snapshot) => {
-                const coreSkillCounts = { 'Vitality': 0, 'Integrity': 0, 'Curiosity': 0, 'Critical Thinking': 0 };
+                const coreSkillCounts = { 'Vitality': 0, 'Integrity': 0, 'Curiosity': 0, 'Critical Thinking': 0, 'Fields of Knowledge': 0 };
                 snapshot.forEach(doc => {
                     const anecdote = doc.data();
                     if (coreSkillCounts.hasOwnProperty(anecdote.coreSkill)) {
@@ -535,13 +577,15 @@
                             'rgba(255, 99, 132, 0.5)',
                             'rgba(54, 162, 235, 0.5)',
                             'rgba(255, 206, 86, 0.5)',
-                            'rgba(75, 192, 192, 0.5)'
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)'
                         ],
                         borderColor: [
                             'rgba(255, 99, 132, 1)',
                             'rgba(54, 162, 235, 1)',
                             'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)'
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
                         ],
                         borderWidth: 1
                     }]
@@ -621,14 +665,12 @@
                     messageEl.className = `p-3 rounded-lg max-w-xs mb-2 break-words ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
 
                     let contentHTML = '';
-
                     if (msg.fileUrl && msg.fileType && msg.fileType.startsWith('image/')) {
                         contentHTML += `<img src="${msg.fileUrl}" alt="Image preview" class="chat-image-preview rounded-lg max-w-full h-auto cursor-pointer mb-2">`;
                     }
                     if (msg.text) {
                         contentHTML += `<p>${msg.text}</p>`;
                     }
-                    
                     messageEl.innerHTML = contentHTML;
                     messageList.appendChild(messageEl);
                 });
@@ -640,11 +682,9 @@
             if (!currentUser || currentUser.uid !== ADMIN_UID) return;
 
             const { start, end } = getWeekDates();
-            
             const options = { month: 'long', day: 'numeric' };
             const formattedStartDate = start.toLocaleDateString('en-US', options);
             const formattedEndDate = end.toLocaleDateString('en-US', options);
-
             const chartTitleEl = document.getElementById('messages-chart-title');
             if (chartTitleEl) {
                 chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
@@ -748,18 +788,31 @@
 
         backToMessagesBtn.addEventListener('click', () => showView(messagesView));
         googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
+        
         addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
-        addAnecdoteBtn.addEventListener('click', () => addAnecdoteModal.classList.remove('hidden'));
+        
+        addAnecdoteBtn.addEventListener('click', () => {
+            updateMicroSkillsDropdown(coreSkillSelect.value); // Initialize dropdown
+            addAnecdoteModal.classList.remove('hidden');
+        });
+
+        coreSkillSelect.addEventListener('change', (e) => {
+            updateMicroSkillsDropdown(e.target.value);
+        });
+        
         closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+        
         closeAnecdoteDisplayBtn.addEventListener('click', () => {
             anecdoteDisplayContainer.classList.add('hidden');
             if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
         });
+        
         alignedSkillsGrid.addEventListener('click', (e) => {
             const skillCard = e.target.closest('.skill-card');
             if (skillCard) listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
         });
+        
         addStudentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             await addDoc(collection(db, "students"), { 
@@ -772,13 +825,14 @@
             addStudentForm.reset();
             addRecordModal.classList.add('hidden');
         });
+
         addAnecdoteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             loadingOverlay.classList.remove('hidden');
             const anecdoteData = {
                 studentId: currentStudentId,
-                coreSkill: document.getElementById('coreSkill').value,
-                microSkill: document.getElementById('microSkill').value,
+                coreSkill: coreSkillSelect.value,
+                microSkill: microSkillSelect.value,
                 text: document.getElementById('anecdoteText').value,
                 createdAt: serverTimestamp(),
                 createdBy: auth.currentUser.uid,
@@ -843,8 +897,7 @@
             e.preventDefault();
             const text = messageInput.value;
             const file = fileInput.files[0];
-
-            if (text.trim() === '' && !file) return;
+            if (!text.trim() && !file) return;
             loadingOverlay.classList.remove('hidden');
             const recipientId = chatWithUser.dataset.recipientId;
             if (!recipientId) return;
@@ -910,7 +963,6 @@
                 loadingOverlay.classList.add('hidden');
             }
         });
-
     </script>
 </body>
 </html>
