@@ -184,9 +184,12 @@
 
         <main id="micro-skill-detail-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 id="micro-skill-title" class="text-3xl font-bold text-gray-800"></h2>
-                    <button id="back-to-student-detail-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="micro-skill-title" class="text-3xl font-bold text-gray-800"></h2>
+                        <p id="micro-skill-description" class="mt-2 text-gray-600 italic"></p>
+                    </div>
+                    <button id="back-to-student-detail-btn" class="text-sm font-semibold text-green-600 hover:underline flex-shrink-0">Back to Student Page</button>
                 </div>
                 <div id="micro-skill-anecdote-list" class="space-y-4"></div>
                 <div id="no-micro-skill-anecdotes-message" class="hidden text-center py-10"></div>
@@ -289,6 +292,14 @@
             'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
         };
 
+        const skillDescriptions = {
+            'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness',
+            'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy',
+            'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills',
+            'Health': 'Nutrition, Body Systems, Lifestyle Inputs',
+            'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature'
+        };
+
         // ===================================================================
         // AUTHORIZATION CONFIGURATION
         // ===================================================================
@@ -335,6 +346,7 @@
         const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
         const microSkillDetailView = document.getElementById('micro-skill-detail-view');
         const microSkillTitle = document.getElementById('micro-skill-title');
+        const microSkillDescription = document.getElementById('micro-skill-description');
         const microSkillAnecdoteList = document.getElementById('micro-skill-anecdote-list');
         const noMicroSkillAnecdotesMessage = document.getElementById('no-micro-skill-anecdotes-message');
         const backToStudentDetailBtn = document.getElementById('back-to-student-detail-btn');
@@ -530,6 +542,8 @@
         function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
             showView(microSkillDetailView);
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
+            microSkillDescription.textContent = skillDescriptions[microSkill] || ''; // Set the description
+
             if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
             unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
