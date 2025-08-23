@@ -533,7 +533,7 @@
                 data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: 'rgba(52, 211, 153, 0.5)', borderColor: 'rgba(5, 150, 105, 1)', borderWidth: 1 }] },
                 options: {
                     onClick: (e) => {
-                        const points = anecdoteChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                        const points = anecdoteChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
                         if (points.length) {
                             const firstPoint = points[0];
                             const label = anecdoteChart.data.labels[firstPoint.index];
