@@ -310,7 +310,7 @@
                                 <tr>
                                     <td class="skill-label-cell">
                                         <strong>Self-Awareness</strong><br>Noticing and naming how you're feeling in the moment.
-                                        <ul class="list-disc list-inside mt-2">
+                                        <ul class="list-disc list-inside mt-2 text-xs">
                                             <li>Identifying emotions</li>
                                             <li>Recognizing physical cues</li>
                                             <li>Understanding how emotions affect thoughts and behavior</li>
@@ -335,7 +335,7 @@
                                 <tr>
                                     <td class="skill-label-cell">
                                         <strong>Social Awareness & Energy</strong><br>Reading the emotional energy of others
-                                        <ul class="list-disc list-inside mt-2">
+                                        <ul class="list-disc list-inside mt-2 text-xs">
                                             <li>Recognizing the collective energy</li>
                                             <li>Being mindful of how your energy affects the group or situation.</li>
                                         </ul>
@@ -465,23 +465,28 @@
         };
 
         const skillDescriptions = {
+            // Vitality
             'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness',
             'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy',
             'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills',
             'Health': 'Nutrition, Body Systems, Lifestyle Inputs',
             'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature',
+            // Integrity
             'Honesty & Accountability': 'Owning Actions, Following Through, Making it Right',
             'Discipline': 'Self-Control & Focus, Consistency, Goal Setting, Responsibility',
             'Courage': 'Embracing discomfort, Speaking up, Being true to myself',
             'Respect': 'Listening, Kindness & Compassion, Caring for the environment, Manners',
+            // Curiosity
             'Questioning': 'Formulating Clear Questions, Asking Deeper Questions',
             'Reflecting': 'Asking questions, Adjusting, Connecting Ideas, Metacognition',
             'Researching': 'Finding Sources, Research Methods, Organizing Information',
             'Creating': 'Generating Ideas, Organizing Ideas, Using Tools & Techniques, Problem-Solving & Iterating',
             'Communicating': 'Writing - Choosing Format, Organizing Content, Using Language and Visuals. Speaking - Voice Control, Body Language, Clarity & Structure, Audience Awareness',
+            // Critical Thinking
             'Analyzing Information': 'Identifying Key Details, Recognizing Patterns and Relationships, Breaking Down Complex Ideas, Differentiating Fact from Opinion',
             'Evaluating Evidence': 'Checking the Source, Identifying Bias or Agenda, Judging Relevance, Comparing Multiple Sources & Perspectives & Weighing Evidence',
             'Making Informed Judgments': 'Problem Solving, Cause & Effect, Justifying a Decision',
+            // Fields of Knowledge
             'Literacy': 'Oral & Non Verbal Communication, Reading & Writing, Foundations, Comprehension, Composition',
             'Math': 'Number Sense, Patterns, Coding, Data & Probability, Spatial Sense, Financial Literacy & Entrepreneurship',
             'Science': 'Life Systems, Structures',
@@ -565,7 +570,9 @@
         const viewRubricBtn = document.getElementById('view-rubric-btn');
         const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
+        const mindsetRubricContainer = document.getElementById('mindset-rubric-container');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
+        const emotionalRegulationRubricContainer = document.getElementById('emotional-regulation-rubric-container');
         const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
@@ -906,7 +913,7 @@
                 const q = query(chatsRef, where("participants", "array-contains", currentUser.uid));
                 unsubscribeFromUsers = onSnapshot(q, async (snapshot) => {
                     userList.innerHTML = '';
-                    noUsersMessage.classList.toggle('hidden', snapshot.empty);
+                    noUsersMessage.classList.toggle('hidden', !snapshot.empty);
                     for (const chatDoc of snapshot.docs) {
                         const participants = chatDoc.data().participants;
                         const otherUserId = participants.find(uid => uid !== currentUser.uid);
