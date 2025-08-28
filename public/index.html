@@ -239,6 +239,7 @@
                 </div>
                 
                 <div class="overflow-x-auto">
+                    <!-- Mindset Rubric -->
                     <div id="mindset-rubric-container" class="rubric-container hidden">
                         <table id="mindset-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -293,6 +294,7 @@
                         </table>
                     </div>
 
+                    <!-- Emotional Regulation Rubric -->
                     <div id="emotional-regulation-rubric-container" class="rubric-container hidden">
                         <table id="emotional-regulation-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -350,6 +352,81 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- NEW: Physical Conditioning Rubric -->
+                    <div id="physical-conditioning-rubric-container" class="rubric-container hidden">
+                        <table id="physical-conditioning-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Physical Conditioning</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Locomotor Skills</strong><br>These involve moving your body from one place to another.
+                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                            <li>Walking, Running, Hopping, Jumping, Leaping, Skipping, Galloping, Sliding</li>
+                                        </ul>
+                                    </td>
+                                    <td id="pc-r1-c1">I don't yet move confidently from place to place or recognize basic movement patterns.</td>
+                                    <td id="pc-r1-c2">I can try some basic ways to move (like walking, jumping, or skipping) but they feel uncoordinated or awkward.</td>
+                                    <td id="pc-r1-c3">I can move in different ways and start to control my body in space during simple tasks.</td>
+                                    <td id="pc-r1-c4">I can use smooth, controlled movement (run, jump, hop, skip, etc.) in games or challenges.</td>
+                                    <td id="pc-r1-c5">I move with control, speed, and rhythm, and I can adjust how I move depending on the activity.</td>
+                                    <td id="pc-r1-c6">I use a variety of movements skillfully and creatively during games, dance, or physical activities. I move with purpose, power, and flow.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Non-Locomotor Skills</strong><br>These involve stability skills.
+                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                            <li>Balancing, Stretching, Bending, Twisting, Turning, Swaying, Landing safely, Static poses, Transferring weigh</li>
+                                        </ul>
+                                    </td>
+                                    <td id="pc-r2-c1">I find it hard to balance or stay controlled while moving or standing still.</td>
+                                    <td id="pc-r2-c2">I try to stay balanced but often wobble, fall, or need help.</td>
+                                    <td id="pc-r2-c3">I can hold balance in still positions (like stretching, bending, or twisting) for short periods.</td>
+                                    <td id="pc-r2-c4">I can keep my body balanced and controlled while moving, landing, or changing direction.</td>
+                                    <td id="pc-r2-c5">I adjust my body position with control during fast changes (like jumping, dodging, or transferring weight).</td>
+                                    <td id="pc-r2-c6">I move with balance, strength, and precision—even in complex, creative, or athletic activities.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Manipulation</strong><br>These involve controlling objects using your body.
+                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                            <li>Throwing, Catching, Kicking, Dribbling, Striking, Rolling, Volleying, Punting, Passing</li>
+                                        </ul>
+                                    </td>
+                                    <td id="pc-r3-c1">I struggle to control objects and haven't yet developed basic hand-eye or foot-eye coordination.</td>
+                                    <td id="pc-r3-c2">I can throw, catch, or kick with effort, but it's not always accurate or controlled.</td>
+                                    <td id="pc-r3-c3">I can control objects (like balls or equipment) during simple activities or drills.</td>
+                                    <td id="pc-r3-c4">I use manipulative skills (like passing, dribbling, or striking) with good timing and control during games.</td>
+                                    <td id="pc-r3-c5">I adjust how I use objects based on the situation (like aiming, passing, or choosing force).</td>
+                                    <td id="pc-r3-c6">I confidently and consistently use complex object control skills during fast-paced or competitive play.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Strategy & Skills</strong><br>These skills that support decision-making and strategy in games and sports.
+                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                            <li>Game sense</li>
+                                            <li>Pacing and sequencing</li>
+                                            <li>Adapting to changing conditions</li>
+                                            <li>Understanding cause and effect</li>
+                                        </ul>
+                                    </td>
+                                    <td id="pc-r4-c1">I need lots of reminders about how games work and what to do.</td>
+                                    <td id="pc-r4-c2">I know some rules, but I still need help thinking about what to do next.</td>
+                                    <td id="pc-r4-c3">I'm starting to think ahead and understand how strategies can help.</td>
+                                    <td id="pc-r4-c4">I can make good choices during games and change my plan if I need to.</td>
+                                    <td id="pc-r4-c5">I understand the rules and strategies, and I can explain them to others.</td>
+                                    <td id="pc-r4-c6">I use smart strategies, adapt quickly, and help lead my team during games.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                 </div>
 
             </div>
@@ -567,6 +644,7 @@
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
         const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
+        const physicalConditioningRubricTable = document.getElementById('physical-conditioning-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -745,7 +823,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation'];
+            // MODIFIED: Added 'Physical Conditioning' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -777,7 +856,7 @@
             // Hide all rubric containers first
             document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
 
-            // Show the correct one
+            // MODIFIED: Show the correct rubric container based on the microSkill
             let activeTable;
             if (microSkill === 'Mindset') {
                 document.getElementById('mindset-rubric-container').classList.remove('hidden');
@@ -785,6 +864,9 @@
             } else if (microSkill === 'Emotional Energy Regulation') {
                 document.getElementById('emotional-regulation-rubric-container').classList.remove('hidden');
                 activeTable = emotionalRegulationRubricTable;
+            } else if (microSkill === 'Physical Conditioning') {
+                document.getElementById('physical-conditioning-rubric-container').classList.remove('hidden');
+                activeTable = physicalConditioningRubricTable;
             }
             
             if (!activeTable) return;
