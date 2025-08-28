@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
@@ -26,6 +27,33 @@
         }
         #anecdote-chart {
             cursor: pointer;
+        }
+        /* Styles for the rubric table */
+        .rubric-table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .rubric-table th, .rubric-table td {
+            border: 1px solid #d1d5db;
+            padding: 1rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        .rubric-table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .rubric-table .skill-label-cell {
+            background-color: #fde68a; /* A gold/yellow color */
+            font-weight: 700;
+            width: 15%;
+        }
+        .rubric-table .admin-highlight {
+            background-color: #fef08a !important; /* Lighter yellow for highlight */
+        }
+        .rubric-table .admin-clickable {
+             cursor: pointer;
         }
     </style>
 </head>
@@ -189,10 +217,79 @@
                         <h2 id="micro-skill-title" class="text-3xl font-bold text-gray-800"></h2>
                         <p id="micro-skill-description" class="mt-2 text-gray-600 italic"></p>
                     </div>
-                    <button id="back-to-student-detail-btn" class="text-sm font-semibold text-green-600 hover:underline flex-shrink-0">Back to Student Page</button>
+                    <div class="flex space-x-4 flex-shrink-0">
+                        <button id="view-rubric-btn" class="text-sm font-semibold text-white bg-green-600 px-3 py-1 rounded-md hover:bg-green-700 hidden">View Rubric</button>
+                        <button id="back-to-student-detail-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
+                    </div>
                 </div>
                 <div id="micro-skill-anecdote-list" class="space-y-4"></div>
                 <div id="no-micro-skill-anecdotes-message" class="hidden text-center py-10"></div>
+            </div>
+        </main>
+
+        <main id="rubric-view" class="hidden container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="rubric-title" class="text-3xl font-bold text-gray-800">Mindset Rubric</h2>
+                    <div class="flex space-x-4">
+                        <button id="download-rubric-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download Rubric</button>
+                        <button id="back-to-anecdotes-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Anecdotes</button>
+                    </div>
+                </div>
+                <div id="mindset-rubric-container">
+                    <table id="mindset-rubric-table" class="rubric-table text-sm">
+                        <thead>
+                            <tr>
+                                <th class="w-1/6">Mindset</th>
+                                <th>NOT YET DEMONSTRATED</th>
+                                <th>BEGINNING AWARENESS</th>
+                                <th>ATTEMPTING WITH SUPPORT</th>
+                                <th>EMERGING INDEPENDENCE</th>
+                                <th>DEVELOPING CONSISTENCY</th>
+                                <th>INDEPENDENT APPLICATION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="skill-label-cell"><strong>Confidence</strong><br>The belief in my abilities. Positive self-talk and willingness to try.</td>
+                                <td id="mindset-r1-c1">I see limits in myself. I often think I’m not good enough</td>
+                                <td id="mindset-r1-c2">I want to believe in myself, but doubt, fear, or past experiences hold me back.</td>
+                                <td id="mindset-r1-c3">"I try sometimes, but I'm unsure." I give things a shot, but I still second-guess myself a lot. I need support to keep going when things feel hard.</td>
+                                <td id="mindset-r1-c4">"I'm starting to trust myself." I've seen myself improve. I believe I can stretch, evolve, and unlock new levels with effort and courage.</td>
+                                <td id="mindset-r1-c5">"I believe in myself, even when it's tough." I feel confident in who I am. I know I don't have to be perfect to be capable.</td>
+                                <td id="mindset-r1-c6">"I know I'm capable, and I help others believe in themselves too." I live like growth is infinite—because it is. I grow from every experience— even the hard ones.</td>
+                            </tr>
+                            <tr>
+                                <td class="skill-label-cell"><strong>Risk Taking</strong><br>Bouncing back after setbacks and sticking with challenges.</td>
+                                <td id="mindset-r2-c1">I avoid trying new things and often say "I can't."</td>
+                                <td id="mindset-r2-c2">I sometimes try, but I give up quickly or feel too nervous.</td>
+                                <td id="mindset-r2-c3">I try new things with encouragement but still doubt myself.</td>
+                                <td id="mindset-r2-c4">I usually try even when it's hard and use helpful self-talk.</td>
+                                <td id="mindset-r2-c5">I confidently try new things and bounce back from mistakes.</td>
+                                <td id="mindset-r2-c6">I take risks, support others in trying too, and believe effort leads to growth.</td>
+                            </tr>
+                            <tr>
+                                <td class="skill-label-cell"><strong>Resilience</strong><br>The ability to keep going and bounce back when things get tough.</td>
+                                <td id="mindset-r3-c1">I get upset or give up quickly when something goes wrong.</td>
+                                <td id="mindset-r3-c2">I sometimes keep going, but frustration takes over.</td>
+                                <td id="mindset-r3-c3">I can recover from small problems with help.</td>
+                                <td id="mindset-r3-c4">I usually bounce back from setbacks and keep working.</td>
+                                <td id="mindset-r3-c5">I handle challenges calmly and stay focused.</td>
+                                <td id="mindset-r3-c6">I use challenges to grow stronger and help others stay resilient too.</td>
+                            </tr>
+                            <tr>
+                                <td class="skill-label-cell"><strong>Open Mindedness</strong><br>Willing to listen to and consider new ideas, perspectives, and feedback.</td>
+                                <td id="mindset-r4-c1">"I shut down new ideas or feedback right away." If something challenges my beliefs or habits, I get defensive or tune out. I think I'm already right.</td>
+                                <td id="mindset-r4-c2">"I hear other ideas, but I don't really consider them." I'm starting to open up to hear something different.</td>
+                                <td id="mindset-r4-c3">I try to understand other perspectives, even if I don't agree right away.</td>
+                                <td id="mindset-r4-c4">I ask questions and try to understand the 'why' behind different opinions or feedback—even if I don't agree.</td>
+                                <td id="mindset-r4-c5">I shift my thinking when I get new information or feedback that makes sense. I value learning over being right. I see that adjusting my perspective helps me grow.</td>
+                                <td id="mindset-r4-c6">I seek out different views, and change my my mind when it makes sense, and use it as a way to grow.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </main>
     </div>
@@ -394,10 +491,17 @@
         const logoutLink = document.getElementById('logout-link');
         const profileName = document.getElementById('profile-name');
         const profileEmail = document.getElementById('profile-email');
+        const rubricView = document.getElementById('rubric-view');
+        const viewRubricBtn = document.getElementById('view-rubric-btn');
+        const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
+        const downloadRubricBtn = document.getElementById('download-rubric-btn');
+        const mindsetRubricTable = document.getElementById('mindset-rubric-table');
+        const rubricTitle = document.getElementById('rubric-title');
         
         // App State
         let currentStudentId = null;
         let currentCoreSkill = null;
+        let currentMicroSkill = null;
         let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
         let anecdoteChart = null;
         let allSkillsChart = null;
@@ -438,7 +542,7 @@
 
         // Page Navigation
         const showView = (viewToShow) => {
-            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView].forEach(view => view.classList.add('hidden'));
+            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView].forEach(view => view.classList.add('hidden'));
             viewToShow.classList.remove('hidden');
         };
 
@@ -565,9 +669,16 @@
         }
 
         function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
+            currentMicroSkill = microSkill;
             showView(microSkillDetailView);
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
-            microSkillDescription.textContent = skillDescriptions[microSkill] || ''; // Set the description
+            microSkillDescription.textContent = skillDescriptions[microSkill] || '';
+
+            if (microSkill === 'Mindset') { // Only show rubric button for Mindset for now
+                viewRubricBtn.classList.remove('hidden');
+            } else {
+                viewRubricBtn.classList.add('hidden');
+            }
 
             if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
             const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
@@ -585,6 +696,46 @@
                     microSkillAnecdoteList.appendChild(anecdoteCard);
                 });
             });
+        }
+
+        async function showRubricPage(studentId, coreSkill, microSkill) {
+            showView(rubricView);
+            rubricTitle.textContent = `${microSkill} Rubric`;
+            
+            const user = auth.currentUser;
+            const isAdmin = user && user.uid === ADMIN_UID;
+
+            downloadRubricBtn.style.display = isAdmin ? 'block' : 'none';
+            mindsetRubricTable.classList.toggle('admin-clickable', isAdmin);
+
+            // Clear previous highlights
+            mindsetRubricTable.querySelectorAll('td').forEach(cell => {
+                cell.classList.remove('admin-highlight');
+            });
+
+            // Load highlights from Firestore
+            const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${microSkill.toLowerCase()}`);
+            const highlightsSnap = await getDoc(highlightsRef);
+
+            if (highlightsSnap.exists()) {
+                const data = highlightsSnap.data();
+                data.highlightedCells?.forEach(cellId => {
+                    const cell = document.getElementById(cellId);
+                    if (cell) {
+                        cell.classList.add('admin-highlight');
+                    }
+                });
+            }
+        }
+        
+        async function saveRubricHighlights(microSkill) {
+            const highlightedCells = [];
+            mindsetRubricTable.querySelectorAll('.admin-highlight').forEach(cell => {
+                highlightedCells.push(cell.id);
+            });
+
+            const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase()}`);
+            await setDoc(highlightsRef, { highlightedCells });
         }
 
         function listenForAllAnecdotes() {
@@ -999,6 +1150,44 @@
             } catch (error) {
                 console.error("Deletion failed:", error);
                 showMessage("Could not delete your account. Please try again.");
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+        
+        viewRubricBtn.addEventListener('click', () => {
+            showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill);
+        });
+
+        backToAnecdotesBtn.addEventListener('click', () => {
+            showMicroSkillDetailPage(currentStudentId, currentCoreSkill, currentMicroSkill);
+        });
+
+        mindsetRubricTable.addEventListener('click', (e) => {
+            const user = auth.currentUser;
+            if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+                e.target.classList.toggle('admin-highlight');
+                saveRubricHighlights(currentMicroSkill);
+            }
+        });
+
+        downloadRubricBtn.addEventListener('click', async () => {
+            loadingOverlay.classList.remove('hidden');
+            mindsetRubricTable.style.border = 'none';
+            mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+
+            try {
+                const canvas = await html2canvas(mindsetRubricTable, { scale: 2 });
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                link.download = `${currentMicroSkill}-rubric-${studentNameText}.png`;
+                link.click();
+            } catch (error) {
+                console.error("Error generating image:", error);
+                showMessage("Could not download rubric.");
+            } finally {
+                mindsetRubricTable.style.border = '';
+                mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
