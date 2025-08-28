@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
@@ -44,8 +45,8 @@
             background-color: #f3f4f6;
             font-weight: 600;
         }
-        .rubric-table .skill-label-cell {
-            background-color: #fde68a; /* A gold/yellow color */
+        .rubric-table .skill-label-cell, .rubric-table thead tr th:first-child {
+            background-color: #f3f4f6; /* A light grey color */
             font-weight: 700;
             width: 15%;
         }
@@ -232,15 +233,15 @@
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="rubric-title" class="text-3xl font-bold text-gray-800">Mindset Rubric</h2>
                     <div class="flex space-x-4">
-                        <button id="download-rubric-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download Rubric</button>
+                        <button id="download-rubric-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download</button>
                         <button id="back-to-anecdotes-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Anecdotes</button>
                     </div>
                 </div>
-                <div id="mindset-rubric-container">
+                <div id="mindset-rubric-container" class="overflow-x-auto">
                     <table id="mindset-rubric-table" class="rubric-table text-sm">
                         <thead>
                             <tr>
-                                <th class="w-1/6">Mindset</th>
+                                <th>Mindset</th>
                                 <th>NOT YET DEMONSTRATED</th>
                                 <th>BEGINNING AWARENESS</th>
                                 <th>ATTEMPTING WITH SUPPORT</th>
@@ -348,6 +349,19 @@
                 <div class="flex justify-center gap-4">
                     <button id="cancel-delete-btn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Cancel</button>
                     <button id="confirm-delete-btn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Yes, delete it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="download-options-modal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xs m-4">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-center mb-4">Choose a format</h3>
+                <div class="flex flex-col space-y-3">
+                    <button id="download-png-btn" class="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Download as PNG</button>
+                    <button id="download-pdf-btn" class="w-full bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">Download as PDF</button>
+                    <button id="cancel-download-btn" class="w-full bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300 mt-2">Cancel</button>
                 </div>
             </div>
         </div>
@@ -497,15 +511,15 @@
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
         const rubricTitle = document.getElementById('rubric-title');
+        const downloadOptionsModal = document.getElementById('download-options-modal');
+        const downloadPngBtn = document.getElementById('download-png-btn');
+        const downloadPdfBtn = document.getElementById('download-pdf-btn');
+        const cancelDownloadBtn = document.getElementById('cancel-download-btn');
         
         // App State
-        let currentStudentId = null;
-        let currentCoreSkill = null;
-        let currentMicroSkill = null;
+        let currentStudentId = null, currentCoreSkill = null, currentMicroSkill = null;
         let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
-        let anecdoteChart = null;
-        let allSkillsChart = null;
-        let messagesChart = null;
+        let anecdoteChart = null, allSkillsChart = null, messagesChart = null;
 
         // Helper Functions
         const showMessage = (message, isError = true) => {
@@ -1170,7 +1184,16 @@
             }
         });
 
-        downloadRubricBtn.addEventListener('click', async () => {
+        downloadRubricBtn.addEventListener('click', () => {
+            downloadOptionsModal.classList.remove('hidden');
+        });
+
+        cancelDownloadBtn.addEventListener('click', () => {
+            downloadOptionsModal.classList.add('hidden');
+        });
+
+        downloadPngBtn.addEventListener('click', async () => {
+            downloadOptionsModal.classList.add('hidden');
             loadingOverlay.classList.remove('hidden');
             mindsetRubricTable.style.border = 'none';
             mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
@@ -1183,14 +1206,47 @@
                 link.download = `${currentMicroSkill}-rubric-${studentNameText}.png`;
                 link.click();
             } catch (error) {
-                console.error("Error generating image:", error);
-                showMessage("Could not download rubric.");
+                console.error("Error generating PNG:", error);
+                showMessage("Could not download rubric as PNG.");
             } finally {
                 mindsetRubricTable.style.border = '';
                 mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
+
+        downloadPdfBtn.addEventListener('click', async () => {
+            downloadOptionsModal.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+            mindsetRubricTable.style.border = 'none';
+            mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+
+            const { jsPDF } = window.jspdf;
+
+            try {
+                const canvas = await html2canvas(mindsetRubricTable, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                pdf.save(`${currentMicroSkill}-rubric-${studentNameText}.pdf`);
+
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                showMessage("Could not download rubric as PDF.");
+            } finally {
+                 mindsetRubricTable.style.border = '';
+                mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+
     </script>
 </body>
 </html>
