@@ -231,64 +231,125 @@
         <main id="rubric-view" class="hidden container mx-auto p-8">
             <div class="bg-white p-8 rounded-lg shadow">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 id="rubric-title" class="text-3xl font-bold text-gray-800">Mindset Rubric</h2>
+                    <h2 id="rubric-title" class="text-3xl font-bold text-gray-800"></h2>
                     <div class="flex space-x-4">
                         <button id="download-rubric-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download</button>
                         <button id="back-to-anecdotes-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Anecdotes</button>
                     </div>
                 </div>
-                <div id="mindset-rubric-container" class="overflow-x-auto">
-                    <table id="mindset-rubric-table" class="rubric-table text-sm">
-                        <thead>
-                            <tr>
-                                <th>Mindset</th>
-                                <th>NOT YET DEMONSTRATED</th>
-                                <th>BEGINNING AWARENESS</th>
-                                <th>ATTEMPTING WITH SUPPORT</th>
-                                <th>EMERGING INDEPENDENCE</th>
-                                <th>DEVELOPING CONSISTENCY</th>
-                                <th>INDEPENDENT APPLICATION</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="skill-label-cell"><strong>Confidence</strong><br>The belief in my abilities. Positive self-talk and willingness to try.</td>
-                                <td id="mindset-r1-c1">I see limits in myself. I often think I’m not good enough</td>
-                                <td id="mindset-r1-c2">I want to believe in myself, but doubt, fear, or past experiences hold me back.</td>
-                                <td id="mindset-r1-c3">"I try sometimes, but I'm unsure." I give things a shot, but I still second-guess myself a lot. I need support to keep going when things feel hard.</td>
-                                <td id="mindset-r1-c4">"I'm starting to trust myself." I've seen myself improve. I believe I can stretch, evolve, and unlock new levels with effort and courage.</td>
-                                <td id="mindset-r1-c5">"I believe in myself, even when it's tough." I feel confident in who I am. I know I don't have to be perfect to be capable.</td>
-                                <td id="mindset-r1-c6">"I know I'm capable, and I help others believe in themselves too." I live like growth is infinite—because it is. I grow from every experience— even the hard ones.</td>
-                            </tr>
-                            <tr>
-                                <td class="skill-label-cell"><strong>Risk Taking</strong><br>Bouncing back after setbacks and sticking with challenges.</td>
-                                <td id="mindset-r2-c1">I avoid trying new things and often say "I can't."</td>
-                                <td id="mindset-r2-c2">I sometimes try, but I give up quickly or feel too nervous.</td>
-                                <td id="mindset-r2-c3">I try new things with encouragement but still doubt myself.</td>
-                                <td id="mindset-r2-c4">I usually try even when it's hard and use helpful self-talk.</td>
-                                <td id="mindset-r2-c5">I confidently try new things and bounce back from mistakes.</td>
-                                <td id="mindset-r2-c6">I take risks, support others in trying too, and believe effort leads to growth.</td>
-                            </tr>
-                            <tr>
-                                <td class="skill-label-cell"><strong>Resilience</strong><br>The ability to keep going and bounce back when things get tough.</td>
-                                <td id="mindset-r3-c1">I get upset or give up quickly when something goes wrong.</td>
-                                <td id="mindset-r3-c2">I sometimes keep going, but frustration takes over.</td>
-                                <td id="mindset-r3-c3">I can recover from small problems with help.</td>
-                                <td id="mindset-r3-c4">I usually bounce back from setbacks and keep working.</td>
-                                <td id="mindset-r3-c5">I handle challenges calmly and stay focused.</td>
-                                <td id="mindset-r3-c6">I use challenges to grow stronger and help others stay resilient too.</td>
-                            </tr>
-                            <tr>
-                                <td class="skill-label-cell"><strong>Open Mindedness</strong><br>Willing to listen to and consider new ideas, perspectives, and feedback.</td>
-                                <td id="mindset-r4-c1">"I shut down new ideas or feedback right away." If something challenges my beliefs or habits, I get defensive or tune out. I think I'm already right.</td>
-                                <td id="mindset-r4-c2">"I hear other ideas, but I don't really consider them." I'm starting to open up to hear something different.</td>
-                                <td id="mindset-r4-c3">I try to understand other perspectives, even if I don't agree right away.</td>
-                                <td id="mindset-r4-c4">I ask questions and try to understand the 'why' behind different opinions or feedback—even if I don't agree.</td>
-                                <td id="mindset-r4-c5">I shift my thinking when I get new information or feedback that makes sense. I value learning over being right. I see that adjusting my perspective helps me grow.</td>
-                                <td id="mindset-r4-c6">I seek out different views, and change my my mind when it makes sense, and use it as a way to grow.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                
+                <div class="overflow-x-auto">
+                    <div id="mindset-rubric-container" class="rubric-container hidden">
+                        <table id="mindset-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mindset</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Confidence</strong><br>The belief in my abilities. Positive self-talk and willingness to try.</td>
+                                    <td id="mindset-r1-c1">I see limits in myself. I often think I’m not good enough</td>
+                                    <td id="mindset-r1-c2">I want to believe in myself, but doubt, fear, or past experiences hold me back.</td>
+                                    <td id="mindset-r1-c3">"I try sometimes, but I'm unsure." I give things a shot, but I still second-guess myself a lot. I need support to keep going when things feel hard.</td>
+                                    <td id="mindset-r1-c4">"I'm starting to trust myself." I've seen myself improve. I believe I can stretch, evolve, and unlock new levels with effort and courage.</td>
+                                    <td id="mindset-r1-c5">"I believe in myself, even when it's tough." I feel confident in who I am. I know I don't have to be perfect to be capable.</td>
+                                    <td id="mindset-r1-c6">"I know I'm capable, and I help others believe in themselves too." I live like growth is infinite—because it is. I grow from every experience— even the hard ones.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Risk Taking</strong><br>Bouncing back after setbacks and sticking with challenges.</td>
+                                    <td id="mindset-r2-c1">I avoid trying new things and often say "I can't."</td>
+                                    <td id="mindset-r2-c2">I sometimes try, but I give up quickly or feel too nervous.</td>
+                                    <td id="mindset-r2-c3">I try new things with encouragement but still doubt myself.</td>
+                                    <td id="mindset-r2-c4">I usually try even when it's hard and use helpful self-talk.</td>
+                                    <td id="mindset-r2-c5">I confidently try new things and bounce back from mistakes.</td>
+                                    <td id="mindset-r2-c6">I take risks, support others in trying too, and believe effort leads to growth.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Resilience</strong><br>The ability to keep going and bounce back when things get tough.</td>
+                                    <td id="mindset-r3-c1">I get upset or give up quickly when something goes wrong.</td>
+                                    <td id="mindset-r3-c2">I sometimes keep going, but frustration takes over.</td>
+                                    <td id="mindset-r3-c3">I can recover from small problems with help.</td>
+                                    <td id="mindset-r3-c4">I usually bounce back from setbacks and keep working.</td>
+                                    <td id="mindset-r3-c5">I handle challenges calmly and stay focused.</td>
+                                    <td id="mindset-r3-c6">I use challenges to grow stronger and help others stay resilient too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Open Mindedness</strong><br>Willing to listen to and consider new ideas, perspectives, and feedback.</td>
+                                    <td id="mindset-r4-c1">"I shut down new ideas or feedback right away." If something challenges my beliefs or habits, I get defensive or tune out. I think I'm already right.</td>
+                                    <td id="mindset-r4-c2">"I hear other ideas, but I don't really consider them." I'm starting to open up to hear something different.</td>
+                                    <td id="mindset-r4-c3">I try to understand other perspectives, even if I don't agree right away.</td>
+                                    <td id="mindset-r4-c4">I ask questions and try to understand the 'why' behind different opinions or feedback—even if I don't agree.</td>
+                                    <td id="mindset-r4-c5">I shift my thinking when I get new information or feedback that makes sense. I value learning over being right. I see that adjusting my perspective helps me grow.</td>
+                                    <td id="mindset-r4-c6">I seek out different views, and change my my mind when it makes sense, and use it as a way to grow.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="emotional-regulation-rubric-container" class="rubric-container hidden">
+                        <table id="emotional-regulation-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Emotional Regulation</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell">
+                                        <strong>Self-Awareness</strong><br>Noticing and naming how you're feeling in the moment.
+                                        <ul class="list-disc list-inside mt-2">
+                                            <li>Identifying emotions</li>
+                                            <li>Recognizing physical cues</li>
+                                            <li>Understanding how emotions affect thoughts and behavior</li>
+                                        </ul>
+                                    </td>
+                                    <td id="er-r1-c1">I see limits in myself. I often think I’m not good enough</td>
+                                    <td id="er-r1-c2">I want to believe in myself, but doubt, fear, or past experiences hold me back.</td>
+                                    <td id="er-r1-c3">"I try sometimes, but I'm unsure." I give things a shot, but I still second-guess myself a lot. I need support to keep going when things feel hard.</td>
+                                    <td id="er-r1-c4">"I'm starting to trust myself." I've seen myself improve. I believe I can stretch, evolve, and unlock new levels with effort and courage.</td>
+                                    <td id="er-r1-c5">"I believe in myself, even when it's tough." I feel confident in who I am. I know I don't have to be perfect to be capable.</td>
+                                    <td id="er-r1-c6">"I know I'm capable, and I help others believe in themselves too." I live like growth is infinite—because it is. I grow from every experience— even the hard ones.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Regulation Strategies</strong><br>Using tools to calm down, energize, or refocus when needed.</td>
+                                    <td id="er-r2-c1">I avoid trying new things and often say "I can't."</td>
+                                    <td id="er-r2-c2">I sometimes try, but I give up quickly or feel too nervous.</td>
+                                    <td id="er-r2-c3">I try new things with encouragement but still doubt myself.</td>
+                                    <td id="er-r2-c4">I usually try even when it's hard and use helpful self-talk.</td>
+                                    <td id="er-r2-c5">I confidently try new things and bounce back from mistakes.</td>
+                                    <td id="er-r2-c6">I take risks, support others in trying too, and believe effort leads to growth.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell">
+                                        <strong>Social Awareness & Energy</strong><br>Reading the emotional energy of others
+                                        <ul class="list-disc list-inside mt-2">
+                                            <li>Recognizing the collective energy</li>
+                                            <li>Being mindful of how your energy affects the group or situation.</li>
+                                        </ul>
+                                    </td>
+                                    <td id="er-r3-c1">I get upset or give up quickly when something goes wrong.</td>
+                                    <td id="er-r3-c2">I sometimes keep going, but frustration takes over.</td>
+                                    <td id="er-r3-c3">I can recover from small problems with help.</td>
+                                    <td id="er-r3-c4">I usually bounce back from setbacks and keep working.</td>
+                                    <td id="er-r3-c5">I handle challenges calmly and stay focused.</td>
+                                    <td id="er-r3-c6">I use challenges to grow stronger and help others stay resilient too.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
             </div>
@@ -404,28 +465,23 @@
         };
 
         const skillDescriptions = {
-            // Vitality
             'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness',
             'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy',
             'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills',
             'Health': 'Nutrition, Body Systems, Lifestyle Inputs',
             'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature',
-            // Integrity
             'Honesty & Accountability': 'Owning Actions, Following Through, Making it Right',
             'Discipline': 'Self-Control & Focus, Consistency, Goal Setting, Responsibility',
             'Courage': 'Embracing discomfort, Speaking up, Being true to myself',
             'Respect': 'Listening, Kindness & Compassion, Caring for the environment, Manners',
-            // Curiosity
             'Questioning': 'Formulating Clear Questions, Asking Deeper Questions',
             'Reflecting': 'Asking questions, Adjusting, Connecting Ideas, Metacognition',
             'Researching': 'Finding Sources, Research Methods, Organizing Information',
             'Creating': 'Generating Ideas, Organizing Ideas, Using Tools & Techniques, Problem-Solving & Iterating',
             'Communicating': 'Writing - Choosing Format, Organizing Content, Using Language and Visuals. Speaking - Voice Control, Body Language, Clarity & Structure, Audience Awareness',
-            // Critical Thinking
             'Analyzing Information': 'Identifying Key Details, Recognizing Patterns and Relationships, Breaking Down Complex Ideas, Differentiating Fact from Opinion',
             'Evaluating Evidence': 'Checking the Source, Identifying Bias or Agenda, Judging Relevance, Comparing Multiple Sources & Perspectives & Weighing Evidence',
             'Making Informed Judgments': 'Problem Solving, Cause & Effect, Justifying a Decision',
-            // Fields of Knowledge
             'Literacy': 'Oral & Non Verbal Communication, Reading & Writing, Foundations, Comprehension, Composition',
             'Math': 'Number Sense, Patterns, Coding, Data & Probability, Spatial Sense, Financial Literacy & Entrepreneurship',
             'Science': 'Life Systems, Structures',
@@ -510,6 +566,7 @@
         const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
+        const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -688,7 +745,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            if (microSkill === 'Mindset') { // Only show rubric button for Mindset for now
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation'];
+            if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
                 viewRubricBtn.classList.add('hidden');
@@ -716,19 +774,34 @@
             showView(rubricView);
             rubricTitle.textContent = `${microSkill} Rubric`;
             
+            // Hide all rubric containers first
+            document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
+
+            // Show the correct one
+            let activeTable;
+            if (microSkill === 'Mindset') {
+                document.getElementById('mindset-rubric-container').classList.remove('hidden');
+                activeTable = mindsetRubricTable;
+            } else if (microSkill === 'Emotional Energy Regulation') {
+                document.getElementById('emotional-regulation-rubric-container').classList.remove('hidden');
+                activeTable = emotionalRegulationRubricTable;
+            }
+            
+            if (!activeTable) return;
+
             const user = auth.currentUser;
             const isAdmin = user && user.uid === ADMIN_UID;
 
             downloadRubricBtn.style.display = isAdmin ? 'block' : 'none';
-            mindsetRubricTable.classList.toggle('admin-clickable', isAdmin);
+            activeTable.classList.toggle('admin-clickable', isAdmin);
 
             // Clear previous highlights
-            mindsetRubricTable.querySelectorAll('td').forEach(cell => {
+            activeTable.querySelectorAll('td').forEach(cell => {
                 cell.classList.remove('admin-highlight');
             });
 
             // Load highlights from Firestore
-            const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${microSkill.toLowerCase()}`);
+            const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
             const highlightsSnap = await getDoc(highlightsRef);
 
             if (highlightsSnap.exists()) {
@@ -743,12 +816,15 @@
         }
         
         async function saveRubricHighlights(microSkill) {
+            const activeContainer = document.querySelector('.rubric-container:not(.hidden)');
+            if (!activeContainer) return;
+            
             const highlightedCells = [];
-            mindsetRubricTable.querySelectorAll('.admin-highlight').forEach(cell => {
+            activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
                 highlightedCells.push(cell.id);
             });
 
-            const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase()}`);
+            const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
             await setDoc(highlightsRef, { highlightedCells });
         }
 
@@ -1176,7 +1252,7 @@
             showMicroSkillDetailPage(currentStudentId, currentCoreSkill, currentMicroSkill);
         });
 
-        mindsetRubricTable.addEventListener('click', (e) => {
+        rubricView.addEventListener('click', (e) => {
             const user = auth.currentUser;
             if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
                 e.target.classList.toggle('admin-highlight');
@@ -1195,11 +1271,18 @@
         downloadPngBtn.addEventListener('click', async () => {
             downloadOptionsModal.classList.add('hidden');
             loadingOverlay.classList.remove('hidden');
-            mindsetRubricTable.style.border = 'none';
-            mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+            
+            const activeRubricTable = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+            if (!activeRubricTable) {
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+
+            activeRubricTable.style.border = 'none';
+            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
 
             try {
-                const canvas = await html2canvas(mindsetRubricTable, { scale: 2 });
+                const canvas = await html2canvas(activeRubricTable, { scale: 2 });
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/png');
                 const studentNameText = studentDetailName.textContent.trim() || 'student';
@@ -1209,8 +1292,8 @@
                 console.error("Error generating PNG:", error);
                 showMessage("Could not download rubric as PNG.");
             } finally {
-                mindsetRubricTable.style.border = '';
-                mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+                activeRubricTable.style.border = '';
+                activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
@@ -1218,13 +1301,20 @@
         downloadPdfBtn.addEventListener('click', async () => {
             downloadOptionsModal.classList.add('hidden');
             loadingOverlay.classList.remove('hidden');
-            mindsetRubricTable.style.border = 'none';
-            mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+
+            const activeRubricTable = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+            if (!activeRubricTable) {
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+
+            activeRubricTable.style.border = 'none';
+            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
 
             const { jsPDF } = window.jspdf;
 
             try {
-                const canvas = await html2canvas(mindsetRubricTable, { scale: 2 });
+                const canvas = await html2canvas(activeRubricTable, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
                 
                 const pdf = new jsPDF({
@@ -1241,8 +1331,8 @@
                 console.error("Error generating PDF:", error);
                 showMessage("Could not download rubric as PDF.");
             } finally {
-                 mindsetRubricTable.style.border = '';
-                mindsetRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+                 activeRubricTable.style.border = '';
+                activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
