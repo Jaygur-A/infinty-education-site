@@ -310,7 +310,7 @@
                                 <tr>
                                     <td class="skill-label-cell">
                                         <strong>Self-Awareness</strong><br>Noticing and naming how you're feeling in the moment.
-                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                        <ul class="list-disc list-inside mt-2">
                                             <li>Identifying emotions</li>
                                             <li>Recognizing physical cues</li>
                                             <li>Understanding how emotions affect thoughts and behavior</li>
@@ -335,7 +335,7 @@
                                 <tr>
                                     <td class="skill-label-cell">
                                         <strong>Social Awareness & Energy</strong><br>Reading the emotional energy of others
-                                        <ul class="list-disc list-inside mt-2 text-xs">
+                                        <ul class="list-disc list-inside mt-2">
                                             <li>Recognizing the collective energy</li>
                                             <li>Being mindful of how your energy affects the group or situation.</li>
                                         </ul>
@@ -356,11 +356,77 @@
         </main>
     </div>
 
-    <div id="addRecordModal" class="modal-backdrop hidden"> ... </div>
-    <div id="addAnecdoteModal" class="modal-backdrop hidden"> ... </div>
-    <div id="image-modal" class="modal-backdrop hidden"> ... </div>
-    <div id="delete-confirm-modal" class="modal-backdrop hidden"> ... </div>
-    <div id="download-options-modal" class="modal-backdrop hidden"> ... </div>
+    <div id="addRecordModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
+            <div class="p-6"><form id="addStudentForm">
+                <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-5"><label for="studentGrade" class="block mb-2 text-sm font-medium">Grade</label><input type="text" id="studentGrade" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
+            </form></div>
+        </div>
+    </div>
+    <div id="addAnecdoteModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
+            <div class="p-6"><form id="addAnecdoteForm">
+                <div class="mb-5">
+                    <label for="coreSkill" class="block mb-2 text-sm font-medium">Core Skill</label>
+                    <select id="coreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                        <option>Vitality</option>
+                        <option>Integrity</option>
+                        <option>Curiosity</option>
+                        <option>Critical Thinking</option>
+                        <option>Fields of Knowledge</option>
+                    </select>
+                </div>
+                <div class="mb-5">
+                    <label for="microSkill" class="block mb-2 text-sm font-medium">Micro Skill</label>
+                    <select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
+                </div>
+                <div class="mb-6"><label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label><textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
+                <div class="mb-6">
+                    <label for="anecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
+                    <input type="file" id="anecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
+                </div>
+                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
+            </form></div>
+        </div>
+    </div>
+
+    <div id="image-modal" class="modal-backdrop hidden">
+        <div class="relative max-w-4xl max-h-4/5">
+            <button id="close-image-modal-btn" class="absolute -top-10 right-0 text-white text-4xl font-bold">&times;</button>
+            <img id="modal-image" src="" alt="Enlarged chat image" class="object-contain w-full h-full">
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="p-6 text-center">
+                <h3 class="text-2xl font-semibold mb-4">Are you absolutely sure?</h3>
+                <p class="text-gray-600 mb-6">This will permanently delete your account and all associated data. This action cannot be undone.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-delete-btn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button id="confirm-delete-btn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Yes, delete it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="download-options-modal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xs m-4">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-center mb-4">Choose a format</h3>
+                <div class="flex flex-col space-y-3">
+                    <button id="download-png-btn" class="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Download as PNG</button>
+                    <button id="download-pdf-btn" class="w-full bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">Download as PDF</button>
+                    <button id="cancel-download-btn" class="w-full bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300 mt-2">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <script type="module">
@@ -499,9 +565,7 @@
         const viewRubricBtn = document.getElementById('view-rubric-btn');
         const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
-        const mindsetRubricContainer = document.getElementById('mindset-rubric-container');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
-        const emotionalRegulationRubricContainer = document.getElementById('emotional-regulation-rubric-container');
         const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
@@ -842,7 +906,7 @@
                 const q = query(chatsRef, where("participants", "array-contains", currentUser.uid));
                 unsubscribeFromUsers = onSnapshot(q, async (snapshot) => {
                     userList.innerHTML = '';
-                    noUsersMessage.classList.toggle('hidden', !snapshot.empty);
+                    noUsersMessage.classList.toggle('hidden', snapshot.empty);
                     for (const chatDoc of snapshot.docs) {
                         const participants = chatDoc.data().participants;
                         const otherUserId = participants.find(uid => uid !== currentUser.uid);
