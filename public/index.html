@@ -353,7 +353,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Physical Conditioning Rubric -->
+                    <!-- Physical Conditioning Rubric -->
                     <div id="physical-conditioning-rubric-container" class="rubric-container hidden">
                         <table id="physical-conditioning-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -422,6 +422,52 @@
                                     <td id="pc-r4-c4">I can make good choices during games and change my plan if I need to.</td>
                                     <td id="pc-r4-c5">I understand the rules and strategies, and I can explain them to others.</td>
                                     <td id="pc-r4-c6">I use smart strategies, adapt quickly, and help lead my team during games.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Health Rubric -->
+                    <div id="health-rubric-container" class="rubric-container hidden">
+                        <table id="health-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Health</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Nutrition</strong><br>Explore the difference between whole and processed foods while learning how the different categories play unique roles in keeping us energized and healthy.</td>
+                                    <td id="health-r1-c1">I eat what's available without thinking about what's in my food or how it affects my body.</td>
+                                    <td id="health-r1-c2">I've heard of whole and processed foods, but I'm not sure what the difference is or why it matters.</td>
+                                    <td id="health-r1-c3">I can tell if a food is more processed or whole, and I know that fats, proteins, and carbs are part of what I eat.</td>
+                                    <td id="health-r1-c4">I understand how whole foods are better for my body and can identify fats, proteins, and carbs in some meals or snacks.</td>
+                                    <td id="health-r1-c5">I choose more whole foods when I can and try to balance my meals with healthy fats, proteins, and carbohydrates.</td>
+                                    <td id="health-r1-c6">I regularly choose foods based on what my body needs and ask questions about ingredients, labels, and how food fuels my energy and health.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Body Systems</strong><br>Understanding your body as an ecosystem.</td>
+                                    <td id="health-r2-c1">I don't really think about how my body works or how it's all connected.</td>
+                                    <td id="health-r2-c2">I know I have different body parts and systems, but I don't see how they affect each other.</td>
+                                    <td id="health-r2-c3">I can name a few body systems and understand that they each do something important for my health.</td>
+                                    <td id="health-r2-c4">I'm starting to see how body systems depend on each other—like how breathing helps my muscles or how my heart responds to movement.</td>
+                                    <td id="health-r2-c5">I understand that my body works like an ecosystem; if one system is off, it can affect the others, and I try to take care of the whole system.</td>
+                                    <td id="health-r2-c6">I actively care for my body like it's a living ecosystem—nourishing it, resting it, moving it, and noticing signals that something might be out of balance.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Life Style Inputs</strong><br>Identifying which lifestyle inputs positively affect us - for example, sleep, rest, sun, nature.</td>
+                                    <td id="health-r3-c1">I don't really think about what things help or hurt my body and mind.</td>
+                                    <td id="health-r3-c2">Sometimes I notice when something makes me feel better or worse, but I'm not sure why.</td>
+                                    <td id="health-r3-c3">I can name a few things—like sleep or nature—that help me feel better or worse.</td>
+                                    <td id="health-r3-c4">I'm starting to choose more of the things that help me feel healthy and happy.</td>
+                                    <td id="health-r3-c5">I regularly notice what helps or drains me and make choices to take care of my body and brain.</td>
+                                    <td id="health-r3-c6">I understand how different inputs affect me and I take charge of my daily habits to keep myself energized, calm, and well.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -644,7 +690,8 @@
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
         const mindsetRubricTable = document.getElementById('mindset-rubric-table');
         const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
-        const physicalConditioningRubricTable = document.getElementById('physical-conditioning-rubric-table'); // Added this line
+        const physicalConditioningRubricTable = document.getElementById('physical-conditioning-rubric-table');
+        const healthRubricTable = document.getElementById('health-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -823,8 +870,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Physical Conditioning' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning'];
+            // MODIFIED: Added 'Health' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -867,6 +914,9 @@
             } else if (microSkill === 'Physical Conditioning') {
                 document.getElementById('physical-conditioning-rubric-container').classList.remove('hidden');
                 activeTable = physicalConditioningRubricTable;
+            } else if (microSkill === 'Health') {
+                document.getElementById('health-rubric-container').classList.remove('hidden');
+                activeTable = healthRubricTable;
             }
             
             if (!activeTable) return;
