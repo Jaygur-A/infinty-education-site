@@ -684,7 +684,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Respect Rubric -->
+                    <!-- Respect Rubric -->
                      <div id="respect-rubric-container" class="rubric-container hidden">
                         <table id="respect-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -739,6 +739,42 @@
                         </table>
                     </div>
 
+                    <!-- NEW: Questioning Rubric -->
+                    <div id="questioning-rubric-container" class="rubric-container hidden">
+                        <table id="questioning-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Questioning</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Forming Clear Questions</strong><br>Turning curiosity into questions that are easy to understand and focused. "What do bees use their buzz for?"</td>
+                                    <td id="questioning-r1-c1">My questions are unclear or off-topic.</td>
+                                    <td id="questioning-r1-c2">I need help turning my ideas into clear questions.</td>
+                                    <td id="questioning-r1-c3">I can form basic questions that others understand.</td>
+                                    <td id="questioning-r1-c4">I ask clear, on-topic questions to guide my learning.</td>
+                                    <td id="questioning-r1-c5">I ask strong, specific questions that help deepen my understanding.</td>
+                                    <td id="questioning-r1-c6">I help others turn their wonderings into clear, focused questions too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Asking Deeper Questions</strong><br>Moving beyond yes/no or surface questions to ask "how," "why," and "what if." "Why are bees important to our ecosystem?"</td>
+                                    <td id="questioning-r2-c1">My questions are mostly yes/no or very simple. My questions are mostly yes/no or very simple.</td>
+                                    <td id="questioning-r2-c2">I ask some questions, but they don't go very deep.</td>
+                                    <td id="questioning-r2-c3">I sometimes ask deeper questions with help.</td>
+                                    <td id="questioning-r2-c4">I regularly ask "how" and "why" questions to explore my topic.</td>
+                                    <td id="questioning-r2-c5">I use deeper questions to challenge ideas and learn more.</td>
+                                    <td id="questioning-r2-c6">I consistently generate powerful questions that spark deep thinking in myself and others.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
                 </div>
 
@@ -963,7 +999,8 @@
         const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table');
         const disciplineRubricTable = document.getElementById('discipline-rubric-table');
         const courageRubricTable = document.getElementById('courage-rubric-table');
-        const respectRubricTable = document.getElementById('respect-rubric-table'); // Added this line
+        const respectRubricTable = document.getElementById('respect-rubric-table');
+        const questioningRubricTable = document.getElementById('questioning-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1142,8 +1179,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Respect' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect'];
+            // MODIFIED: Added 'Questioning' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1204,6 +1241,9 @@
             } else if (microSkill === 'Respect') {
                 document.getElementById('respect-rubric-container').classList.remove('hidden');
                 activeTable = respectRubricTable;
+            } else if (microSkill === 'Questioning') {
+                document.getElementById('questioning-rubric-container').classList.remove('hidden');
+                activeTable = questioningRubricTable;
             }
             
             if (!activeTable) return;
