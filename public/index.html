@@ -923,7 +923,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Communicating Rubric -->
+                    <!-- Communicating Rubric -->
                     <div id="communicating-rubric-container" class="rubric-container hidden">
                         <table id="communicating-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -964,6 +964,61 @@
                                     <td id="communicating-r3-c4">I confidently use the right tools and techniques to create quality work.</td>
                                     <td id="communicating-r3-c5">I apply advanced techniques and problem-solve tool use independently.</td>
                                     <td id="communicating-r3-c6">I teach others how to use tools effectively and innovate techniques.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Analyzing Information Rubric -->
+                    <div id="analyzing-information-rubric-container" class="rubric-container hidden">
+                        <table id="analyzing-information-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Analyzing</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Identifying Key Details</strong><br>Picking out the most important facts and main idea of a text, video, data set, or conversation. "What stands out? What's essential to understand this?"</td>
+                                    <td id="ai-r1-c1">I can't tell what details are important. Everything feels the same.</td>
+                                    <td id="ai-r1-c2">I notice some details but miss the key ones.</td>
+                                    <td id="ai-r1-c3">I can spot a few important points with support.</td>
+                                    <td id="ai-r1-c4">I identify the main ideas or most useful details.</td>
+                                    <td id="ai-r1-c5">I confidently pull out key details that help me understand better.</td>
+                                    <td id="ai-r1-c6">I find the most relevant details and explain why they matter.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Recognizing Patterns and Relationships</strong><br>Seeing how pieces of information connect, repeat, or relate to each other. "How do these parts fit together?"</td>
+                                    <td id="ai-r2-c1">I don't see how things are connected. Everything feels separate.</td>
+                                    <td id="ai-r2-c2">I can sometimes notice things that repeat or connect.</td>
+                                    <td id="ai-r2-c3">I see some patterns but need help explaining them.</td>
+                                    <td id="ai-r2-c4">I spot patterns or connections and explain how they fit.</td>
+                                    <td id="ai-r2-c5">I find meaningful relationships and use them to understand bigger ideas.</td>
+                                    <td id="ai-r2-c6">I explain patterns or systems in a clear, powerful way that helps others understand too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Breaking Down Complex Ideas</strong><br>Taking big ideas or problems and splitting them into smaller, more understandable parts. "How can I simplify this so I understand it better?" Summarizing</td>
+                                    <td id="ai-r3-c1">Big ideas confuse me. I don't know where to start.</td>
+                                    <td id="ai-r3-c2">I try to break things down but need a lot of help.</td>
+                                    <td id="ai-r3-c3">I can break down parts of an idea but might miss key pieces.</td>
+                                    <td id="ai-r3-c4">I break down complex info into smaller parts I can understand.</td>
+                                    <td id="ai-r3-c5">I take apart complex ideas and explain them in simple terms.</td>
+                                    <td id="ai-r3-c6">I break down complex topics clearly and help others understand them too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Differentiating Fact from Opinion</strong><br>Knowing what's evidence-based and what's personal perspective or bias. "Is this something I can prove? Or someone's point of view?".</td>
+                                    <td id="ai-r4-c1">I think everything I read or hear is true.</td>
+                                    <td id="ai-r4-c2">I sometimes know when something's an opinion but still get confused.</td>
+                                    <td id="ai-r4-c3">I can tell facts from opinions with some support.</td>
+                                    <td id="ai-r4-c4">I recognize the difference between facts, opinions, and bias.</td>
+                                    <td id="ai-r4-c5">I can explain why something is a fact or opinion and find evidence.</td>
+                                    <td id="ai-r4-c6">I critically evaluate sources and clearly separate fact, opinion, and bias in my analysis.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1197,7 +1252,8 @@
         const reflectingRubricTable = document.getElementById('reflecting-rubric-table');
         const researchingRubricTable = document.getElementById('researching-rubric-table');
         const creatingRubricTable = document.getElementById('creating-rubric-table');
-        const communicatingRubricTable = document.getElementById('communicating-rubric-table'); // Added this line
+        const communicatingRubricTable = document.getElementById('communicating-rubric-table');
+        const analyzingInformationRubricTable = document.getElementById('analyzing-information-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1376,8 +1432,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Communicating' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'];
+            // MODIFIED: Added 'Analyzing Information' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1453,6 +1509,9 @@
             } else if (microSkill === 'Communicating') {
                 document.getElementById('communicating-rubric-container').classList.remove('hidden');
                 activeTable = communicatingRubricTable;
+            } else if (microSkill === 'Analyzing Information') {
+                document.getElementById('analyzing-information-rubric-container').classList.remove('hidden');
+                activeTable = analyzingInformationRubricTable;
             }
             
             if (!activeTable) return;
