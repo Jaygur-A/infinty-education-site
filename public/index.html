@@ -473,7 +473,7 @@
                         </table>
                     </div>
                     
-                    <!-- NEW: Connection Rubric -->
+                    <!-- Connection Rubric -->
                     <div id="connection-rubric-container" class="rubric-container hidden">
                         <table id="connection-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -532,6 +532,52 @@
                                     <td id="conn-r5-c4">I treat nature with respect and think about how to protect it, know what's around me and why it matters.</td>
                                     <td id="conn-r5-c5">I take action to care for nature and understand the impact of my actions. I contribute to my community and think about how I can make it better.</td>
                                     <td id="conn-r5-c6">I live in harmony with nature and feel responsible for protecting it.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Honesty & Accountability Rubric -->
+                    <div id="honesty-accountability-rubric-container" class="rubric-container hidden">
+                        <table id="honesty-accountability-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Honesty & Accountability</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Owning My Actions</strong><br>I take responsibility for what I do—even if it was a mistake or didn’t go well.</td>
+                                    <td id="ha-r1-c1">I blame others or deny when I do something wrong.</td>
+                                    <td id="ha-r1-c2">I sometimes admit when I did something, but only if I'm caught.</td>
+                                    <td id="ha-r1-c3">I'm learning to take responsibility when things don't go well.</td>
+                                    <td id="ha-r1-c4">I own my actions most of the time, even when it's uncomfortable.</td>
+                                    <td id="ha-r1-c5">I take full responsibility for what I do and learn from my actions.</td>
+                                    <td id="ha-r1-c6">I model personal responsibility and encourage others to do the same.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Following Through</strong><br>Doing What I Say I’ll Do. I follow through on my promises and take responsibility for my actions.</td>
+                                    <td id="ha-r2-c1">I often forget or don't do what I say I will.</td>
+                                    <td id="ha-r2-c2">I try to do what I say, but I sometimes need reminders.</td>
+                                    <td id="ha-r2-c3">I usually follow through, but not always right away.</td>
+                                    <td id="ha-r2-c4">I do what I say I’ll do and take responsibility if I forget.</td>
+                                    <td id="ha-r2-c5">I'm dependable—I follow through and people can count on me.</td>
+                                    <td id="ha-r2-c6">I lead by example and support others in keeping their promises too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Making it Right</strong><br>Telling the Truth Even When It’s Hard. I speak the truth, even if I made a mistake or might get in trouble.</td>
+                                    <td id="ha-r3-c1">I often hide the truth or blame others.</td>
+                                    <td id="ha-r3-c2">I tell the truth when it's easy, but not when I'm afraid of getting in trouble.</td>
+                                    <td id="ha-r3-c3">I try to be honest, but I sometimes leave things out or tell half the story.</td>
+                                    <td id="ha-r3-c4">I tell the truth, even when it's hard, most of the time.</td>
+                                    <td id="ha-r3-c5">I own up to mistakes and speak the truth kindly and clearly.</td>
+                                    <td id="ha-r3-c6">I tell the truth with courage and encourage others to be honest too.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -756,7 +802,8 @@
         const emotionalRegulationRubricTable = document.getElementById('emotional-regulation-rubric-table');
         const physicalConditioningRubricTable = document.getElementById('physical-conditioning-rubric-table');
         const healthRubricTable = document.getElementById('health-rubric-table');
-        const connectionRubricTable = document.getElementById('connection-rubric-table'); // Added this line
+        const connectionRubricTable = document.getElementById('connection-rubric-table');
+        const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -935,8 +982,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Connection' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'];
+            // MODIFIED: Added 'Honesty & Accountability' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -985,6 +1032,9 @@
             } else if (microSkill === 'Connection') {
                 document.getElementById('connection-rubric-container').classList.remove('hidden');
                 activeTable = connectionRubricTable;
+            } else if (microSkill === 'Honesty & Accountability') {
+                document.getElementById('honesty-accountability-rubric-container').classList.remove('hidden');
+                activeTable = honestyAccountabilityRubricTable;
             }
             
             if (!activeTable) return;
@@ -1540,3 +1590,4 @@
     </script>
 </body>
 </html>
+
