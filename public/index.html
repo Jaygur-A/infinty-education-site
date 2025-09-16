@@ -2187,7 +2187,7 @@
             }
         });
         
-        // NEW: Event delegation for Edit/Delete buttons on anecdotes
+        // Event delegation for Edit/Delete buttons on anecdotes
         microSkillAnecdoteList.addEventListener('click', (e) => {
             const editButton = e.target.closest('.edit-anecdote-btn');
             const deleteButton = e.target.closest('.delete-anecdote-btn');
@@ -2209,12 +2209,12 @@
             }
         });
 
-        // NEW: Handler for closing the edit modal
+        // Handler for closing the edit modal
         closeEditAnecdoteModalBtn.addEventListener('click', () => {
             editAnecdoteModal.classList.add('hidden');
         });
 
-        // NEW: Handler for submitting the edit form
+        // Handler for submitting the edit form
         editAnecdoteForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const anecdoteId = editAnecdoteModal.dataset.id;
@@ -2224,10 +2224,10 @@
             loadingOverlay.classList.remove('hidden');
             const anecdoteRef = doc(db, "anecdotes", anecdoteId);
             try {
-                await updateDoc(anecdoteRef, {
+                await setDoc(anecdoteRef, {
                     text: newText,
                     editedAt: serverTimestamp()
-                });
+                }, { merge: true });
                 showMessage("Anecdote updated successfully!", false);
                 editAnecdoteModal.classList.add('hidden');
             } catch (error) {
@@ -2238,7 +2238,7 @@
             }
         });
 
-        // NEW: Handlers for the delete confirmation modal
+        // Handlers for the delete confirmation modal
         cancelDeleteAnecdoteBtn.addEventListener('click', () => {
             deleteAnecdoteConfirmModal.classList.add('hidden');
         });
