@@ -739,7 +739,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Questioning Rubric -->
+                    <!-- Questioning Rubric -->
                     <div id="questioning-rubric-container" class="rubric-container hidden">
                         <table id="questioning-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -776,6 +776,52 @@
                         </table>
                     </div>
 
+                    <!-- NEW: Reflecting Rubric -->
+                    <div id="reflecting-rubric-container" class="rubric-container hidden">
+                        <table id="reflecting-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Reflecting</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Metacognition & Asking Self-Check Questions</strong><br>"Does this make sense?" "What could I do differently?" "What am I learning?"</td>
+                                    <td id="reflecting-r1-c1">I don't stop to ask myself questions.</td>
+                                    <td id="reflecting-r1-c2">I ask simple questions but don't really use them to reflect.</td>
+                                    <td id="reflecting-r1-c3">I ask questions like "Is this right?" or "What should I do next?"</td>
+                                    <td id="reflecting-r1-c4">I ask thoughtful questions like "What am I learning?" or "Could I do this differently?" I pay attention to what's working or not and how I feel.</td>
+                                    <td id="reflecting-r1-c5">I use self-questions to deepen my thinking and improve my work. I regularly check in with myself and my progress.</td>
+                                    <td id="reflecting-r1-c6">I ask powerful questions that guide my learning and help others reflect too. I can clearly explain what's happening and why, and help others reflect too. Consistently plans, monitors, and evaluates learning independently, and teaches others how to improve.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Making Adjustments</strong><br>Changing your plan, approach, or idea based on what you've learned.<br><strong>Openness to Feedback</strong><br>Listening to suggestions with curiosity, not defensiveness.</td>
+                                    <td id="reflecting-r2-c1">I keep doing things the same way, even if they don't work. I ignore or resist feedback and take it personally.</td>
+                                    <td id="reflecting-r2-c2">I sometimes change things when someone tells me to. I hear feedback but feel upset or shut down.</td>
+                                    <td id="reflecting-r2-c3">I make small changes when I realize something isn't working. I try to listen, but need help understanding what to do with it.</td>
+                                    <td id="reflecting-r2-c4">I make changes to improve my learning or work. I try to understand feedback and sometimes apply it. I'm learning to figure out which feedback makes sense for me.</td>
+                                    <td id="reflecting-r2-c5">I adapt my strategies, tools, or ideas based on reflection. I seek feedback from appropriate people, think about whether it fits my goals, and use it to improve my work or behavior.</td>
+                                    <td id="reflecting-r2-c6">I consistently revise and improve based on deep self-awareness and feedback. I regularly ask for feedback from appropriate people, reflect deeply on what's useful, and intentionally apply what will help me grow.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Connecting to Big Ideas</strong><br>Understanding how your learning connects to yourself, others, or the world.</td>
+                                    <td id="reflecting-r3-c1">I don't think about why my learning matters.</td>
+                                    <td id="reflecting-r3-c2">I sometimes notice that a project is connected to a real topic.</td>
+                                    <td id="reflecting-r3-c3">I can say why the project is important or what I've learned about myself.</td>
+                                    <td id="reflecting-r3-c4">I reflect on how my learning connects to real life and the world.</td>
+                                    <td id="reflecting-r3-c5">I make thoughtful connections to big ideas, real issues, or personal growth.</td>
+                                    <td id="reflecting-r3-c6">I connect my learning to meaningful action, and help others see the bigger picture too.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
                 </div>
 
             </div>
@@ -1000,7 +1046,8 @@
         const disciplineRubricTable = document.getElementById('discipline-rubric-table');
         const courageRubricTable = document.getElementById('courage-rubric-table');
         const respectRubricTable = document.getElementById('respect-rubric-table');
-        const questioningRubricTable = document.getElementById('questioning-rubric-table'); // Added this line
+        const questioningRubricTable = document.getElementById('questioning-rubric-table');
+        const reflectingRubricTable = document.getElementById('reflecting-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1179,8 +1226,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Questioning' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning'];
+            // MODIFIED: Added 'Reflecting' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1244,6 +1291,9 @@
             } else if (microSkill === 'Questioning') {
                 document.getElementById('questioning-rubric-container').classList.remove('hidden');
                 activeTable = questioningRubricTable;
+            } else if (microSkill === 'Reflecting') {
+                document.getElementById('reflecting-rubric-container').classList.remove('hidden');
+                activeTable = reflectingRubricTable;
             }
             
             if (!activeTable) return;
