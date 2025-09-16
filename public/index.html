@@ -1356,7 +1356,7 @@
         const communicatingRubricTable = document.getElementById('communicating-rubric-table');
         const analyzingInformationRubricTable = document.getElementById('analyzing-information-rubric-table');
         const evaluatingEvidenceRubricTable = document.getElementById('evaluating-evidence-rubric-table');
-        const makingInformedJudgmentsRubricTable = document.getElementById('making-informed-judgments-rubric-table'); // Added this line
+        const makingInformedJudgmentsRubricTable = document.getElementById('making-informed-judgments-rubric-table');
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1535,7 +1535,6 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Making Informed Judgments' to the list of available rubrics
             const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
@@ -1568,7 +1567,6 @@
             // Hide all rubric containers first
             document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
 
-            // MODIFIED: Show the correct rubric container based on the microSkill
             let activeTable;
             if (microSkill === 'Mindset') {
                 document.getElementById('mindset-rubric-container').classList.remove('hidden');
@@ -1926,7 +1924,16 @@
         
         alignedSkillsGrid.addEventListener('click', (e) => {
             const skillCard = e.target.closest('.skill-card');
-            if (skillCard) listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
+            if (skillCard) {
+                // First, fetch the data and make the chart container visible
+                listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
+                
+                // Then, scroll down to the chart container smoothly.
+                // A small timeout ensures the container is rendered before we try to scroll to it.
+                setTimeout(() => {
+                    anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
         });
         
         addStudentForm.addEventListener('submit', async (e) => {
