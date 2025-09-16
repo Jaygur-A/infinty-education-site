@@ -583,7 +583,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Discipline Rubric -->
+                    <!-- Discipline Rubric -->
                     <div id="discipline-rubric-container" class="rubric-container hidden">
                         <table id="discipline-rubric-table" class="rubric-table text-sm">
                              <thead>
@@ -633,6 +633,52 @@
                                     <td id="discipline-r4-c4">Consistently cares for belongings and finishes tasks on time without occasional reminders.</td>
                                     <td id="discipline-r4-c5">Takes initiative to organize belongings and manages time well to complete tasks ahead of deadlines.</td>
                                     <td id="discipline-r4-c6">Fully independent in caring for belongings and always completes tasks efficiently and early.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Courage Rubric -->
+                    <div id="courage-rubric-container" class="rubric-container hidden">
+                        <table id="courage-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Courage</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Embracing discomfort</strong><br>Trying Hard Things<br>I take on challenges, even when I'm not sure I'll succeed.<br><br><strong>Taking Healthy Risks</strong><br>I'm willing to try new things, step outside my comfort zone, or make mistakes while learning.</td>
+                                    <td id="courage-r1-c1">I avoid challenges because I'm afraid I'll fail. I don't like to try anything unfamiliar or that feels uncertain.</td>
+                                    <td id="courage-r1-c2">I'll try something new if I know I'm already good at it. I take risks only when I feel totally prepared or safe.</td>
+                                    <td id="courage-r1-c3">I'm starting to try new or hard things, but I still hold back. I'm beginning to try new things, even if they're a bit uncomfortable.</td>
+                                    <td id="courage-r1-c4">I try hard things even when they're uncomfortable or unfamiliar. I take smart risks that help me grow and learn.</td>
+                                    <td id="courage-r1-c5">I lean into challenges and learn from mistakes without giving up. I regularly step out of my comfort zone and learn from what happens.</td>
+                                    <td id="courage-r1-c6">I seek out growth opportunities and support others in facing hard things too. I model risk-taking and encourage others to be bold and try new things too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Speaking Up</strong><br>I use my voice to stand up for what's right or share my ideas, even if I feel nervous.</td>
+                                    <td id="courage-r2-c1">I stay quiet even when I have something important to say.</td>
+                                    <td id="courage-r2-c2">I sometimes speak up, but only when I feel very safe.</td>
+                                    <td id="courage-r2-c3">I'm starting to share my thoughts or stand up for myself or others.</td>
+                                    <td id="courage-r2-c4">I speak up respectfully even when it's hard or unpopular.</td>
+                                    <td id="courage-r2-c5">I use my voice for good—to share ideas and advocate for others.</td>
+                                    <td id="courage-r2-c6">I speak truth with confidence and help create safe spaces for others to speak too.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Being True to Myself</strong><br>I stay honest about who I am and what I believe, even if others think differently.</td>
+                                    <td id="courage-r3-c1">I often try to fit in by acting like others instead of myself.</td>
+                                    <td id="courage-r3-c2">I'm not sure who I really am yet, but I'm trying to figure it out.</td>
+                                    <td id="courage-r3-c3">I'm starting to express myself more honestly.</td>
+                                    <td id="courage-r3-c4">I act in ways that match my values, even if others disagree.</td>
+                                    <td id="courage-r3-c5">I'm proud of who I am and I show it in what I say and do.</td>
+                                    <td id="courage-r3-c6">I live authentically and support others in being their true selves too.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -859,7 +905,8 @@
         const healthRubricTable = document.getElementById('health-rubric-table');
         const connectionRubricTable = document.getElementById('connection-rubric-table');
         const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table');
-        const disciplineRubricTable = document.getElementById('discipline-rubric-table'); // Added this line
+        const disciplineRubricTable = document.getElementById('discipline-rubric-table');
+        const courageRubricTable = document.getElementById('courage-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1038,8 +1085,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Discipline' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline'];
+            // MODIFIED: Added 'Courage' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1094,6 +1141,9 @@
             } else if (microSkill === 'Discipline') {
                 document.getElementById('discipline-rubric-container').classList.remove('hidden');
                 activeTable = disciplineRubricTable;
+            } else if (microSkill === 'Courage') {
+                document.getElementById('courage-rubric-container').classList.remove('hidden');
+                activeTable = courageRubricTable;
             }
             
             if (!activeTable) return;
