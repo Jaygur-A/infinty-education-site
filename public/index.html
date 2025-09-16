@@ -1024,7 +1024,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Evaluating Evidence Rubric -->
+                    <!-- Evaluating Evidence Rubric -->
                     <div id="evaluating-evidence-rubric-container" class="rubric-container hidden">
                         <table id="evaluating-evidence-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -1078,6 +1078,53 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- NEW: Making Informed Judgments Rubric -->
+                    <div id="making-informed-judgments-rubric-container" class="rubric-container hidden">
+                        <table id="making-informed-judgments-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Making Informed Judgments</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Problem Solving</strong><br>Resourceful & Adaptable</td>
+                                    <td id="mij-r1-c1">I'm not sure where to start when problem-solving and don't try to find ways around problems.</td>
+                                    <td id="mij-r1-c2">I try one way to fix a problem but get stuck if it doesn't work and don't think of other options.</td>
+                                    <td id="mij-r1-c3">I try different solutions but often need help figuring out how to make them work.</td>
+                                    <td id="mij-r1-c4">I look for creative and practical ways to solve problems and can change my approach when needed, with some support.</td>
+                                    <td id="mij-r1-c5">I confidently use creative strategies and available resources to solve problems and adjust plans independently.</td>
+                                    <td id="mij-r1-c6">I lead by example, innovating smart solutions, using resources wisely, and adapting quickly to new challenges.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Connecting Cause and Effect</strong><br>Understanding how one thing leads to another and using that to make decisions. "If I do this, what will happen next?"</td>
+                                    <td id="mij-r2-c1">I don't think about how one thing affects another.</td>
+                                    <td id="mij-r2-c2">I see some simple connections between actions and results.</td>
+                                    <td id="mij-r2-c3">I can explain basic cause-and-effect with help.</td>
+                                    <td id="mij-r2-c4">I show how one choice or action leads to a result.</td>
+                                    <td id="mij-r2-c5">I use cause-and-effect thinking to make stronger decisions.</td>
+                                    <td id="mij-r2-c6">I predict and explain the possible outcomes of choices and use that to guide my judgment.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Justifying a Decision</strong><br>Clearly explaining your reasoning and showing how your judgment is based on facts, not just opinion. "Here's what I chose, and here's why it makes sense."</td>
+                                    <td id="mij-r3-c1">I make decisions without explaining them.</td>
+                                    <td id="mij-r3-c2">I can say what I chose, but not why.</td>
+                                    <td id="mij-r3-c3">I try to explain my decision with help.</td>
+                                    <td id="mij-r3-c4">I can clearly explain why I made a decision using facts or logic.</td>
+                                    <td id="mij-r3-c5">I give strong reasons for my choices and back them up with evidence.</td>
+                                    <td id="mij-r3-c6">I confidently justify my decisions with clear reasoning, and I'm open to feedback or new perspectives.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
                 </div>
 
             </div>
@@ -1308,7 +1355,8 @@
         const creatingRubricTable = document.getElementById('creating-rubric-table');
         const communicatingRubricTable = document.getElementById('communicating-rubric-table');
         const analyzingInformationRubricTable = document.getElementById('analyzing-information-rubric-table');
-        const evaluatingEvidenceRubricTable = document.getElementById('evaluating-evidence-rubric-table'); // Added this line
+        const evaluatingEvidenceRubricTable = document.getElementById('evaluating-evidence-rubric-table');
+        const makingInformedJudgmentsRubricTable = document.getElementById('making-informed-judgments-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1487,8 +1535,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Evaluating Evidence' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence'];
+            // MODIFIED: Added 'Making Informed Judgments' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1570,6 +1618,9 @@
             } else if (microSkill === 'Evaluating Evidence') {
                 document.getElementById('evaluating-evidence-rubric-container').classList.remove('hidden');
                 activeTable = evaluatingEvidenceRubricTable;
+            } else if (microSkill === 'Making Informed Judgments') {
+                document.getElementById('making-informed-judgments-rubric-container').classList.remove('hidden');
+                activeTable = makingInformedJudgmentsRubricTable;
             }
             
             if (!activeTable) return;
