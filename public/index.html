@@ -638,7 +638,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Courage Rubric -->
+                    <!-- Courage Rubric -->
                     <div id="courage-rubric-container" class="rubric-container hidden">
                         <table id="courage-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -683,6 +683,62 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- NEW: Respect Rubric -->
+                     <div id="respect-rubric-container" class="rubric-container hidden">
+                        <table id="respect-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Respect</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Listening to Others</strong><br>I give my full attention, let others speak, and try to understand their point of view.</td>
+                                    <td id="respect-r1-c1">I talk over people and don't really listen when they speak.</td>
+                                    <td id="respect-r1-c2">I try to listen, but I get distracted or interrupt.</td>
+                                    <td id="respect-r1-c3">I can listen without interrupting most of the time.</td>
+                                    <td id="respect-r1-c4">I give my full attention and wait my turn to speak.</td>
+                                    <td id="respect-r1-c5">I listen closely and ask thoughtful questions.</td>
+                                    <td id="respect-r1-c6">I make others feel heard, understood, and respected.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Kindness & Empathy</strong><br>I speak and act with kindness toward classmates, adults, and others—even when I'm upset or don't agree.</td>
+                                    <td id="respect-r2-c1">I'm often unkind with my words or actions. Recognizes when someone is sad, hurt, or needs help.</td>
+                                    <td id="respect-r2-c2">I'm kind sometimes, especially when I'm in a good mood. Can name feelings and match them to situations.</td>
+                                    <td id="respect-r2-c3">I try to be kind, but I still struggle when I'm upset. Begins to feel with others when they're happy, sad, or frustrated.</td>
+                                    <td id="respect-r2-c4">I speak and act kindly, even when things are hard. Understands that others may think or feel differently than they do.</td>
+                                    <td id="respect-r2-c5">I go out of my way to be thoughtful and include others. Responds in words or actions that show understanding and care.</td>
+                                    <td id="respect-r2-c6">I model kindness and help others treat people well too. Consistently tunes in, validates feelings, and adapts behavior to support others.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Caring for Spaces, Belongings, and Nature</strong><br>I take care of the classroom, nature, tools, and shared spaces as if they were my own.</td>
+                                    <td id="respect-r3-c1">I often leave messes or damage things.</td>
+                                    <td id="respect-r3-c2">I clean up when asked, but not on my own.</td>
+                                    <td id="respect-r3-c3">I clean up after myself most of the time.</td>
+                                    <td id="respect-r3-c4">I take care of materials and natural spaces without reminders.</td>
+                                    <td id="respect-r3-c5">I help others take care of our space and nature too.</td>
+                                    <td id="respect-r3-c6">I take pride in protecting our spaces and inspire others to do the same.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Manners</strong></td>
+                                    <td id="respect-r4-c1">I forget to use polite words or talk in a disrespectful tone.</td>
+                                    <td id="respect-r4-c2">I use manners when reminded.</td>
+                                    <td id="respect-r4-c3">I remember to use polite words in most situations.</td>
+                                    <td id="respect-r4-c4">I consistently use kind words and a respectful tone.</td>
+                                    <td id="respect-r4-c5">I help set a kind tone in conversations.</td>
+                                    <td id="respect-r4-c6">I model respectful communication and help others feel valued.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
 
                 </div>
 
@@ -906,7 +962,8 @@
         const connectionRubricTable = document.getElementById('connection-rubric-table');
         const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table');
         const disciplineRubricTable = document.getElementById('discipline-rubric-table');
-        const courageRubricTable = document.getElementById('courage-rubric-table'); // Added this line
+        const courageRubricTable = document.getElementById('courage-rubric-table');
+        const respectRubricTable = document.getElementById('respect-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1085,8 +1142,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Courage' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage'];
+            // MODIFIED: Added 'Respect' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1144,6 +1201,9 @@
             } else if (microSkill === 'Courage') {
                 document.getElementById('courage-rubric-container').classList.remove('hidden');
                 activeTable = courageRubricTable;
+            } else if (microSkill === 'Respect') {
+                document.getElementById('respect-rubric-container').classList.remove('hidden');
+                activeTable = respectRubricTable;
             }
             
             if (!activeTable) return;
