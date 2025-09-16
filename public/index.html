@@ -537,7 +537,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Honesty & Accountability Rubric -->
+                    <!-- Honesty & Accountability Rubric -->
                     <div id="honesty-accountability-rubric-container" class="rubric-container hidden">
                         <table id="honesty-accountability-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -578,6 +578,61 @@
                                     <td id="ha-r3-c4">I tell the truth, even when it's hard, most of the time.</td>
                                     <td id="ha-r3-c5">I own up to mistakes and speak the truth kindly and clearly.</td>
                                     <td id="ha-r3-c6">I tell the truth with courage and encourage others to be honest too.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Discipline Rubric -->
+                    <div id="discipline-rubric-container" class="rubric-container hidden">
+                        <table id="discipline-rubric-table" class="rubric-table text-sm">
+                             <thead>
+                                <tr>
+                                    <th>Discipline</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Self-Control</strong><br>I manage my impulses, emotions, and energy.<br><strong>Focus and Attention</strong><br>I stay on task, block out distractions, and give my best effort to what I'm doing.</td>
+                                    <td id="discipline-r1-c1">I often act without thinking and have trouble managing big emotions. I get distracted easily and have a hard time staying with a task.</td>
+                                    <td id="discipline-r1-c2">I sometimes stop myself, but I often still react right away. I can focus for a little while, but I lose track quickly.</td>
+                                    <td id="discipline-r1-c3">I'm learning to pause and think before I act, but it's still tricky. I'm getting better at staying focused, especially when I'm interested.</td>
+                                    <td id="discipline-r1-c4">I can usually stay calm, manage my reactions, and make better choices. I focus and complete tasks even when I don't feel like it.</td>
+                                    <td id="discipline-r1-c5">I manage my emotions and behavior in tough situations. I keep my attention on what matters and use tools to help me stay on track.</td>
+                                    <td id="discipline-r1-c6">I stay grounded and in control, and I help others calm down too. I stay focused, manage distractions, and help create a focused environment.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Consistency of Effort & Initiative</strong><br>I show up and try—even when it's boring, difficult, or I don't feel like it.<br><strong>Delaying Gratification / Patience</strong><br>I can wait, work for long-term goals, and choose what's right over what's easy.</td>
+                                    <td id="discipline-r2-c1">I give up quickly or only try when it's easy or interesting. I want things right away and have trouble waiting or working for them. I wait for others to give me directions and don't show initiative or try to be resourceful when things get hard.</td>
+                                    <td id="discipline-r2-c2">I try sometimes, but I stop when things get boring or hard. I try to wait or work for rewards, but I get frustrated or give up. I sometimes show initiative by starting tasks but often need reminders.</td>
+                                    <td id="discipline-r2-c3">I'm starting to stick with things even when I don't feel like it. I can wait and work for rewards in some situations. I show initiative by starting tasks on my own and try to be resourceful by solving simple problems, but still ask for help quickly.</td>
+                                    <td id="discipline-r2-c4">I show up, put in effort, and finish most of what I start. I usually take initiative and am resourceful in finding creative ways to solve problems using what I have.</td>
+                                    <td id="discipline-r2-c5">I push through challenges and give consistent effort every day. I make smart choices that support long-term goals, not just quick wins. I confidently show initiative and am resourceful by using different strategies to solve challenges independently.</td>
+                                    <td id="discipline-r2-c6">I show up with focus and purpose—even on hard days—and I inspire others to do the same. I stay committed to long-term goals and help others stay patient and focused too. I lead by example, demonstrating strong initiative and resourcefulness, finding creative solutions, and asking for help only when necessary.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Self-Directed Goal Setting</strong><br>Setting your own goals and staying motivated</td>
+                                    <td id="discipline-r3-c1">I don't set goals and usually wait to be told what to do.</td>
+                                    <td id="discipline-r3-c2">I can set a goal when someone helps me.</td>
+                                    <td id="discipline-r3-c3">I set goals but sometimes forget or lose motivation.</td>
+                                    <td id="discipline-r3-c4">I usually set and work toward goals on my own.</td>
+                                    <td id="discipline-r3-c5">I set clear goals, stay focused, and adjust as needed.</td>
+                                    <td id="discipline-r3-c6">I set challenging goals, reflect on my progress, and support others with their goals too.</td>
+                                </tr>
+                                 <tr>
+                                    <td class="skill-label-cell"><strong>Responsibility</strong><br>Responsibility is taking ownership of my actions, tasks, and belongings.</td>
+                                    <td id="discipline-r4-c1">Often loses belongings and needs reminders to start or finish tasks.</td>
+                                    <td id="discipline-r4-c2">Sometimes remembers belongings and tries to complete tasks but often needs help or reminders.</td>
+                                    <td id="discipline-r4-c3">Usually keeps track of belongings and completes tasks with occasional reminders.</td>
+                                    <td id="discipline-r4-c4">Consistently cares for belongings and finishes tasks on time without occasional reminders.</td>
+                                    <td id="discipline-r4-c5">Takes initiative to organize belongings and manages time well to complete tasks ahead of deadlines.</td>
+                                    <td id="discipline-r4-c6">Fully independent in caring for belongings and always completes tasks efficiently and early.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -803,7 +858,8 @@
         const physicalConditioningRubricTable = document.getElementById('physical-conditioning-rubric-table');
         const healthRubricTable = document.getElementById('health-rubric-table');
         const connectionRubricTable = document.getElementById('connection-rubric-table');
-        const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table'); // Added this line
+        const honestyAccountabilityRubricTable = document.getElementById('honesty-accountability-rubric-table');
+        const disciplineRubricTable = document.getElementById('discipline-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -982,8 +1038,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Honesty & Accountability' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability'];
+            // MODIFIED: Added 'Discipline' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1035,6 +1091,9 @@
             } else if (microSkill === 'Honesty & Accountability') {
                 document.getElementById('honesty-accountability-rubric-container').classList.remove('hidden');
                 activeTable = honestyAccountabilityRubricTable;
+            } else if (microSkill === 'Discipline') {
+                document.getElementById('discipline-rubric-container').classList.remove('hidden');
+                activeTable = disciplineRubricTable;
             }
             
             if (!activeTable) return;
@@ -1590,4 +1649,3 @@
     </script>
 </body>
 </html>
-
