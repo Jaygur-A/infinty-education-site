@@ -969,7 +969,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Analyzing Information Rubric -->
+                    <!-- Analyzing Information Rubric -->
                     <div id="analyzing-information-rubric-container" class="rubric-container hidden">
                         <table id="analyzing-information-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -1023,7 +1023,61 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
+                    <!-- NEW: Evaluating Evidence Rubric -->
+                    <div id="evaluating-evidence-rubric-container" class="rubric-container hidden">
+                        <table id="evaluating-evidence-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Evaluating</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Checking the Source</strong><br>Identifying where the information came from and whether the source is reliable. "Who said this? Can I trust them?"</td>
+                                    <td id="ee-r1-c1">I don't think about where the information comes from.</td>
+                                    <td id="ee-r1-c2">I notice who shared the information, but I don't know if it's trustworthy.</td>
+                                    <td id="ee-r1-c3">I try to figure out if a source is reliable with some support.</td>
+                                    <td id="ee-r1-c4">I check who created the info and if they're a trustworthy source.</td>
+                                    <td id="ee-r1-c5">I confidently use reliable sources and explain why they're trustworthy.</td>
+                                    <td id="ee-r1-c6">I evaluate the source's credibility deeply and teach others how to choose strong sources.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Identifying Bias or Agenda</strong><br>Recognizing if the information is one-sided, persuasive, or meant to influence. "Is this trying to sell me something or make me think a certain way?"</td>
+                                    <td id="ee-r2-c1">I believe all information is neutral and fair.</td>
+                                    <td id="ee-r2-c2">I sometimes notice when someone is being opinionated or one-sided.</td>
+                                    <td id="ee-r2-c3">I can spot bias in simple examples with some help.</td>
+                                    <td id="ee-r2-c4">I notice when information is biased or trying to persuade.</td>
+                                    <td id="ee-r2-c5">I explain how bias or agenda might affect the message.</td>
+                                    <td id="ee-r2-c6">I critically analyze how bias shapes information and avoid being influenced by it.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Judging Relevance</strong><br>Deciding whether the information directly supports the question or topic. "Does this actually help me understand or solve the problem I'm working on?"</td>
+                                    <td id="ee-r3-c1">I include information even if it's not helpful or related.</td>
+                                    <td id="ee-r3-c2">I use some relevant info but mix in a lot that doesn't fit.</td>
+                                    <td id="ee-r3-c3">I choose some useful info but still need help deciding what's important.</td>
+                                    <td id="ee-r3-c4">I choose information that clearly fits my topic or question.</td>
+                                    <td id="ee-r3-c5">I explain how the evidence I choose supports my thinking.</td>
+                                    <td id="ee-r3-c6">I select highly relevant evidence that strengthens my ideas or arguments.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Comparing Multiple Sources, Perspectives & Weighing Evidence</strong><br>Looking at more than one piece of evidence to spot patterns, differences, or agreement. "What do other sources say? Do they back each other up?".</td>
+                                    <td id="ee-r4-c1">I use just one source and don't compare it to anything else.</td>
+                                    <td id="ee-r4-c2">I sometimes look at a second source but don't compare them.</td>
+                                    <td id="ee-r4-c3">I try to compare sources with help and spot a few differences.</td>
+                                    <td id="ee-r4-c4">I look at different sources and notice similarities and differences.</td>
+                                    <td id="ee-r4-c5">I compare sources and explain which ones are stronger or more useful.</td>
+                                    <td id="ee-r4-c6">I synthesize information from many sources to build strong, balanced understanding. I carefully evaluate all evidence and explain how I chose the best information to support my judgment.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
             </div>
@@ -1253,7 +1307,8 @@
         const researchingRubricTable = document.getElementById('researching-rubric-table');
         const creatingRubricTable = document.getElementById('creating-rubric-table');
         const communicatingRubricTable = document.getElementById('communicating-rubric-table');
-        const analyzingInformationRubricTable = document.getElementById('analyzing-information-rubric-table'); // Added this line
+        const analyzingInformationRubricTable = document.getElementById('analyzing-information-rubric-table');
+        const evaluatingEvidenceRubricTable = document.getElementById('evaluating-evidence-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1432,8 +1487,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Analyzing Information' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information'];
+            // MODIFIED: Added 'Evaluating Evidence' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1512,6 +1567,9 @@
             } else if (microSkill === 'Analyzing Information') {
                 document.getElementById('analyzing-information-rubric-container').classList.remove('hidden');
                 activeTable = analyzingInformationRubricTable;
+            } else if (microSkill === 'Evaluating Evidence') {
+                document.getElementById('evaluating-evidence-rubric-container').classList.remove('hidden');
+                activeTable = evaluatingEvidenceRubricTable;
             }
             
             if (!activeTable) return;
