@@ -776,7 +776,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Reflecting Rubric -->
+                    <!-- Reflecting Rubric -->
                     <div id="reflecting-rubric-container" class="rubric-container hidden">
                         <table id="reflecting-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -817,6 +817,52 @@
                                     <td id="reflecting-r3-c4">I reflect on how my learning connects to real life and the world.</td>
                                     <td id="reflecting-r3-c5">I make thoughtful connections to big ideas, real issues, or personal growth.</td>
                                     <td id="reflecting-r3-c6">I connect my learning to meaningful action, and help others see the bigger picture too.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Researching Rubric -->
+                    <div id="researching-rubric-container" class="rubric-container hidden">
+                        <table id="researching-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Research</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Finding Reliable Sources</strong><br>Knowing where to look and how to tell if the information is trustworthy. "Is this from a real expert, or just someone's opinion?"</td>
+                                    <td id="researching-r1-c1">I use any source without checking if it's reliable.</td>
+                                    <td id="researching-r1-c2">I sometimes check if sources seem trustworthy but often need help.</td>
+                                    <td id="researching-r1-c3">I can find basic sources and tell if they might be okay.</td>
+                                    <td id="researching-r1-c4">I choose reliable sources and avoid ones that don't seem trustworthy.</td>
+                                    <td id="researching-r1-c5">I regularly find high-quality, expert sources for my research.</td>
+                                    <td id="researching-r1-c6">I teach others how to spot reliable sources and avoid misinformation.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Multisourcing</strong><br>Understanding that there are multiples ways to research and choose which one to use.<br><span class="text-xs">Books, Internet, Experts, Interviews, Surveys, Videos, Fieldwork, Experiment, Maps, Graphs, Artifacts</span></td>
+                                    <td id="researching-r2-c1">"I don't know how to start researching." I'm unsure where to look or what tools I can use to find information.</td>
+                                    <td id="researching-r2-c2">"I only use one way to research." I usually stick to one method, even if it doesn't always give me the best results.</td>
+                                    <td id="researching-r2-c3">"I know there are different ways to research but don't always pick the best one." I'm starting to explore options like books or videos, but I don't always choose based on what I need.</td>
+                                    <td id="researching-r2-c4">"I can name several ways to research and try to pick a good one." I think about what kind of information I need and try to choose a matching method.</td>
+                                    <td id="researching-r2-c5">"I choose my research method based on what I'm looking for." I consider my question and decide on the best way to find the answer—sometimes using more than one method.</td>
+                                    <td id="researching-r2-c6">"I confidently mix and match research methods to go deeper." I use multiple tools (books, interviews, experiments, etc.) and explain why I chose each one to get strong, reliable info.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Organizing Information</strong><br>Pulling out the big ideas and keeping track of them in a useful way (e.g., mind maps, jot notes, research journals). "What's the most important thing I learned? Where does it fit in my project?"<br><span class="text-xs">Re-tell, summarizing, inferencing</span></td>
+                                    <td id="researching-r3-c1">I don't take notes or organize info.</td>
+                                    <td id="researching-r3-c2">I write down some facts but in no clear way.</td>
+                                    <td id="researching-r3-c3">I take notes but sometimes lose track of what's important.</td>
+                                    <td id="researching-r3-c4">I organize my notes clearly and keep track of sources.</td>
+                                    <td id="researching-r3-c5">I use tools (charts, mind maps) to organize info for easy use.</td>
+                                    <td id="researching-r3-c6">I create clear, organized research notes that help me and others understand.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1047,7 +1093,8 @@
         const courageRubricTable = document.getElementById('courage-rubric-table');
         const respectRubricTable = document.getElementById('respect-rubric-table');
         const questioningRubricTable = document.getElementById('questioning-rubric-table');
-        const reflectingRubricTable = document.getElementById('reflecting-rubric-table'); // Added this line
+        const reflectingRubricTable = document.getElementById('reflecting-rubric-table');
+        const researchingRubricTable = document.getElementById('researching-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1226,8 +1273,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Reflecting' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting'];
+            // MODIFIED: Added 'Researching' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1294,6 +1341,9 @@
             } else if (microSkill === 'Reflecting') {
                 document.getElementById('reflecting-rubric-container').classList.remove('hidden');
                 activeTable = reflectingRubricTable;
+            } else if (microSkill === 'Researching') {
+                document.getElementById('researching-rubric-container').classList.remove('hidden');
+                activeTable = researchingRubricTable;
             }
             
             if (!activeTable) return;
