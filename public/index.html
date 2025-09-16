@@ -1363,6 +1363,7 @@
         const viewRubricBtn = document.getElementById('view-rubric-btn');
         const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
         const downloadRubricBtn = document.getElementById('download-rubric-btn');
+        const rubricTitle = document.getElementById('rubric-title'); // FIX: Re-added this line
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
         const downloadPdfBtn = document.getElementById('download-pdf-btn');
@@ -2129,7 +2130,7 @@
             }
 
             activeRubricTable.style.border = 'none';
-            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
 
             try {
                 const canvas = await html2canvas(activeRubricTable, { scale: 2 });
@@ -2224,10 +2225,10 @@
             loadingOverlay.classList.remove('hidden');
             const anecdoteRef = doc(db, "anecdotes", anecdoteId);
             try {
-                await setDoc(anecdoteRef, {
+                await updateDoc(anecdoteRef, {
                     text: newText,
                     editedAt: serverTimestamp()
-                }, { merge: true });
+                });
                 showMessage("Anecdote updated successfully!", false);
                 editAnecdoteModal.classList.add('hidden');
             } catch (error) {
