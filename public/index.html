@@ -868,7 +868,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Creating Rubric -->
+                    <!-- Creating Rubric -->
                     <div id="creating-rubric-container" class="rubric-container hidden">
                         <table id="creating-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -918,6 +918,52 @@
                                     <td id="creating-r4-c4">I regularly find solutions and improve my work after feedback.</td>
                                     <td id="creating-r4-c5">I embrace challenges and revise my work multiple times for improvement.</td>
                                     <td id="creating-r4-c6">I proactively seek feedback and use it to innovate and refine my work.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Communicating Rubric -->
+                    <div id="communicating-rubric-container" class="rubric-container hidden">
+                        <table id="communicating-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Communicating - Writing</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Choosing the Right Format</strong><br>Selecting the best way to share learning—presentation, report, video, poster, podcast, etc. "What's the best way to show what I've learned to this audience?"</td>
+                                    <td id="communicating-r1-c1">I struggle to come up with ideas or copy others' work.</td>
+                                    <td id="communicating-r1-c2">I share a few ideas but need help to develop them.</td>
+                                    <td id="communicating-r1-c3">I come up with some original ideas with some support.</td>
+                                    <td id="communicating-r1-c4">I regularly generate my own ideas to show what I've learned.</td>
+                                    <td id="communicating-r1-c5">I create creative and thoughtful ideas that fit the project goals.</td>
+                                    <td id="communicating-r1-c6">I inspire others with unique ideas and push creative boundaries.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Organizing Content Clearly</strong><br>Structuring ideas logically with a clear beginning, middle, and end. "How can I make my message easy to follow?"</td>
+                                    <td id="communicating-r2-c1">I start creating without a plan and get stuck.</td>
+                                    <td id="communicating-r2-c2">I make a simple plan but don't always follow it.</td>
+                                    <td id="communicating-r2-c3">I create a plan and try to follow it most of the time.</td>
+                                    <td id="communicating-r2-c4">I regularly plan my steps and organize materials before creating.</td>
+                                    <td id="communicating-r2-c5">I make detailed plans that help me work efficiently and meet goals.</td>
+                                    <td id="communicating-r2-c6">I plan strategically, anticipate challenges, and adjust plans as needed.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Using Engaging Language & Visuals</strong><br>Using tone, vocabulary, and visuals to keep the audience interested and help explain ideas. "How can I make my learning engaging and understandable?"</td>
+                                    <td id="communicating-r3-c1">I have trouble using tools or materials without help.</td>
+                                    <td id="communicating-r3-c2">I can use tools with guidance but make mistakes.</td>
+                                    <td id="communicating-r3-c3">I use tools and techniques with some skill and care.</td>
+                                    <td id="communicating-r3-c4">I confidently use the right tools and techniques to create quality work.</td>
+                                    <td id="communicating-r3-c5">I apply advanced techniques and problem-solve tool use independently.</td>
+                                    <td id="communicating-r3-c6">I teach others how to use tools effectively and innovate techniques.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1150,7 +1196,8 @@
         const questioningRubricTable = document.getElementById('questioning-rubric-table');
         const reflectingRubricTable = document.getElementById('reflecting-rubric-table');
         const researchingRubricTable = document.getElementById('researching-rubric-table');
-        const creatingRubricTable = document.getElementById('creating-rubric-table'); // Added this line
+        const creatingRubricTable = document.getElementById('creating-rubric-table');
+        const communicatingRubricTable = document.getElementById('communicating-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1329,8 +1376,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Creating' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating'];
+            // MODIFIED: Added 'Communicating' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1403,6 +1450,9 @@
             } else if (microSkill === 'Creating') {
                 document.getElementById('creating-rubric-container').classList.remove('hidden');
                 activeTable = creatingRubricTable;
+            } else if (microSkill === 'Communicating') {
+                document.getElementById('communicating-rubric-container').classList.remove('hidden');
+                activeTable = communicatingRubricTable;
             }
             
             if (!activeTable) return;
