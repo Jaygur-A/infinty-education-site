@@ -822,7 +822,7 @@
                         </table>
                     </div>
 
-                    <!-- NEW: Researching Rubric -->
+                    <!-- Researching Rubric -->
                     <div id="researching-rubric-container" class="rubric-container hidden">
                         <table id="researching-rubric-table" class="rubric-table text-sm">
                             <thead>
@@ -863,6 +863,61 @@
                                     <td id="researching-r3-c4">I organize my notes clearly and keep track of sources.</td>
                                     <td id="researching-r3-c5">I use tools (charts, mind maps) to organize info for easy use.</td>
                                     <td id="researching-r3-c6">I create clear, organized research notes that help me and others understand.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- NEW: Creating Rubric -->
+                    <div id="creating-rubric-container" class="rubric-container hidden">
+                        <table id="creating-rubric-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Creating</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Generating Ideas</strong><br>Brainstorming and coming up with original or improved concepts to express learning. "What are some ways I can show what I've learned?"</td>
+                                    <td id="creating-r1-c1">I struggle to come up with ideas or copy others' work.</td>
+                                    <td id="creating-r1-c2">I share a few ideas but need help to develop them.</td>
+                                    <td id="creating-r1-c3">I come up with some original ideas with some support.</td>
+                                    <td id="creating-r1-c4">I regularly generate my own ideas to show what I've learned.</td>
+                                    <td id="creating-r1-c5">I create creative and thoughtful ideas that fit the project goals.</td>
+                                    <td id="creating-r1-c6">I inspire others with unique ideas and push creative boundaries.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Planning & Organizing</strong><br>Designing a clear plan or outline before starting the creation. "What do I need to do first, and what tools will I use?"</td>
+                                    <td id="creating-r2-c1">I start creating without a plan and get stuck.</td>
+                                    <td id="creating-r2-c2">I make a simple plan but don't always follow it.</td>
+                                    <td id="creating-r2-c3">I create a plan and try to follow it most of the time.</td>
+                                    <td id="creating-r2-c4">I regularly plan my steps and organize materials before creating.</td>
+                                    <td id="creating-r2-c5">I make detailed plans that help me work efficiently and meet goals.</td>
+                                    <td id="creating-r2-c6">I plan strategically, anticipate challenges, and adjust plans as needed.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Using Tools & Techniques</strong><br>Skillfully using materials, technology, or artistic methods to build or produce the project.</td>
+                                    <td id="creating-r3-c1">I have trouble using tools or materials without help.</td>
+                                    <td id="creating-r3-c2">I can use tools with guidance but make mistakes.</td>
+                                    <td id="creating-r3-c3">I use tools and techniques with some skill and care.</td>
+                                    <td id="creating-r3-c4">I confidently use the right tools and techniques to create quality work.</td>
+                                    <td id="creating-r3-c5">I apply advanced techniques and problem-solve tool use independently.</td>
+                                    <td id="creating-r3-c6">I teach others how to use tools effectively and innovate techniques.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Problem-Solving & Iterating</strong><br>Recognizing challenges during creation and adjusting or improving the work through trial, error, and feedback. "What's not working? How can I fix or make it better?"</td>
+                                    <td id="creating-r4-c1">I give up when I face problems or don't try to fix mistakes.</td>
+                                    <td id="creating-r4-c2">I try to fix things when someone helps me.</td>
+                                    <td id="creating-r4-c3">I solve some problems but sometimes get frustrated or stuck.</td>
+                                    <td id="creating-r4-c4">I regularly find solutions and improve my work after feedback.</td>
+                                    <td id="creating-r4-c5">I embrace challenges and revise my work multiple times for improvement.</td>
+                                    <td id="creating-r4-c6">I proactively seek feedback and use it to innovate and refine my work.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1094,7 +1149,8 @@
         const respectRubricTable = document.getElementById('respect-rubric-table');
         const questioningRubricTable = document.getElementById('questioning-rubric-table');
         const reflectingRubricTable = document.getElementById('reflecting-rubric-table');
-        const researchingRubricTable = document.getElementById('researching-rubric-table'); // Added this line
+        const researchingRubricTable = document.getElementById('researching-rubric-table');
+        const creatingRubricTable = document.getElementById('creating-rubric-table'); // Added this line
         const rubricTitle = document.getElementById('rubric-title');
         const downloadOptionsModal = document.getElementById('download-options-modal');
         const downloadPngBtn = document.getElementById('download-png-btn');
@@ -1273,8 +1329,8 @@
             microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
             microSkillDescription.textContent = skillDescriptions[microSkill] || '';
 
-            // MODIFIED: Added 'Researching' to the list of available rubrics
-            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching'];
+            // MODIFIED: Added 'Creating' to the list of available rubrics
+            const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating'];
             if (rubricsAvailable.includes(microSkill)) {
                 viewRubricBtn.classList.remove('hidden');
             } else {
@@ -1344,6 +1400,9 @@
             } else if (microSkill === 'Researching') {
                 document.getElementById('researching-rubric-container').classList.remove('hidden');
                 activeTable = researchingRubricTable;
+            } else if (microSkill === 'Creating') {
+                document.getElementById('creating-rubric-container').classList.remove('hidden');
+                activeTable = creatingRubricTable;
             }
             
             if (!activeTable) return;
