@@ -1208,6 +1208,70 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Integrity Continuum Rubric -->
+                    <div id="integrity-continuum-container" class="continuum-rubric-container hidden">
+                        <table id="integrity-continuum-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Continuum</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Honesty & Accountability</strong><br>Owning actions, telling the truth (even when it's hard), and making things right.</td>
+                                    <td id="integrity-continuum-r1-c1">I avoid taking responsibility for my actions and sometimes hide the truth.</td>
+                                    <td id="integrity-continuum-r1-c2">I admit the truth when asked but often wait for others to point out my mistakes.</td>
+                                    <td id="integrity-continuum-r1-c3">I tell the truth most of the time and try to make things right when reminded.</td>
+                                    <td id="integrity-continuum-r1-c4">I am honest, take responsibility for my actions, and work to fix problems I create.</td>
+                                    <td id="integrity-continuum-r1-c5">I consistently own my actions, admit mistakes quickly, and make amends without being asked.</td>
+                                    <td id="integrity-continuum-r1-c6">I model honesty and accountability, encouraging others to take responsibility for their actions.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Discipline</strong><br>Self-control, focus, consistent effort, patience, and setting/respecting goals.</td>
+                                    <td id="integrity-continuum-r2-c1">I get distracted easily and give up quickly on tasks.</td>
+                                    <td id="integrity-continuum-r2-c2">I try to stay focused but often need reminders to keep going.</td>
+                                    <td id="integrity-continuum-r2-c3">I can stay focused and work through tasks with some help or encouragement.</td>
+                                    <td id="integrity-continuum-r2-c4">I manage my time and effort well, staying focused until tasks are complete.</td>
+                                    <td id="integrity-continuum-r2-c5">I consistently show focus, patience, and persistence, even when things are challenging.</td>
+                                    <td id="integrity-continuum-r2-c6">I demonstrate strong discipline and inspire others with my focus, patience, and effort.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Courage</strong><br>Embracing discomfort, taking healthy risks, speaking up, and staying true to oneself.</td>
+                                    <td id="integrity-continuum-r3-c1">I avoid challenges or risks and rarely speak up.</td>
+                                    <td id="integrity-continuum-r3-c2">I try new things when encouraged but still avoid discomfort.</td>
+                                    <td id="integrity-continuum-r3-c3">I attempt challenges and speak up sometimes, especially with support.</td>
+                                    <td id="integrity-continuum-r3-c4">I take healthy risks, speak up for myself, and try things even if I'm unsure.</td>
+                                    <td id="integrity-continuum-r3-c5">I consistently face challenges and manage to speak up for what I believe is right.</td>
+                                    <td id="integrity-continuum-r3-c6">I inspire others by taking bold, thoughtful actions and standing up for what matters.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Respect</strong><br>Listening actively, showing kindness, and treating people well.</td>
+                                    <td id="integrity-continuum-r4-c1">I interrupt, ignore others' ideas, or speak unkindly.</td>
+                                    <td id="integrity-continuum-r4-c2">I listen sometimes but often forget to show kindness or consideration.</td>
+                                    <td id="integrity-continuum-r4-c3">I listen to others and try to be kind, though I sometimes need reminders.</td>
+                                    <td id="integrity-continuum-r4-c4">I show respect by listening carefully, speaking kindly, and valuing others' ideas.</td>
+                                    <td id="integrity-continuum-r4-c5">I consistently treat people with kindness and respect in all situations.</td>
+                                    <td id="integrity-continuum-r4-c6">I lead by example, showing deep respect and helping others treat people well.</td>
+                                </tr>
+                                 <tr>
+                                    <td class="skill-label-cell"><strong>Care for Spaces & Belongings</strong><br>Taking responsibility for maintaining and respecting shared and personal spaces, nature, and resources.</td>
+                                    <td id="integrity-continuum-r5-c1">I often leave my belongings or spaces messy and don't take care of resources.</td>
+                                    <td id="integrity-continuum-r5-c2">I sometimes take care of my things but forget to care for shared spaces.</td>
+                                    <td id="integrity-continuum-r5-c3">I look after my belongings and clean up when reminded.</td>
+                                    <td id="integrity-continuum-r5-c4">I take good care of my belongings, keep spaces tidy, and respect shared resources.</td>
+                                    <td id="integrity-continuum-r5-c5">I consistently maintain my belongings and spaces and do the same.</td>
+                                    <td id="integrity-continuum-r5-c6">I take initiative to care for spaces, belongings, and the environment, inspiring others to do the same.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
@@ -1772,8 +1836,11 @@
                 const container = document.getElementById('vitality-continuum-container');
                 container.classList.remove('hidden');
                 activeTable = container.querySelector('table');
+            } else if (coreSkill === 'Integrity') {
+                const container = document.getElementById('integrity-continuum-container');
+                container.classList.remove('hidden');
+                activeTable = container.querySelector('table');
             }
-            // Add other core skills here with else if blocks later
 
             if (!activeTable) return;
             
@@ -2283,7 +2350,7 @@
             }
 
             elementToCapture.style.border = 'none';
-            elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+            elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
 
             try {
                 const canvas = await html2canvas(elementToCapture, { scale: 2 });
