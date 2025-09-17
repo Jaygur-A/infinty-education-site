@@ -205,7 +205,10 @@
             <div id="anecdote-display-container" class="hidden bg-white p-8 rounded-lg shadow mt-8">
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="anecdote-list-title" class="text-2xl font-bold text-gray-700"></h2>
-                    <button id="close-anecdote-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    <div class="flex items-center space-x-4">
+                        <button id="build-continuum-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700">Build Continuum</button>
+                        <button id="close-anecdote-display-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
                 </div>
                 <div class="mb-6"><canvas id="anecdote-chart"></canvas></div>
             </div>
@@ -1129,6 +1132,85 @@
 
             </div>
         </main>
+
+        <!-- NEW: Continuum View -->
+        <main id="continuum-view" class="hidden container mx-auto p-8">
+            <div class="bg-white p-8 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="continuum-title" class="text-3xl font-bold text-gray-800"></h2>
+                    <div class="flex space-x-4">
+                        <button id="download-continuum-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download</button>
+                        <button id="back-to-student-detail-from-continuum-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <!-- Vitality Continuum Rubric -->
+                    <div id="vitality-continuum-container" class="continuum-rubric-container hidden">
+                        <table id="vitality-continuum-table" class="rubric-table text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Continuum</th>
+                                    <th>NOT YET DEMONSTRATED</th>
+                                    <th>BEGINNING AWARENESS</th>
+                                    <th>ATTEMPTING WITH SUPPORT</th>
+                                    <th>EMERGING INDEPENDENCE</th>
+                                    <th>DEVELOPING CONSISTENCY</th>
+                                    <th>INDEPENDENT APPLICATION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Mindset</strong><br>Confidence, risk-taking, resilience, and open-mindedness to approach challenges with courage and optimism.</td>
+                                    <td id="vitality-continuum-r1-c1">I avoid challenges and doubt my abilities. I give up easily when things get hard.</td>
+                                    <td id="vitality-continuum-r1-c2">I try some challenges but often let fear or doubt stop me.</td>
+                                    <td id="vitality-continuum-r1-c3">I attempt new things with encouragement and sometimes recover from setbacks.</td>
+                                    <td id="vitality-continuum-r1-c4">I approach challenges with optimism, bounce back from setbacks, and stay open to new ideas.</td>
+                                    <td id="vitality-continuum-r1-c5">I seek out challenges, persist when things are difficult, and use feedback to improve.</td>
+                                    <td id="vitality-continuum-r1-c6">I thrive on challenges, adapt quickly, and inspire others to be confident and open-minded.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Emotional Regulation</strong><br>Self-awareness, regulation strategies, and social energy awareness to maintain balance and connect effectively with others.</td>
+                                    <td id="vitality-continuum-r2-c1">I'm not aware of my feelings or how they affect my behavior.</td>
+                                    <td id="vitality-continuum-r2-c2">I sometimes notice my feelings but struggle to manage them.</td>
+                                    <td id="vitality-continuum-r2-c3">I can identify my feelings and try simple strategies to regulate them.</td>
+                                    <td id="vitality-continuum-r2-c4">I manage my emotions in most situations and adjust my energy to work well with others.</td>
+                                    <td id="vitality-continuum-r2-c5">I consistently regulate emotions, use a variety of strategies, and stay balanced in different situations.</td>
+                                    <td id="vitality-continuum-r2-c6">I model strong emotional regulation, helping others recognize and manage their own emotions.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Physical Conditioning</strong><br>Locomotor, non-locomotor, and manipulative skills, plus game strategy for strength, agility, and coordination.</td>
+                                    <td id="vitality-continuum-r3-c1">I rarely participate in physical activities and have difficulty with basic movement skills.</td>
+                                    <td id="vitality-continuum-r3-c2">I participate sometimes but have limited coordination or stamina.</td>
+                                    <td id="vitality-continuum-r3-c3">I can perform basic movement skills and participate in activities with some success.</td>
+                                    <td id="vitality-continuum-r3-c4">I demonstrate a variety of movement skills and use them effectively in games or activities.</td>
+                                    <td id="vitality-continuum-r3-c5">I show strong physical skills, apply strategies, and participate with energy and focus.</td>
+                                    <td id="vitality-continuum-r3-c6">I excel in physical skills, adapt strategies as needed, and encourage others to stay active.</td>
+                                </tr>
+                                <tr>
+                                    <td class="skill-label-cell"><strong>Health</strong><br>Nutrition, body systems knowledge, and lifestyle choices that fuel energy and long-term well-being.</td>
+                                    <td id="vitality-continuum-r4-c1">I'm unaware of how my choices affect my health.</td>
+                                    <td id="vitality-continuum-r4-c2">I know some healthy habits but don't use them regularly.</td>
+                                    <td id="vitality-continuum-r4-c3">I make some healthy choices for eating, activity, and rest.</td>
+                                    <td id="vitality-continuum-r4-c4">I understand how nutrition, activity, and rest impact my body and make good choices most of the time.</td>
+                                    <td id="vitality-continuum-r4-c5">I consistently make healthy lifestyle choices and can explain why they're important.</td>
+                                    <td id="vitality-continuum-r4-c6">I lead a healthy lifestyle, share my knowledge, and inspire others to do the same.</td>
+                                </tr>
+                                 <tr>
+                                    <td class="skill-label-cell"><strong>Connection</strong><br>Building relationships with self, others, community, and nature to foster belonging, purpose, and stewardship.</td>
+                                    <td id="vitality-continuum-r5-c1">I don't feel connected to myself, others, or my environment.</td>
+                                    <td id="vitality-continuum-r5-c2">I sometimes notice my connection to people or places but don't act on it.</td>
+                                    <td id="vitality-continuum-r5-c3">I appreciate my positive relationships and my surroundings.</td>
+                                    <td id="vitality-continuum-r5-c4">I build and maintain positive connections with myself, others, and my environment.</td>
+                                    <td id="vitality-continuum-r5-c5">I actively contribute to my community and care for nature and relationships.</td>
+                                    <td id="vitality-continuum-r5-c6">I deeply value and nurture connections, leading projects or actions that benefit people and the world.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- Add/Edit Modals -->
@@ -1374,7 +1456,13 @@
         const deleteAnecdoteConfirmModal = document.getElementById('deleteAnecdoteConfirmModal');
         const cancelDeleteAnecdoteBtn = document.getElementById('cancel-delete-anecdote-btn');
         const confirmDeleteAnecdoteBtn = document.getElementById('confirm-delete-anecdote-btn');
-
+        
+        // NEW Continuum Elements
+        const continuumView = document.getElementById('continuum-view');
+        const buildContinuumBtn = document.getElementById('build-continuum-btn');
+        const continuumTitle = document.getElementById('continuum-title');
+        const backToStudentDetailFromContinuumBtn = document.getElementById('back-to-student-detail-from-continuum-btn');
+        const downloadContinuumBtn = document.getElementById('download-continuum-btn');
         
         // App State
         let currentStudentId = null, currentCoreSkill = null, currentMicroSkill = null;
@@ -1416,7 +1504,7 @@
 
         // Page Navigation
         const showView = (viewToShow) => {
-            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView].forEach(view => view.classList.add('hidden'));
+            [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView].forEach(view => view.classList.add('hidden'));
             viewToShow.classList.remove('hidden');
         };
 
@@ -1606,7 +1694,6 @@
             document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
 
             let activeTable;
-            // This is a map for cleaner access to rubric elements
             const rubricMap = {
                 'Mindset': document.getElementById('mindset-rubric-container'),
                 'Emotional Energy Regulation': document.getElementById('emotional-regulation-rubric-container'),
@@ -1673,6 +1760,49 @@
             const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
             await setDoc(highlightsRef, { highlightedCells });
         }
+        
+        async function showContinuumPage(coreSkill) {
+            showView(continuumView);
+            continuumTitle.textContent = `${coreSkill} Continuum`;
+
+            document.querySelectorAll('.continuum-rubric-container').forEach(c => c.classList.add('hidden'));
+
+            let activeTable;
+            if (coreSkill === 'Vitality') {
+                const container = document.getElementById('vitality-continuum-container');
+                container.classList.remove('hidden');
+                activeTable = container.querySelector('table');
+            }
+            // Add other core skills here with else if blocks later
+
+            if (!activeTable) return;
+            
+            activeTable.classList.toggle('admin-clickable', auth.currentUser && auth.currentUser.uid === ADMIN_UID);
+            activeTable.querySelectorAll('td').forEach(cell => cell.classList.remove('admin-highlight'));
+
+            const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
+            const highlightsSnap = await getDoc(highlightsRef);
+            if (highlightsSnap.exists()) {
+                highlightsSnap.data().highlightedCells?.forEach(cellId => {
+                    const cell = document.getElementById(cellId);
+                    if (cell) cell.classList.add('admin-highlight');
+                });
+            }
+        }
+
+        async function saveContinuumHighlights(coreSkill) {
+            const activeContainer = document.querySelector('.continuum-rubric-container:not(.hidden)');
+            if (!activeContainer) return;
+            
+            const highlightedCells = [];
+            activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
+                highlightedCells.push(cell.id);
+            });
+
+            const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
+            await setDoc(highlightsRef, { highlightedCells }, { merge: true });
+        }
+
 
         function listenForAllAnecdotes() {
             if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
@@ -2102,6 +2232,15 @@
         backToAnecdotesBtn.addEventListener('click', () => {
             showMicroSkillDetailPage(currentStudentId, currentCoreSkill, currentMicroSkill);
         });
+        
+        buildContinuumBtn.addEventListener('click', () => {
+            showContinuumPage(currentCoreSkill);
+        });
+
+        backToStudentDetailFromContinuumBtn.addEventListener('click', () => {
+            showStudentDetailPage(currentStudentId);
+        });
+
 
         rubricView.addEventListener('click', (e) => {
             const user = auth.currentUser;
@@ -2111,40 +2250,53 @@
             }
         });
 
-        downloadRubricBtn.addEventListener('click', () => {
-            downloadOptionsModal.classList.remove('hidden');
+        continuumView.addEventListener('click', (e) => {
+             const user = auth.currentUser;
+            if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+                e.target.classList.toggle('admin-highlight');
+                saveContinuumHighlights(currentCoreSkill);
+            }
         });
 
-        cancelDownloadBtn.addEventListener('click', () => {
-            downloadOptionsModal.classList.add('hidden');
-        });
+        downloadRubricBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
+        downloadContinuumBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
+        cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList.add('hidden'));
 
         downloadPngBtn.addEventListener('click', async () => {
             downloadOptionsModal.classList.add('hidden');
             loadingOverlay.classList.remove('hidden');
             
-            const activeRubricTable = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-            if (!activeRubricTable) {
+            let elementToCapture, fileName;
+            if (!rubricView.classList.contains('hidden')) {
+                elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
+            } else if (!continuumView.classList.contains('hidden')) {
+                elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
+            }
+
+            if (!elementToCapture) {
                 loadingOverlay.classList.add('hidden');
                 return;
             }
 
-            activeRubricTable.style.border = 'none';
-            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+            elementToCapture.style.border = 'none';
+            elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
 
             try {
-                const canvas = await html2canvas(activeRubricTable, { scale: 2 });
+                const canvas = await html2canvas(elementToCapture, { scale: 2 });
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/png');
-                const studentNameText = studentDetailName.textContent.trim() || 'student';
-                link.download = `${currentMicroSkill}-rubric-${studentNameText}.png`;
+                link.download = fileName;
                 link.click();
             } catch (error) {
                 console.error("Error generating PNG:", error);
-                showMessage("Could not download rubric as PNG.");
+                showMessage("Could not download as PNG.");
             } finally {
-                activeRubricTable.style.border = '';
-                activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+                elementToCapture.style.border = '';
+                elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
@@ -2153,19 +2305,29 @@
             downloadOptionsModal.classList.add('hidden');
             loadingOverlay.classList.remove('hidden');
 
-            const activeRubricTable = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-            if (!activeRubricTable) {
+            let elementToCapture, fileName;
+            if (!rubricView.classList.contains('hidden')) {
+                elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+            } else if (!continuumView.classList.contains('hidden')) {
+                elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
+                const studentNameText = studentDetailName.textContent.trim() || 'student';
+                fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
+            }
+
+            if (!elementToCapture) {
                 loadingOverlay.classList.add('hidden');
                 return;
             }
 
-            activeRubricTable.style.border = 'none';
-            activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+            elementToCapture.style.border = 'none';
+            elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
 
             const { jsPDF } = window.jspdf;
 
             try {
-                const canvas = await html2canvas(activeRubricTable, { scale: 2 });
+                const canvas = await html2canvas(elementToCapture, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
                 
                 const pdf = new jsPDF({
@@ -2175,15 +2337,14 @@
                 });
 
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                const studentNameText = studentDetailName.textContent.trim() || 'student';
-                pdf.save(`${currentMicroSkill}-rubric-${studentNameText}.pdf`);
+                pdf.save(fileName);
 
             } catch (error) {
                 console.error("Error generating PDF:", error);
-                showMessage("Could not download rubric as PDF.");
+                showMessage("Could not download as PDF.");
             } finally {
-                 activeRubricTable.style.border = '';
-                activeRubricTable.querySelectorAll('th, td').forEach(el => el.style.border = '');
+                 elementToCapture.style.border = '';
+                elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
                 loadingOverlay.classList.add('hidden');
             }
         });
