@@ -473,6 +473,11 @@ async function showContinuumPage(coreSkill) {
 			container.classList.remove('hidden');
 			activeTable = container.querySelector('table');
 	}
+		else if (coreSkill === 'Critical Thinking') {
+			const container = document.getElementById('critical-thinking-continuum-container');
+			container.classList.remove('hidden');
+			activeTable = container.querySelector('table');
+    }
     if (!activeTable) return;
     
     activeTable.classList.toggle('admin-clickable', auth.currentUser && auth.currentUser.uid === ADMIN_UID);
