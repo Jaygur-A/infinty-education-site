@@ -200,7 +200,8 @@ const showView = (viewToShow) => {
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
     if (user) {
-        await createUserProfileIfNeeded(user);
+        document.body.classList.remove('login-background');
+		await createUserProfileIfNeeded(user);
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
@@ -218,7 +219,8 @@ onAuthStateChanged(auth, async (user) => {
 
         userEmailDisplay.textContent = user.email;
     } else {
-        appContainer.classList.add('hidden');
+        document.body.classList.add('login-background');
+		appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
         if (unsubscribeFromUsers) unsubscribeFromUsers();
         if (unsubscribeFromMessages) unsubscribeFromMessages();
