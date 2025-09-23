@@ -67,6 +67,8 @@ const loadingOverlay = document.getElementById('loading-overlay');
 const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
 const googleSignInBtn = document.getElementById('google-signin-btn');
+const userEmailDisplay = document.getElementById('user-email-display');
+const dashboardBtn = document.getElementById('dashboard-btn');
 const messagesBtn = document.getElementById('messages-btn');
 const dashboardView = document.getElementById('dashboard-view');
 const parentDashboardView = document.getElementById('parent-dashboard-view');
@@ -121,13 +123,17 @@ const deleteAccountBtn = document.getElementById('delete-account-btn');
 const deleteConfirmModal = document.getElementById('delete-confirm-modal');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const profileMenuBtn = document.getElementById('profile-menu-btn');
+const profileDropdown = document.getElementById('profile-dropdown');
+const profileLink = document.getElementById('profile-link');
+const logoutLink = document.getElementById('logout-link');
 const profileName = document.getElementById('profile-name');
 const profileEmail = document.getElementById('profile-email');
 const rubricView = document.getElementById('rubric-view');
 const viewRubricBtn = document.getElementById('view-rubric-btn');
 const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
 const downloadRubricBtn = document.getElementById('download-rubric-btn');
-const rubricTitle = document.getElementById('rubric-title');
+const rubricTitle = document.getElementById('rubric-title'); // FIX: Re-added this line
 const downloadOptionsModal = document.getElementById('download-options-modal');
 const downloadPngBtn = document.getElementById('download-png-btn');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
@@ -202,12 +208,17 @@ onAuthStateChanged(auth, async (user) => {
         
         if (user.uid === ADMIN_UID) {
             showView(dashboardView);
+            addRecordBtn.classList.remove('hidden');
+            messagesChartContainer.classList.remove('hidden');
             listenForStudentRecords();
             listenForAllAnecdotes();
         } else {
             showView(parentDashboardView);
+            addRecordBtn.classList.add('hidden');
+            messagesChartContainer.classList.add('hidden');
         }
 
+        userEmailDisplay.textContent = user.email;
     } else {
         document.body.classList.add('login-background');
 		appContainer.classList.add('hidden');
@@ -247,7 +258,7 @@ function listenForStudentRecords() {
             const student = doc.data();
             const studentCard = document.createElement('div');
             studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
-            studentCard.innerHTML = `<div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background-color: #c74a44;"><span class="text-2xl font-bold text-white">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-800 group-hover:text-black">${student.name || 'Unnamed'}</p>`;
+            studentCard.innerHTML = `<div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl font-bold text-red-700">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
             studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
             studentGrid.appendChild(studentCard);
         });
@@ -512,7 +523,13 @@ function renderAllSkillsChart(data) {
             datasets: [{
                 label: 'Total Anecdotes',
                 data: Object.values(data),
-                backgroundColor: '#a7c0d8',
+                backgroundColor: [
+                    '#fecaca', // Pink (Tailwind red-200)
+                    '#e5e7eb', // Gray (Tailwind gray-200)
+                    '#fde047', // Yellow (Tailwind yellow-400)
+                    '#e5e7eb', // Gray (Tailwind gray-200)
+                    '#e5e7eb'  // Gray (Tailwind gray-200)
+                ],
                 borderWidth: 0
             }]
         },
@@ -682,19 +699,55 @@ function renderMessagesChart(data) {
 }
 
 // Event Listeners
+dashboardBtn.addEventListener('click', () => {
+     if (auth.currentUser.uid === ADMIN_UID) {
+        showView(dashboardView);
+    } else {
+        showView(parentDashboardView);
+    }
+});
+
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
-    if (auth.currentUser?.uid === ADMIN_UID) {
+    if (auth.currentUser.uid === ADMIN_UID) {
         listenForAdminMessages();
     }
 });
 
+// *** FIX ADDED HERE ***
 backToDashboardBtn.addEventListener('click', () => {
-    if (auth.currentUser?.uid === ADMIN_UID) {
+    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
         showView(dashboardView);
     } else {
         showView(parentDashboardView);
+    }
+});
+
+profileLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (user) {
+        profileName.textContent = user.displayName || 'Not available';
+        profileEmail.textContent = user.email;
+        showView(profileView);
+        profileDropdown.classList.add('hidden');
+    }
+});
+
+logoutLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    signOut(auth);
+    profileDropdown.classList.add('hidden');
+});
+
+profileMenuBtn.addEventListener('click', () => {
+    profileDropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+    if (!document.getElementById('profile-menu-container').contains(e.target)) {
+        profileDropdown.classList.add('hidden');
     }
 });
 
@@ -882,4 +935,199 @@ confirmDeleteBtn.addEventListener('click', async () => {
 });
 
 viewRubricBtn.addEventListener('click', () => {
-    showRubricPage(currentStudentId, current
+    showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill);
+});
+
+backToAnecdotesBtn.addEventListener('click', () => {
+    showMicroSkillDetailPage(currentStudentId, currentCoreSkill, currentMicroSkill);
+});
+
+buildContinuumBtn.addEventListener('click', () => {
+    showContinuumPage(currentCoreSkill);
+});
+
+backToStudentDetailFromContinuumBtn.addEventListener('click', () => {
+    showStudentDetailPage(currentStudentId);
+});
+
+
+rubricView.addEventListener('click', (e) => {
+    const user = auth.currentUser;
+    if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+        e.target.classList.toggle('admin-highlight');
+        saveRubricHighlights(currentMicroSkill);
+    }
+});
+
+continuumView.addEventListener('click', (e) => {
+     const user = auth.currentUser;
+    if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+        e.target.classList.toggle('admin-highlight');
+        saveContinuumHighlights(currentCoreSkill);
+    }
+});
+
+downloadRubricBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
+downloadContinuumBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
+cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList.add('hidden'));
+
+downloadPngBtn.addEventListener('click', async () => {
+    downloadOptionsModal.classList.add('hidden');
+    loadingOverlay.classList.remove('hidden');
+    
+    let elementToCapture, fileName;
+    if (!rubricView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
+    } else if (!continuumView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
+    }
+
+    if (!elementToCapture) {
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+
+    elementToCapture.style.border = 'none';
+    elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+
+    try {
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = fileName;
+        link.click();
+    } catch (error) {
+        console.error("Error generating PNG:", error);
+        showMessage("Could not download as PNG.");
+    } finally {
+        elementToCapture.style.border = '';
+        elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+downloadPdfBtn.addEventListener('click', async () => {
+    downloadOptionsModal.classList.add('hidden');
+    loadingOverlay.classList.remove('hidden');
+
+    let elementToCapture, fileName;
+    if (!rubricView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+    } else if (!continuumView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
+    }
+
+    if (!elementToCapture) {
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+
+    elementToCapture.style.border = 'none';
+    elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+
+    const { jsPDF } = window.jspdf;
+
+    try {
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(fileName);
+
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        showMessage("Could not download as PDF.");
+    } finally {
+         elementToCapture.style.border = '';
+        elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+// Event delegation for Edit/Delete buttons on anecdotes
+microSkillAnecdoteList.addEventListener('click', (e) => {
+    const editButton = e.target.closest('.edit-anecdote-btn');
+    const deleteButton = e.target.closest('.delete-anecdote-btn');
+
+    if (editButton) {
+        const anecdoteId = editButton.dataset.id;
+        const anecdoteCard = editButton.closest('.anecdote-card');
+        const anecdoteText = anecdoteCard.querySelector('.anecdote-text-content').textContent;
+        
+        document.getElementById('editAnecdoteText').value = anecdoteText;
+        editAnecdoteModal.dataset.id = anecdoteId;
+        editAnecdoteModal.classList.remove('hidden');
+    }
+
+    if (deleteButton) {
+        const anecdoteId = deleteButton.dataset.id;
+        deleteAnecdoteConfirmModal.dataset.id = anecdoteId;
+        deleteAnecdoteConfirmModal.classList.remove('hidden');
+    }
+});
+
+// Handler for closing the edit modal
+closeEditAnecdoteModalBtn.addEventListener('click', () => {
+    editAnecdoteModal.classList.add('hidden');
+});
+
+// Handler for submitting the edit form
+editAnecdoteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const anecdoteId = editAnecdoteModal.dataset.id;
+    const newText = document.getElementById('editAnecdoteText').value;
+    if (!anecdoteId || !newText.trim()) return;
+
+    loadingOverlay.classList.remove('hidden');
+    const anecdoteRef = doc(db, "anecdotes", anecdoteId);
+    try {
+        await updateDoc(anecdoteRef, {
+            text: newText,
+            editedAt: serverTimestamp()
+        });
+        showMessage("Anecdote updated successfully!", false);
+        editAnecdoteModal.classList.add('hidden');
+    } catch (error) {
+        console.error("Error updating anecdote:", error);
+        showMessage("Failed to update anecdote.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+// Handlers for the delete confirmation modal
+cancelDeleteAnecdoteBtn.addEventListener('click', () => {
+    deleteAnecdoteConfirmModal.classList.add('hidden');
+});
+
+confirmDeleteAnecdoteBtn.addEventListener('click', async () => {
+    const anecdoteId = deleteAnecdoteConfirmModal.dataset.id;
+    if (!anecdoteId) return;
+
+    loadingOverlay.classList.remove('hidden');
+    const anecdoteRef = doc(db, "anecdotes", anecdoteId);
+    try {
+        await deleteDoc(anecdoteRef);
+        showMessage("Anecdote deleted successfully.", false);
+        deleteAnecdoteConfirmModal.classList.add('hidden');
+    } catch (error) {
+        console.error("Error deleting anecdote:", error);
+        showMessage("Failed to delete anecdote.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
