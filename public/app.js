@@ -144,6 +144,14 @@ const editAnecdoteForm = document.getElementById('editAnecdoteForm');
 const deleteAnecdoteConfirmModal = document.getElementById('deleteAnecdoteConfirmModal');
 const cancelDeleteAnecdoteBtn = document.getElementById('cancel-delete-anecdote-btn');
 const confirmDeleteAnecdoteBtn = document.getElementById('confirm-delete-anecdote-btn');
+const parentWelcomeMessage = document.getElementById('parent-welcome-message');
+const parentStudentView = document.getElementById('parent-student-view');
+const parentViewStudentName = document.getElementById('parent-view-student-name');
+const parentViewSkillsGrid = document.getElementById('parent-view-skills-grid');
+const parentAnecdoteContainer = document.getElementById('parent-view-anecdote-container');
+const parentAnecdoteListTitle = document.getElementById('parent-anecdote-list-title');
+const parentAnecdoteChartCanvas = document.getElementById('parent-anecdote-chart');
+const parentCloseAnecdoteBtn = document.getElementById('parent-close-anecdote-display-btn');
 
 // NEW Continuum Elements
 const continuumView = document.getElementById('continuum-view');
@@ -198,38 +206,63 @@ const showView = (viewToShow) => {
 };
 
 // Auth Logic
+// Replace the entire onAuthStateChanged function with this new one
+
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
     if (user) {
         document.body.classList.remove('login-background');
-		await createUserProfileIfNeeded(user);
+        await createUserProfileIfNeeded(user);
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
         if (user.uid === ADMIN_UID) {
+            // Admin View
             showView(dashboardView);
             addRecordBtn.classList.remove('hidden');
             messagesChartContainer.classList.remove('hidden');
             listenForStudentRecords();
             listenForAllAnecdotes();
         } else {
+            // This is the new logic for Parents
             showView(parentDashboardView);
             addRecordBtn.classList.add('hidden');
             messagesChartContainer.classList.add('hidden');
+            
+            // Query to find if the logged-in user is a parent of any student
+            const studentsRef = collection(db, "students");
+            const q1 = query(studentsRef, where("parent1Email", "==", user.email));
+            const q2 = query(studentsRef, where("parent2Email", "==", user.email));
+
+            const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            
+            const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
+            
+            if (allStudentDocs.length > 0) {
+                // Parent found, show the first child's dashboard
+                const studentDoc = allStudentDocs[0]; // For now, just shows the first child found
+                const studentId = studentDoc.id;
+                const studentData = studentDoc.data();
+                renderParentStudentView(studentId, studentData.name);
+            } else {
+                // Not a parent of any student, show the default welcome message
+                parentWelcomeMessage.classList.remove('hidden');
+                parentStudentView.classList.add('hidden');
+            }
         }
 
         userEmailDisplay.textContent = user.email;
     } else {
-        document.body.classList.add('login-background');
+		document.body.classList.add('login-background');
 		appContainer.classList.add('hidden');
-        authContainer.classList.remove('hidden');
-        if (unsubscribeFromUsers) unsubscribeFromUsers();
-        if (unsubscribeFromMessages) unsubscribeFromMessages();
-        if (unsubscribeFromStudents) unsubscribeFromStudents();
-        if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
-        if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
-        if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
-    }
+		authContainer.classList.remove('hidden');
+		if (unsubscribeFromUsers) unsubscribeFromUsers();
+		if (unsubscribeFromMessages) unsubscribeFromMessages();
+		if (unsubscribeFromStudents) unsubscribeFromStudents();
+		if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
+		if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
+		if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
+	}
     loadingOverlay.classList.add('hidden');
 });
 
@@ -274,11 +307,11 @@ async function showStudentDetailPage(studentId) {
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
 }
 
-function listenForAnecdotes(studentId, coreSkill) {
+function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, targetContainer) {
     currentCoreSkill = coreSkill;
     if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
-    anecdoteListTitle.textContent = `Anecdote Counts for ${coreSkill}`;
-    anecdoteDisplayContainer.classList.remove('hidden');
+    targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
+    targetContainer.classList.remove('hidden');
     
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     
@@ -295,18 +328,18 @@ function listenForAnecdotes(studentId, coreSkill) {
                 microSkillCounts[anecdote.microSkill]++;
             }
         });
-        renderAnecdoteChart(microSkillCounts);
+        renderAnecdoteChart(microSkillCounts, targetCanvas); // Pass the target canvas to the render function
     }, (error) => {
         console.error("Error fetching anecdotes: ", error);
     });
 }
 
-function renderAnecdoteChart(data) {
+function renderAnecdoteChart(data, canvasElement) {
     if (anecdoteChart) anecdoteChart.destroy();
-    const ctx = anecdoteChartCanvas.getContext('2d');
+    const ctx = canvasElement.getContext('2d'); // Use the passed canvas element
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
-        data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: 'rgba(52, 211, 153, 0.5)', borderColor: 'rgba(5, 150, 105, 1)', borderWidth: 1 }] },
+        // ... (the rest of the chart options are the same)
         options: {
             onClick: (e) => {
                 const points = anecdoteChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
@@ -320,6 +353,18 @@ function renderAnecdoteChart(data) {
         }
     });
 }
+
+// Update the admin's click handler for the skill grid
+alignedSkillsGrid.addEventListener('click', (e) => {
+    const skillCard = e.target.closest('.skill-card');
+    if (skillCard) {
+        // We now pass the specific admin elements to the function
+        listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
+        setTimeout(() => {
+            anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+});
 
 function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     currentMicroSkill = microSkill;
@@ -701,6 +746,36 @@ function renderMessagesChart(data) {
     });
 }
 
+function renderParentStudentView(studentId, studentName) {
+    parentWelcomeMessage.classList.add('hidden');
+    parentStudentView.classList.remove('hidden');
+    parentViewStudentName.textContent = studentName;
+    
+    parentViewSkillsGrid.innerHTML = ''; // Clear previous skills
+    const coreSkills = ['Vitality', 'Integrity', 'Curiosity', 'Critical Thinking', 'Fields of Knowledge'];
+    
+    coreSkills.forEach(skill => {
+        const skillCard = document.createElement('div');
+        skillCard.className = 'skill-card p-4 border rounded-lg cursor-pointer';
+        skillCard.dataset.skill = skill;
+        skillCard.innerHTML = `<h3 class="font-bold text-center">${skill}</h3>`;
+        
+        skillCard.addEventListener('click', () => {
+            listenForAnecdotes(studentId, skill, parentAnecdoteChartCanvas, parentAnecdoteListTitle, parentAnecdoteContainer);
+        });
+        
+        parentViewSkillsGrid.appendChild(skillCard);
+    });
+}
+
+parentCloseAnecdoteBtn.addEventListener('click', () => {
+    parentAnecdoteContainer.classList.add('hidden');
+    if (anecdoteChart) { 
+        anecdoteChart.destroy(); 
+        anecdoteChart = null; 
+    }
+});
+
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
      if (auth.currentUser.uid === ADMIN_UID) {
@@ -779,7 +854,8 @@ closeAnecdoteDisplayBtn.addEventListener('click', () => {
 alignedSkillsGrid.addEventListener('click', (e) => {
     const skillCard = e.target.closest('.skill-card');
     if (skillCard) {
-        listenForAnecdotes(currentStudentId, skillCard.dataset.skill);
+        // We now pass the specific admin elements to the function
+        listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
         setTimeout(() => {
             anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
