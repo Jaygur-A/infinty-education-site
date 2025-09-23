@@ -336,20 +336,50 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 
 function renderAnecdoteChart(data, canvasElement) {
     if (anecdoteChart) anecdoteChart.destroy();
-    const ctx = canvasElement.getContext('2d'); // Use the passed canvas element
+    const ctx = canvasElement.getContext('2d');
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
-        // ... (the rest of the chart options are the same)
+        data: { // <-- This data section was missing
+            labels: Object.keys(data),
+            datasets: [{
+                label: 'Anecdote Count',
+                data: Object.values(data),
+                backgroundColor: '#a7c7e7', // A slightly softer blue
+                borderColor: '#6b93b9',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
         options: {
             onClick: (e) => {
                 const points = anecdoteChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
                 if (points.length) {
                     const firstPoint = points[0];
                     const label = anecdoteChart.data.labels[firstPoint.index];
-                    showMicroSkillDetailPage(currentStudentId, currentCoreSkill, label);
+                    // Only admins can click through to the detail page
+                    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+                        showMicroSkillDetailPage(currentStudentId, currentCoreSkill, label);
+                    }
                 }
             },
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { 
+                        stepSize: 1,
+                        precision: 0
+                    } 
+                } 
+            }, 
+            plugins: { 
+                legend: { 
+                    display: false 
+                } 
+            },
+            // Make cursor a pointer only for admins
+            onHover: (event, chartElement) => {
+                event.native.target.style.cursor = chartElement[0] && auth.currentUser.uid === ADMIN_UID ? 'pointer' : 'default';
+            }
         }
     });
 }
