@@ -532,13 +532,7 @@ function renderAllSkillsChart(data) {
             datasets: [{
                 label: 'Total Anecdotes',
                 data: Object.values(data),
-                backgroundColor: [
-                    '#fecaca', // Pink (Tailwind red-200)
-                    '#e5e7eb', // Gray (Tailwind gray-200)
-                    '#fde047', // Yellow (Tailwind yellow-400)
-                    '#e5e7eb', // Gray (Tailwind gray-200)
-                    '#e5e7eb'  // Gray (Tailwind gray-200)
-                ],
+                backgroundColor: '#9cb8d9',
                 borderWidth: 0
             }]
         },
