@@ -1,5 +1,6 @@
 body { 
     font-family: 'Inter', sans-serif;
+    background-color: #fdfbf5; /* Beige background */
 }
 
 .login-background {
@@ -27,6 +28,39 @@ body {
 #anecdote-chart {
     cursor: pointer;
 }
+
+/* New classes for the design */
+.dashboard-title {
+    font-family: serif; /* Simulating the slab serif font */
+    font-size: 3rem;
+    line-height: 1;
+    font-weight: 700;
+    color: #3a3a3a; /* Dark charcoal color */
+    border-bottom: 3px solid #e59f44;
+    padding-bottom: 0.5rem;
+    width: fit-content;
+}
+
+.section-title {
+    color: #c74a44; /* Reddish-brown for section titles */
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+}
+
+.header-btn {
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem; /* 12px 24px */
+    border-radius: 0.375rem; /* 6px */
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+}
+
+.header-btn:hover {
+    opacity: 0.9;
+}
+
+
 /* Styles for the rubric table */
 .rubric-table {
     border-collapse: collapse;
