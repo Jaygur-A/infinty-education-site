@@ -1,6 +1,24 @@
+/* Color Palette from the image */
+:root {
+  --bg-primary: #f7f2ea;       /* Light cream background */
+  --bg-secondary: #d4c1a7;     /* Muted light brown (for table headers) */
+  --bg-accent-red: #ecb2ab;    /* Muted red (for section titles, cards) */
+  --bg-accent-green: #7e9171;  /* Desaturated olive green */
+  
+  --text-dark: #3a2e1f;        /* Very dark brown for main text */
+  --text-light: #f7f2ea;       /* Light cream for text on dark backgrounds */
+  
+  --border-primary: #a78e6c;   /* Medium brown (for borders, accents) */
+  --border-secondary: #d4c1a7; /* Lighter brown for table borders */
+
+  --admin-highlight: #fef08a;  /* Keeping the yellow for admin highlights */
+}
+
+/* General Body Styles */
 body { 
     font-family: 'Inter', sans-serif;
-    background-color: #fdfbf5; /* Beige background */
+    background-color: var(--bg-primary); /* Changed */
+    color: var(--text-dark); /* Added for consistency */
 }
 
 .login-background {
@@ -8,8 +26,10 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-color: #f0f0f0; /* Fallback color */
+    background-color: var(--bg-secondary); /* Changed fallback color */
 }
+
+/* Utility and Component Styles (Unchanged) */
 .hidden { display: none; }
 .modal-backdrop {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -29,29 +49,29 @@ body {
     cursor: pointer;
 }
 
-/* New classes for the design */
+/* Custom Design Classes (Updated with new colors) */
 .dashboard-title {
-    font-family: serif; /* Simulating the slab serif font */
+    font-family: serif;
     font-size: 3rem;
     line-height: 1;
     font-weight: 700;
-    color: #3a3a3a; /* Dark charcoal color */
-    border-bottom: 3px solid #e59f44;
+    color: var(--text-dark); /* Changed */
+    border-bottom: 3px solid var(--border-primary); /* Changed */
     padding-bottom: 0.5rem;
     width: fit-content;
 }
 
 .section-title {
-    color: #c74a44; /* Reddish-brown for section titles */
-    font-size: 1.5rem; /* 24px */
+    color: var(--bg-accent-red); /* Changed */
+    font-size: 1.5rem;
     font-weight: 600;
 }
 
 .header-btn {
-    color: white;
+    color: var(--text-light); /* Changed */
     font-weight: 600;
-    padding: 0.75rem 1.5rem; /* 12px 24px */
-    border-radius: 0.375rem; /* 6px */
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
     text-transform: uppercase;
     transition: opacity 0.2s;
 }
@@ -60,29 +80,29 @@ body {
     opacity: 0.9;
 }
 
-/* Styles for the rubric table */
+/* Rubric Table Styles (Updated with new colors) */
 .rubric-table {
     border-collapse: collapse;
     width: 100%;
     table-layout: fixed;
 }
 .rubric-table th, .rubric-table td {
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-secondary); /* Changed */
     padding: 1rem;
     text-align: left;
     vertical-align: top;
 }
 .rubric-table th {
-    background-color: #f3f4f6;
+    background-color: var(--bg-secondary); /* Changed */
     font-weight: 600;
 }
 .rubric-table .skill-label-cell, .rubric-table thead tr th:first-child {
-    background-color: #f3f4f6; /* A light grey color */
+    background-color: var(--bg-secondary); /* Changed */
     font-weight: 700;
     width: 15%;
 }
 .rubric-table .admin-highlight {
-    background-color: #fef08a !important; /* Lighter yellow for highlight */
+    background-color: var(--admin-highlight) !important; /* Unchanged, yellow is good for highlights */
 }
 .rubric-table .admin-clickable {
      cursor: pointer;
