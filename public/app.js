@@ -258,7 +258,7 @@ function listenForStudentRecords() {
             const student = doc.data();
             const studentCard = document.createElement('div');
             studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
-            studentCard.innerHTML = `<div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl font-bold text-red-700">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
+            studentCard.innerHTML = `<div class="w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl student-avatar-text">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
             studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
             studentGrid.appendChild(studentCard);
         });

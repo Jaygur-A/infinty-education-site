@@ -2,23 +2,51 @@
 :root {
   --bg-primary: #f7f2ea;       /* Light cream background */
   --bg-secondary: #d4c1a7;     /* Muted light brown (for table headers) */
-  --bg-accent-red: #ecb2ab;    /* Muted red (for section titles, cards) */
-  --bg-accent-green: #7e9171;  /* Desaturated olive green */
+  --bg-surface: #ffffff;      /* White for card backgrounds */
   
+  --accent-primary: #a78e6c;   /* Medium brown (for buttons) */
+  --accent-secondary: #7e9171; /* Desaturated olive green (for buttons) */
+  --accent-tertiary: #ecb2ab;  /* Muted red (for student icons) */
+
   --text-dark: #3a2e1f;        /* Very dark brown for main text */
   --text-light: #f7f2ea;       /* Light cream for text on dark backgrounds */
   
-  --border-primary: #a78e6c;   /* Medium brown (for borders, accents) */
+  --border-primary: #a78e6c;   /* Medium brown (for titles) */
   --border-secondary: #d4c1a7; /* Lighter brown for table borders */
 
   --admin-highlight: #fef08a;  /* Keeping the yellow for admin highlights */
 }
 
+/* NEW HELPER CLASSES FOR TAILWIND REPLACEMENT */
+.header-bg { background-color: var(--accent-primary); }
+.header-text { color: var(--text-light); }
+.header-text-hover:hover { color: var(--bg-secondary); }
+
+.btn {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+    color: var(--text-light);
+}
+.btn:hover { opacity: 0.9; }
+.btn-primary { background-color: var(--accent-primary); }
+.btn-secondary { background-color: var(--accent-secondary); }
+.btn-tertiary { background-color: var(--accent-tertiary); }
+.btn-neutral { background-color: #8c7a65; } /* Muted brown for neutral buttons */
+
+
+.student-avatar-bg { background-color: var(--accent-tertiary); }
+.student-avatar-text { color: var(--text-dark); font-weight: bold; }
+/* END OF NEW HELPER CLASSES */
+
+
 /* General Body Styles */
 body { 
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg-primary); /* Changed */
-    color: var(--text-dark); /* Added for consistency */
+    background-color: var(--bg-primary); 
+    color: var(--text-dark);
 }
 
 .login-background {
@@ -26,7 +54,7 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-color: var(--bg-secondary); /* Changed fallback color */
+    background-color: var(--bg-secondary);
 }
 
 /* Utility and Component Styles (Unchanged) */
@@ -40,6 +68,7 @@ body {
 .skill-card {
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    border-color: var(--border-secondary); /* Added for new theme */
 }
 .skill-card:hover {
     transform: translateY(-5px);
@@ -55,29 +84,16 @@ body {
     font-size: 3rem;
     line-height: 1;
     font-weight: 700;
-    color: var(--text-dark); /* Changed */
-    border-bottom: 3px solid var(--border-primary); /* Changed */
+    color: var(--text-dark);
+    border-bottom: 3px solid var(--border-primary);
     padding-bottom: 0.5rem;
     width: fit-content;
 }
 
 .section-title {
-    color: var(--bg-accent-red); /* Changed */
+    color: var(--accent-tertiary);
     font-size: 1.5rem;
     font-weight: 600;
-}
-
-.header-btn {
-    color: var(--text-light); /* Changed */
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
-    text-transform: uppercase;
-    transition: opacity 0.2s;
-}
-
-.header-btn:hover {
-    opacity: 0.9;
 }
 
 /* Rubric Table Styles (Updated with new colors) */
@@ -87,22 +103,22 @@ body {
     table-layout: fixed;
 }
 .rubric-table th, .rubric-table td {
-    border: 1px solid var(--border-secondary); /* Changed */
+    border: 1px solid var(--border-secondary);
     padding: 1rem;
     text-align: left;
     vertical-align: top;
 }
 .rubric-table th {
-    background-color: var(--bg-secondary); /* Changed */
+    background-color: var(--bg-secondary);
     font-weight: 600;
 }
 .rubric-table .skill-label-cell, .rubric-table thead tr th:first-child {
-    background-color: var(--bg-secondary); /* Changed */
+    background-color: var(--bg-secondary);
     font-weight: 700;
     width: 15%;
 }
 .rubric-table .admin-highlight {
-    background-color: var(--admin-highlight) !important; /* Unchanged, yellow is good for highlights */
+    background-color: var(--admin-highlight) !important;
 }
 .rubric-table .admin-clickable {
      cursor: pointer;
