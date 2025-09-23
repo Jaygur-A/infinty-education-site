@@ -792,6 +792,8 @@ addStudentForm.addEventListener('submit', async (e) => {
         name: document.getElementById('studentName').value, 
         grade: document.getElementById('studentGrade').value, 
         class: document.getElementById('studentClass').value, 
+        parent1Email: document.getElementById('parent1Email').value, 
+        parent2Email: document.getElementById('parent2Email').value, 
         createdAt: serverTimestamp(), 
         createdBy: auth.currentUser.uid 
     });

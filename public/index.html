@@ -1324,10 +1324,19 @@
                 <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-5"><label for="studentGrade" class="block mb-2 text-sm font-medium">Grade</label><input type="text" id="studentGrade" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
-                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
+                <div class="mb-5">
+				<label for="parent1Email" class="block mb-2 text-sm font-medium">Parent 1 (Optional)</label>
+				<input type="email" id="parent1Email" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="parent1@example.com">
+				</div>
+				<div class="mb-6">
+				<label for="parent2Email" class="block mb-2 text-sm font-medium">Parent 2 (Optional)</label>
+				<input type="email" id="parent2Email" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="parent2@example.com">
+				</div>
+				<button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
             </form></div>
         </div>
     </div>
+	
     <div id="addAnecdoteModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
