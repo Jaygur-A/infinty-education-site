@@ -1,5 +1,8 @@
 body { 
     font-family: 'Inter', sans-serif;
+}
+
+.login-background {
     background-image: url('/images/treebackground.jpeg');
     background-size: cover;
     background-position: center;
