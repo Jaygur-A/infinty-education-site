@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-50">
+<body>
 
     <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
         <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-500"></div>
@@ -36,37 +36,26 @@
     </div>
 
     <div id="app-container" class="hidden">
-        <header class="bg-green-600 text-white p-4 shadow-md">
-            <div class="container mx-auto flex justify-between items-center">
-                <img src="/images/InfinityEducation.webp" alt="Infinity Education Logo" class="h-10 w-auto">
-                <nav class="flex items-center space-x-6">
-                    <button id="dashboard-btn" class="font-semibold hover:text-green-200">Dashboard</button>
-                    <button id="messages-btn" class="font-semibold hover:text-green-200">✉️ Messages</button>
-                    <button id="addRecordBtn" class="font-semibold hover:text-green-200">➕ Add Record</button>
-                    
-                    <div id="profile-menu-container" class="relative">
-                        <button id="profile-menu-btn" class="font-semibold hover:text-green-200 flex items-center">
-                            <span id="user-email-display"></span>
-                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                            <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                            <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
-                        </div>
-                    </div>
+        <header class="container mx-auto p-8">
+            <div class="flex justify-between items-center">
+                <h1 class="dashboard-title">Teachers Name</h1>
+                <nav class="flex items-center space-x-4">
+                    <button id="addRecordBtn" class="header-btn" style="background-color: #e59f44;">Add Student</button>
+                    <button id="messages-btn" class="header-btn" style="background-color: #b07d57;">Messages</button>
                 </nav>
             </div>
         </header>
         
         <main id="dashboard-view" class="container mx-auto p-8">
-             <div class="bg-white p-8 rounded-lg shadow mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
-                <div id="student-grid" class="flex flex-row flex-wrap gap-x-12 gap-y-6 items-start"></div>
+             <div class="mb-12">
+                <div id="student-grid" class="flex flex-wrap gap-x-12 gap-y-8"></div>
                 <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
             </div>
-             <div class="bg-white p-8 rounded-lg shadow mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Total Anecdote Counts by Core Skill</h2>
-                <canvas id="all-skills-chart"></canvas>
+             <div class="mb-8">
+                <h2 class="section-title mb-6">Core Values</h2>
+                <div class="max-w-4xl mx-auto">
+                    <canvas id="all-skills-chart"></canvas>
+                </div>
              </div>
         </main>
         
@@ -101,7 +90,7 @@
         </main>
 
         <main id="messages-view" class="hidden container mx-auto p-8">
-            <div id="messages-chart-container" class="bg-white p-8 rounded-lg shadow mb-8">
+            <div class="bg-white p-8 rounded-lg shadow mb-8">
                 <h2 id="messages-chart-title" class="text-3xl font-bold text-gray-800 mb-6">Messages Sent This Week</h2>
                 <canvas id="messages-chart"></canvas>
             </div>
@@ -116,7 +105,7 @@
             <div class="bg-white rounded-lg shadow">
                 <div class="p-4 border-b flex justify-between items-center">
                     <h2 id="chat-with-user" class="text-2xl font-bold text-gray-800"></h2>
-                    <button id="back-to-messages-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to List</button>
+                    <button id="back-to-messages-btn" class="text-sm font-semibold hover:underline" style="color: #c74a44;">Back to List</button>
                 </div>
                 <div id="message-list" class="p-4 h-96 overflow-y-auto flex flex-col-reverse"></div>
                 <div id="file-preview-container" class="hidden p-4 border-t">
@@ -135,7 +124,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                         </button>
                         <input type="text" id="message-input" class="flex-grow border rounded-lg p-2 mr-4" placeholder="Type your message..." autocomplete="off">
-                        <button type="submit" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg">Send</button>
+                        <button type="submit" class="header-btn" style="background-color: #8a8b48;">Send</button>
                     </form>
                 </div>
             </div>
@@ -1220,7 +1209,7 @@
                 <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-5"><label for="studentGrade" class="block mb-2 text-sm font-medium">Grade</label><input type="text" id="studentGrade" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
-                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Submit Record</button>
+                <button type="submit" class="header-btn" style="background-color: #8a8b48;">Submit Record</button>
             </form></div>
         </div>
     </div>
@@ -1247,7 +1236,7 @@
                     <label for="anecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
                     <input type="file" id="anecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
                 </div>
-                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
+                <button type="submit" class="header-btn" style="background-color: #8a8b48;">Save Anecdote</button>
             </form></div>
         </div>
     </div>
@@ -1256,7 +1245,7 @@
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Edit Anecdote</h3><button id="closeEditAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="editAnecdoteForm">
                 <div class="mb-6"><label for="editAnecdoteText" class="block mb-2 text-sm font-medium">Anecdote Text</label><textarea id="editAnecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
-                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Changes</button>
+                <button type="submit" class="header-btn" style="background-color: #8a8b48;">Save Changes</button>
             </form></div>
         </div>
     </div>
