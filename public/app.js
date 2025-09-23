@@ -706,11 +706,21 @@ dashboardBtn.addEventListener('click', () => {
         showView(parentDashboardView);
     }
 });
+
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
     if (auth.currentUser.uid === ADMIN_UID) {
         listenForAdminMessages();
+    }
+});
+
+// *** FIX ADDED HERE ***
+backToDashboardBtn.addEventListener('click', () => {
+    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+        showView(dashboardView);
+    } else {
+        showView(parentDashboardView);
     }
 });
 
