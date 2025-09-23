@@ -151,6 +151,7 @@ const buildContinuumBtn = document.getElementById('build-continuum-btn');
 const continuumTitle = document.getElementById('continuum-title');
 const backToStudentDetailFromContinuumBtn = document.getElementById('back-to-student-detail-from-continuum-btn');
 const downloadContinuumBtn = document.getElementById('download-continuum-btn');
+const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 
 // App State
 let currentStudentId = null, currentCoreSkill = null, currentMicroSkill = null;

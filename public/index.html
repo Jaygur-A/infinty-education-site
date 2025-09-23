@@ -142,11 +142,14 @@
         </main>
 
         <main id="student-detail-view" class="hidden container mx-auto p-8">
-             <div class="bg-white p-8 rounded-lg shadow">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 id="student-detail-name" class="text-3xl font-bold text-gray-800"></h2>
-                    <button id="add-anecdote-btn" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700">Add Anecdote</button>
-                </div>
+			<div class="bg-white p-8 rounded-lg shadow">
+				<div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+					<h2 id="student-detail-name" class="text-3xl font-bold text-gray-800"></h2>
+					<div class="flex items-center space-x-4">
+						<button id="back-to-dashboard-btn" class="bg-gray-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-gray-600">Back to Dashboard</button>
+						<button id="add-anecdote-btn" class="bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700">Add Anecdote</button>
+					</div>
+				</div>
                 <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <div class="skill-card p-4 border rounded-lg" data-skill="Vitality"><h3 class="font-bold text-center">Vitality</h3></div>
                     <div class="skill-card p-4 border rounded-lg" data-skill="Integrity"><h3 class="font-bold text-center">Integrity</h3></div>
