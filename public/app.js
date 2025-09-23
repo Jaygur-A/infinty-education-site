@@ -524,25 +524,30 @@ function renderAllSkillsChart(data) {
                 label: 'Total Anecdotes',
                 data: Object.values(data),
                 backgroundColor: [
-                    'rgba(255, 99, 132, 0.5)',
-                    'rgba(54, 162, 235, 0.5)',
-                    'rgba(255, 206, 86, 0.5)',
-                    'rgba(75, 192, 192, 0.5)',
-                    'rgba(153, 102, 255, 0.5)'
+                    '#fecaca', // Pink (Tailwind red-200)
+                    '#e5e7eb', // Gray (Tailwind gray-200)
+                    '#fde047', // Yellow (Tailwind yellow-400)
+                    '#e5e7eb', // Gray (Tailwind gray-200)
+                    '#e5e7eb'  // Gray (Tailwind gray-200)
                 ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)'
-                ],
-                borderWidth: 1
+                borderWidth: 0
             }]
         },
         options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-            plugins: { legend: { display: false } }
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    ticks: { 
+                        stepSize: 1,
+                        precision: 0 
+                    } 
+                } 
+            },
+            plugins: { 
+                legend: { 
+                    display: false 
+                } 
+            }
         }
     });
 }
