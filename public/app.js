@@ -133,7 +133,7 @@ const rubricView = document.getElementById('rubric-view');
 const viewRubricBtn = document.getElementById('view-rubric-btn');
 const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
 const downloadRubricBtn = document.getElementById('download-rubric-btn');
-const rubricTitle = document.getElementById('rubric-title'); // FIX: Re-added this line
+const rubricTitle = document.getElementById('rubric-title');
 const downloadOptionsModal = document.getElementById('download-options-modal');
 const downloadPngBtn = document.getElementById('download-png-btn');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
@@ -152,8 +152,6 @@ const parentAnecdoteContainer = document.getElementById('parent-view-anecdote-co
 const parentAnecdoteListTitle = document.getElementById('parent-anecdote-list-title');
 const parentAnecdoteChartCanvas = document.getElementById('parent-anecdote-chart');
 const parentCloseAnecdoteBtn = document.getElementById('parent-close-anecdote-display-btn');
-
-// NEW Continuum Elements
 const continuumView = document.getElementById('continuum-view');
 const buildContinuumBtn = document.getElementById('build-continuum-btn');
 const continuumTitle = document.getElementById('continuum-title');
@@ -162,9 +160,13 @@ const downloadContinuumBtn = document.getElementById('download-continuum-btn');
 const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 
 // App State
-let currentStudentId = null, currentCoreSkill = null, currentMicroSkill = null;
+let currentStudentId = null,
+    currentCoreSkill = null,
+    currentMicroSkill = null;
 let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
-let anecdoteChart = null, allSkillsChart = null, messagesChart = null;
+let anecdoteChart = null,
+    allSkillsChart = null,
+    messagesChart = null;
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -178,8 +180,8 @@ const showMessage = (message, isError = true) => {
 
 const getWeekDates = () => {
     const today = new Date();
-    const day = today.getDay(); // 0 is Sunday, 1 is Monday
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const startOfWeek = new Date(today.setDate(diff));
     startOfWeek.setHours(0, 0, 0, 0);
     const endOfWeek = new Date(startOfWeek);
@@ -189,7 +191,7 @@ const getWeekDates = () => {
 };
 
 const updateMicroSkillsDropdown = (selectedCoreSkill) => {
-    microSkillSelect.innerHTML = ''; // Clear existing options
+    microSkillSelect.innerHTML = '';
     const microSkills = skillMap[selectedCoreSkill] || [];
     microSkills.forEach(skill => {
         const option = document.createElement('option');
@@ -199,15 +201,12 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
     });
 };
 
-// Page Navigation
 const showView = (viewToShow) => {
     [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
 // Auth Logic
-// Replace the entire onAuthStateChanged function with this new one
-
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
     if (user) {
@@ -215,54 +214,43 @@ onAuthStateChanged(auth, async (user) => {
         await createUserProfileIfNeeded(user);
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
-        
         if (user.uid === ADMIN_UID) {
-            // Admin View
             showView(dashboardView);
             addRecordBtn.classList.remove('hidden');
             messagesChartContainer.classList.remove('hidden');
             listenForStudentRecords();
             listenForAllAnecdotes();
         } else {
-            // This is the new logic for Parents
             showView(parentDashboardView);
             addRecordBtn.classList.add('hidden');
             messagesChartContainer.classList.add('hidden');
-            
-            // Query to find if the logged-in user is a parent of any student
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
-
             const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-            
             const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
-            
             if (allStudentDocs.length > 0) {
-                // Parent found, show the first child's dashboard
-                const studentDoc = allStudentDocs[0]; // For now, just shows the first child found
+                const studentDoc = allStudentDocs[0];
                 const studentId = studentDoc.id;
                 const studentData = studentDoc.data();
                 renderParentStudentView(studentId, studentData.name);
             } else {
-                // Not a parent of any student, show the default welcome message
                 parentWelcomeMessage.classList.remove('hidden');
                 parentStudentView.classList.add('hidden');
             }
         }
-
         userEmailDisplay.textContent = user.email;
     } else {
-		document.body.classList.add('login-background');
-		appContainer.classList.add('hidden');
-		authContainer.classList.remove('hidden');
-		if (unsubscribeFromUsers) unsubscribeFromUsers();
-		if (unsubscribeFromMessages) unsubscribeFromMessages();
-		if (unsubscribeFromStudents) unsubscribeFromStudents();
-		if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
-		if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
-		if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
-	}
+        document.body.classList.add('login-background');
+        appContainer.classList.add('hidden');
+        authContainer.classList.remove('hidden');
+        if (unsubscribeFromUsers) unsubscribeFromUsers();
+        if (unsubscribeFromMessages) unsubscribeFromMessages();
+        if (unsubscribeFromStudents) unsubscribeFromStudents();
+        if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
+        if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
+        if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
+    }
     loadingOverlay.classList.add('hidden');
 });
 
@@ -312,49 +300,26 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
     if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
     targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
     targetContainer.classList.remove('hidden');
-    
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
-    
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
         const microSkillsForCore = skillMap[coreSkill] || [];
         const microSkillCounts = {};
         microSkillsForCore.forEach(skill => {
             microSkillCounts[skill] = 0;
         });
-
         snapshot.forEach(doc => {
             const anecdote = doc.data();
             if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
                 microSkillCounts[anecdote.microSkill]++;
             }
         });
-        // Pass studentId to the render function
-        renderAnecdoteChart(microSkillCounts, targetCanvas, studentId); 
-    }, (error) => {
-        console.error("Error fetching anecdotes: ", error);
-    });
-}
-    
-    unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
-        const microSkillsForCore = skillMap[coreSkill] || [];
-        const microSkillCounts = {};
-        microSkillsForCore.forEach(skill => {
-            microSkillCounts[skill] = 0;
-        });
-
-        snapshot.forEach(doc => {
-            const anecdote = doc.data();
-            if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
-                microSkillCounts[anecdote.microSkill]++;
-            }
-        });
-        renderAnecdoteChart(microSkillCounts, targetCanvas); // Pass the target canvas to the render function
+        renderAnecdoteChart(microSkillCounts, targetCanvas, studentId);
     }, (error) => {
         console.error("Error fetching anecdotes: ", error);
     });
 }
 
-function renderAnecdoteChart(data, canvasElement, studentId) { 
+function renderAnecdoteChart(data, canvasElement, studentId) {
     if (anecdoteChart) anecdoteChart.destroy();
     const ctx = canvasElement.getContext('2d');
     anecdoteChart = new Chart(ctx, {
@@ -400,32 +365,18 @@ function renderAnecdoteChart(data, canvasElement, studentId) {
     });
 }
 
-// Update the admin's click handler for the skill grid
-alignedSkillsGrid.addEventListener('click', (e) => {
-    const skillCard = e.target.closest('.skill-card');
-    if (skillCard) {
-        // We now pass the specific admin elements to the function
-        listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
-        setTimeout(() => {
-            anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-    }
-});
-
 function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     currentStudentId = studentId;
-	currentMicroSkill = microSkill;
+    currentMicroSkill = microSkill;
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
     microSkillDescription.textContent = skillDescriptions[microSkill] || '';
-
     const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'];
     if (rubricsAvailable.includes(microSkill)) {
         viewRubricBtn.classList.remove('hidden');
     } else {
         viewRubricBtn.classList.add('hidden');
     }
-
     if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
     unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
@@ -437,7 +388,6 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
             const anecdoteId = doc.id;
             const anecdoteCard = document.createElement('div');
             anecdoteCard.className = 'anecdote-card relative p-4 border rounded-lg bg-gray-50';
-
             let adminButtons = '';
             if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
                 adminButtons = `
@@ -450,14 +400,12 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
                         </button>
                     </div>`;
             }
-            
             const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate() : new Date();
             let timestampHTML = `<p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
             if (anecdote.editedAt) {
                 const editedDate = anecdote.editedAt.toDate();
                 timestampHTML += `<p class="text-xs text-gray-400 mt-1 italic">Edited on: ${editedDate.toLocaleDateString()}</p>`;
             }
-
             const imageHtml = anecdote.imageUrl ? `<img src="${anecdote.imageUrl}" alt="Anecdote Image" class="mt-2 rounded-lg max-w-full h-auto max-h-96">` : '';
             anecdoteCard.innerHTML = `
                 ${adminButtons}
@@ -472,10 +420,7 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
 async function showRubricPage(studentId, coreSkill, microSkill) {
     showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
-    
-    // Hide all rubric containers first
     document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
-
     let activeTable;
     const rubricMap = {
         'Mindset': document.getElementById('mindset-rubric-container'),
@@ -496,30 +441,21 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
         'Evaluating Evidence': document.getElementById('evaluating-evidence-rubric-container'),
         'Making Informed Judgments': document.getElementById('making-informed-judgments-rubric-container')
     };
-
     const container = rubricMap[microSkill];
     if (container) {
         container.classList.remove('hidden');
         activeTable = container.querySelector('table');
     }
-    
     if (!activeTable) return;
-
     const user = auth.currentUser;
     const isAdmin = user && user.uid === ADMIN_UID;
-
     downloadRubricBtn.style.display = isAdmin ? 'block' : 'none';
     activeTable.classList.toggle('admin-clickable', isAdmin);
-
-    // Clear previous highlights
     activeTable.querySelectorAll('td').forEach(cell => {
         cell.classList.remove('admin-highlight');
     });
-
-    // Load highlights from Firestore
     const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
     const highlightsSnap = await getDoc(highlightsRef);
-
     if (highlightsSnap.exists()) {
         const data = highlightsSnap.data();
         data.highlightedCells?.forEach(cellId => {
@@ -534,12 +470,10 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
 async function saveRubricHighlights(microSkill) {
     const activeContainer = document.querySelector('.rubric-container:not(.hidden)');
     if (!activeContainer) return;
-    
     const highlightedCells = [];
     activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
         highlightedCells.push(cell.id);
     });
-
     const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
     await setDoc(highlightsRef, { highlightedCells });
 }
@@ -547,9 +481,7 @@ async function saveRubricHighlights(microSkill) {
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
-
     document.querySelectorAll('.continuum-rubric-container').forEach(c => c.classList.add('hidden'));
-
     let activeTable;
     if (coreSkill === 'Vitality') {
         const container = document.getElementById('vitality-continuum-container');
@@ -559,22 +491,18 @@ async function showContinuumPage(coreSkill) {
         const container = document.getElementById('integrity-continuum-container');
         container.classList.remove('hidden');
         activeTable = container.querySelector('table');
-    }
-		else if (coreSkill === 'Curiosity') {
-			const container = document.getElementById('curiosity-continuum-container');
-			container.classList.remove('hidden');
-			activeTable = container.querySelector('table');
-	}
-		else if (coreSkill === 'Critical Thinking') {
-			const container = document.getElementById('critical-thinking-continuum-container');
-			container.classList.remove('hidden');
-			activeTable = container.querySelector('table');
+    } else if (coreSkill === 'Curiosity') {
+        const container = document.getElementById('curiosity-continuum-container');
+        container.classList.remove('hidden');
+        activeTable = container.querySelector('table');
+    } else if (coreSkill === 'Critical Thinking') {
+        const container = document.getElementById('critical-thinking-continuum-container');
+        container.classList.remove('hidden');
+        activeTable = container.querySelector('table');
     }
     if (!activeTable) return;
-    
     activeTable.classList.toggle('admin-clickable', auth.currentUser && auth.currentUser.uid === ADMIN_UID);
     activeTable.querySelectorAll('td').forEach(cell => cell.classList.remove('admin-highlight'));
-
     const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
     const highlightsSnap = await getDoc(highlightsRef);
     if (highlightsSnap.exists()) {
@@ -588,16 +516,13 @@ async function showContinuumPage(coreSkill) {
 async function saveContinuumHighlights(coreSkill) {
     const activeContainer = document.querySelector('.continuum-rubric-container:not(.hidden)');
     if (!activeContainer) return;
-    
     const highlightedCells = [];
     activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
         highlightedCells.push(cell.id);
     });
-
     const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
     await setDoc(highlightsRef, { highlightedCells }, { merge: true });
 }
-
 
 function listenForAllAnecdotes() {
     if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
@@ -629,19 +554,19 @@ function renderAllSkillsChart(data) {
             }]
         },
         options: {
-            scales: { 
-                y: { 
-                    beginAtZero: true, 
-                    ticks: { 
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
                         stepSize: 1,
-                        precision: 0 
-                    } 
-                } 
+                        precision: 0
+                    }
+                }
             },
-            plugins: { 
-                legend: { 
-                    display: false 
-                } 
+            plugins: {
+                legend: {
+                    display: false
+                }
             }
         }
     });
@@ -651,12 +576,9 @@ function renderAllSkillsChart(data) {
 async function listenForUsers() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
-
     if (unsubscribeFromUsers) unsubscribeFromUsers();
     userList.innerHTML = '';
-
     if (currentUser.uid === ADMIN_UID) {
-        // Admin: Show all users
         const usersRef = collection(db, "users");
         unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
             userList.innerHTML = '';
@@ -671,7 +593,6 @@ async function listenForUsers() {
             });
         });
     } else {
-        // Parent: Show only users they have a chat with
         const chatsRef = collection(db, "chats");
         const q = query(chatsRef, where("participants", "array-contains", currentUser.uid));
         unsubscribeFromUsers = onSnapshot(q, async (snapshot) => {
@@ -699,7 +620,7 @@ async function listenForUsers() {
 
 function openChat(recipient) {
     chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
-    chatWithUser.dataset.recipientId = recipient.uid; 
+    chatWithUser.dataset.recipientId = recipient.uid;
     showView(chatView);
     const currentUser = auth.currentUser;
     const chatID = [currentUser.uid, recipient.uid].sort().join('_');
@@ -713,7 +634,6 @@ function openChat(recipient) {
             const isSender = msg.senderId === currentUser.uid;
             const messageEl = document.createElement('div');
             messageEl.className = `p-3 rounded-lg max-w-xs mb-2 break-words ${isSender ? 'bg-green-200 self-end' : 'bg-gray-200 self-start'}`;
-
             let contentHTML = '';
             if (msg.fileUrl && msg.fileType && msg.fileType.startsWith('image/')) {
                 contentHTML += `<img src="${msg.fileUrl}" alt="Image preview" class="chat-image-preview rounded-lg max-w-full h-auto cursor-pointer mb-2">`;
@@ -730,7 +650,6 @@ function openChat(recipient) {
 function listenForAdminMessages() {
     const currentUser = auth.currentUser;
     if (!currentUser || currentUser.uid !== ADMIN_UID) return;
-
     const { start, end } = getWeekDates();
     const options = { month: 'long', day: 'numeric' };
     const formattedStartDate = start.toLocaleDateString('en-US', options);
@@ -739,19 +658,11 @@ function listenForAdminMessages() {
     if (chartTitleEl) {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
-    
     const messagesCollectionGroup = collectionGroup(db, 'messages');
-    const q = query(messagesCollectionGroup, 
-        where("senderId", "==", ADMIN_UID),
-        where("timestamp", ">=", start),
-        where("timestamp", "<=", end),
-        orderBy("timestamp", "asc")
-    );
-
+    const q = query(messagesCollectionGroup, where("senderId", "==", ADMIN_UID), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
     onSnapshot(q, (snapshot) => {
         const dailyCounts = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
         snapshot.forEach(doc => {
             const message = doc.data();
             if (message.timestamp) {
@@ -787,44 +698,44 @@ function renderMessagesChart(data) {
             }]
         },
         options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            },
             plugins: { legend: { display: false } }
         }
     });
+}
 
 function renderParentStudentView(studentId, studentName) {
     parentWelcomeMessage.classList.add('hidden');
     parentStudentView.classList.remove('hidden');
     parentViewStudentName.textContent = studentName;
-    
-    parentViewSkillsGrid.innerHTML = ''; // Clear previous skills
+    parentViewSkillsGrid.innerHTML = '';
     const coreSkills = ['Vitality', 'Integrity', 'Curiosity', 'Critical Thinking', 'Fields of Knowledge'];
-    
     coreSkills.forEach(skill => {
         const skillCard = document.createElement('div');
         skillCard.className = 'skill-card p-4 border rounded-lg cursor-pointer';
         skillCard.dataset.skill = skill;
         skillCard.innerHTML = `<h3 class="font-bold text-center">${skill}</h3>`;
-        
         skillCard.addEventListener('click', () => {
             listenForAnecdotes(studentId, skill, parentAnecdoteChartCanvas, parentAnecdoteListTitle, parentAnecdoteContainer);
         });
-        
         parentViewSkillsGrid.appendChild(skillCard);
     });
 }
 
 parentCloseAnecdoteBtn.addEventListener('click', () => {
     parentAnecdoteContainer.classList.add('hidden');
-    if (anecdoteChart) { 
-        anecdoteChart.destroy(); 
-        anecdoteChart = null; 
+    if (anecdoteChart) {
+        anecdoteChart.destroy();
+        anecdoteChart = null;
     }
 });
 
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
-     if (auth.currentUser.uid === ADMIN_UID) {
+    if (auth.currentUser.uid === ADMIN_UID) {
         showView(dashboardView);
     } else {
         showView(parentDashboardView);
@@ -839,7 +750,6 @@ messagesBtn.addEventListener('click', () => {
     }
 });
 
-// *** FIX ADDED HERE ***
 backToDashboardBtn.addEventListener('click', () => {
     if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
         showView(dashboardView);
@@ -876,13 +786,14 @@ document.addEventListener('click', (e) => {
 });
 
 backToMessagesBtn.addEventListener('click', () => showView(messagesView));
+
 googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
 
 addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
 closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
 
 addAnecdoteBtn.addEventListener('click', () => {
-    updateMicroSkillsDropdown(coreSkillSelect.value); // Initialize dropdown
+    updateMicroSkillsDropdown(coreSkillSelect.value);
     addAnecdoteModal.classList.remove('hidden');
 });
 
@@ -894,13 +805,15 @@ closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList
 
 closeAnecdoteDisplayBtn.addEventListener('click', () => {
     anecdoteDisplayContainer.classList.add('hidden');
-    if (anecdoteChart) { anecdoteChart.destroy(); anecdoteChart = null; }
+    if (anecdoteChart) {
+        anecdoteChart.destroy();
+        anecdoteChart = null;
+    }
 });
 
 alignedSkillsGrid.addEventListener('click', (e) => {
     const skillCard = e.target.closest('.skill-card');
     if (skillCard) {
-        // We now pass the specific admin elements to the function
         listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
         setTimeout(() => {
             anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -910,14 +823,14 @@ alignedSkillsGrid.addEventListener('click', (e) => {
 
 addStudentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    await addDoc(collection(db, "students"), { 
-        name: document.getElementById('studentName').value, 
-        grade: document.getElementById('studentGrade').value, 
-        class: document.getElementById('studentClass').value, 
-        parent1Email: document.getElementById('parent1Email').value, 
-        parent2Email: document.getElementById('parent2Email').value, 
-        createdAt: serverTimestamp(), 
-        createdBy: auth.currentUser.uid 
+    await addDoc(collection(db, "students"), {
+        name: document.getElementById('studentName').value,
+        grade: document.getElementById('studentGrade').value,
+        class: document.getElementById('studentClass').value,
+        parent1Email: document.getElementById('parent1Email').value,
+        parent2Email: document.getElementById('parent2Email').value,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser.uid
     });
     addStudentForm.reset();
     addRecordModal.classList.add('hidden');
@@ -964,6 +877,7 @@ messageList.addEventListener('click', (e) => {
 });
 
 closeImageModalBtn.addEventListener('click', () => imageModal.classList.add('hidden'));
+
 imageModal.addEventListener('click', (e) => {
     if (e.target === imageModal) {
         imageModal.classList.add('hidden');
@@ -998,14 +912,14 @@ messageForm.addEventListener('submit', async (e) => {
     loadingOverlay.classList.remove('hidden');
     const recipientId = chatWithUser.dataset.recipientId;
     if (!recipientId) return;
-
     const currentUser = auth.currentUser;
     const chatID = [currentUser.uid, recipientId].sort().join('_');
     const messagesRef = collection(db, "chats", chatID, "messages");
     const chatDocRef = doc(db, "chats", chatID);
-
     try {
-        let fileUrl = null, fileName = null, fileType = null;
+        let fileUrl = null,
+            fileName = null,
+            fileType = null;
         if (file) {
             const storageRef = ref(storage, `chats/${chatID}/${Date.now()}-${file.name}`);
             const uploadResult = await uploadBytes(storageRef, file);
@@ -1013,17 +927,19 @@ messageForm.addEventListener('submit', async (e) => {
             fileName = file.name;
             fileType = file.type;
         }
-        
         await addDoc(messagesRef, {
-            text: text, senderId: currentUser.uid, recipientId: recipientId,
-            timestamp: serverTimestamp(), fileUrl, fileName, fileType
+            text: text,
+            senderId: currentUser.uid,
+            recipientId: recipientId,
+            timestamp: serverTimestamp(),
+            fileUrl,
+            fileName,
+            fileType
         });
-
         await setDoc(chatDocRef, {
             participants: [currentUser.uid, recipientId],
             lastMessage: file ? (text || 'File sent') : text
         }, { merge: true });
-
         messageInput.value = '';
         fileInput.value = '';
         filePreviewContainer.classList.add('hidden');
@@ -1048,11 +964,10 @@ cancelDeleteBtn.addEventListener('click', () => {
 confirmDeleteBtn.addEventListener('click', async () => {
     loadingOverlay.classList.remove('hidden');
     deleteConfirmModal.classList.add('hidden');
-
     const deleteUserData = httpsCallable(functions, 'deleteUserData');
     try {
         const result = await deleteUserData();
-        console.log(result.data.message); 
+        console.log(result.data.message);
         showMessage("Your account has been successfully deleted.", false);
     } catch (error) {
         console.error("Deletion failed:", error);
@@ -1077,7 +992,6 @@ backToStudentDetailFromContinuumBtn.addEventListener('click', () => {
     showStudentDetailPage(currentStudentId);
 });
 
-
 rubricView.addEventListener('click', (e) => {
     const user = auth.currentUser;
     if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
@@ -1087,7 +1001,7 @@ rubricView.addEventListener('click', (e) => {
 });
 
 continuumView.addEventListener('click', (e) => {
-     const user = auth.currentUser;
+    const user = auth.currentUser;
     if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveContinuumHighlights(currentCoreSkill);
@@ -1101,7 +1015,6 @@ cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList
 downloadPngBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
     loadingOverlay.classList.remove('hidden');
-    
     let elementToCapture, fileName;
     if (!rubricView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
@@ -1112,15 +1025,12 @@ downloadPngBtn.addEventListener('click', async () => {
         const studentNameText = studentDetailName.textContent.trim() || 'student';
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
     }
-
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
         return;
     }
-
     elementToCapture.style.border = 'none';
     elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
-
     try {
         const canvas = await html2canvas(elementToCapture, { scale: 2 });
         const link = document.createElement('a');
@@ -1140,7 +1050,6 @@ downloadPngBtn.addEventListener('click', async () => {
 downloadPdfBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
     loadingOverlay.classList.remove('hidden');
-
     let elementToCapture, fileName;
     if (!rubricView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
@@ -1151,55 +1060,44 @@ downloadPdfBtn.addEventListener('click', async () => {
         const studentNameText = studentDetailName.textContent.trim() || 'student';
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
     }
-
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
         return;
     }
-
     elementToCapture.style.border = 'none';
     elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
-
     const { jsPDF } = window.jspdf;
-
     try {
         const canvas = await html2canvas(elementToCapture, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
-        
         const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'px',
             format: [canvas.width, canvas.height]
         });
-
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         pdf.save(fileName);
-
     } catch (error) {
         console.error("Error generating PDF:", error);
         showMessage("Could not download as PDF.");
     } finally {
-         elementToCapture.style.border = '';
+        elementToCapture.style.border = '';
         elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
         loadingOverlay.classList.add('hidden');
     }
 });
 
-// Event delegation for Edit/Delete buttons on anecdotes
 microSkillAnecdoteList.addEventListener('click', (e) => {
     const editButton = e.target.closest('.edit-anecdote-btn');
     const deleteButton = e.target.closest('.delete-anecdote-btn');
-
     if (editButton) {
         const anecdoteId = editButton.dataset.id;
         const anecdoteCard = editButton.closest('.anecdote-card');
         const anecdoteText = anecdoteCard.querySelector('.anecdote-text-content').textContent;
-        
         document.getElementById('editAnecdoteText').value = anecdoteText;
         editAnecdoteModal.dataset.id = anecdoteId;
         editAnecdoteModal.classList.remove('hidden');
     }
-
     if (deleteButton) {
         const anecdoteId = deleteButton.dataset.id;
         deleteAnecdoteConfirmModal.dataset.id = anecdoteId;
@@ -1207,18 +1105,15 @@ microSkillAnecdoteList.addEventListener('click', (e) => {
     }
 });
 
-// Handler for closing the edit modal
 closeEditAnecdoteModalBtn.addEventListener('click', () => {
     editAnecdoteModal.classList.add('hidden');
 });
 
-// Handler for submitting the edit form
 editAnecdoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const anecdoteId = editAnecdoteModal.dataset.id;
     const newText = document.getElementById('editAnecdoteText').value;
     if (!anecdoteId || !newText.trim()) return;
-
     loadingOverlay.classList.remove('hidden');
     const anecdoteRef = doc(db, "anecdotes", anecdoteId);
     try {
@@ -1236,7 +1131,6 @@ editAnecdoteForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Handlers for the delete confirmation modal
 cancelDeleteAnecdoteBtn.addEventListener('click', () => {
     deleteAnecdoteConfirmModal.classList.add('hidden');
 });
@@ -1244,7 +1138,6 @@ cancelDeleteAnecdoteBtn.addEventListener('click', () => {
 confirmDeleteAnecdoteBtn.addEventListener('click', async () => {
     const anecdoteId = deleteAnecdoteConfirmModal.dataset.id;
     if (!anecdoteId) return;
-
     loadingOverlay.classList.remove('hidden');
     const anecdoteRef = doc(db, "anecdotes", anecdoteId);
     try {
