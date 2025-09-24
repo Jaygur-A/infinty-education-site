@@ -339,12 +339,12 @@ function renderAnecdoteChart(data, canvasElement) {
     const ctx = canvasElement.getContext('2d');
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
-        data: { // <-- This data section was missing
+        data: {
             labels: Object.keys(data),
             datasets: [{
                 label: 'Anecdote Count',
                 data: Object.values(data),
-                backgroundColor: '#a7c7e7', // A slightly softer blue
+                backgroundColor: '#a7c7e7', 
                 borderColor: '#6b93b9',
                 borderWidth: 1,
                 borderRadius: 4
@@ -356,10 +356,8 @@ function renderAnecdoteChart(data, canvasElement) {
                 if (points.length) {
                     const firstPoint = points[0];
                     const label = anecdoteChart.data.labels[firstPoint.index];
-                    // Only admins can click through to the detail page
-                    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
-                        showMicroSkillDetailPage(currentStudentId, currentCoreSkill, label);
-                    }
+                    // CHANGED: Removed the admin-only check here to allow everyone to view the details.
+                    showMicroSkillDetailPage(currentStudentId, currentCoreSkill, label);
                 }
             },
             scales: { 
@@ -376,9 +374,9 @@ function renderAnecdoteChart(data, canvasElement) {
                     display: false 
                 } 
             },
-            // Make cursor a pointer only for admins
             onHover: (event, chartElement) => {
-                event.native.target.style.cursor = chartElement[0] && auth.currentUser.uid === ADMIN_UID ? 'pointer' : 'default';
+                // CHANGED: Make cursor a pointer for anyone if the chart is interactive.
+                event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
             }
         }
     });
