@@ -300,6 +300,14 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
     if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
     targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
     targetContainer.classList.remove('hidden');
+	if (buildContinuumBtn) {
+        const user = auth.currentUser;
+        if (user && user.uid === ADMIN_UID) {
+            buildContinuumBtn.classList.remove('hidden');
+        } else {
+            buildContinuumBtn.classList.add('hidden');
+        }
+    }
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
         const microSkillsForCore = skillMap[coreSkill] || [];
