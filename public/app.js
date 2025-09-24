@@ -165,6 +165,12 @@ const backToStudentFromJourneyBtn = document.getElementById('back-to-student-fro
 const journeyAnecdoteSelectionList = document.getElementById('journey-anecdote-selection-list');
 const journeySelectionCounter = document.getElementById('journey-selection-counter');
 const generateJourneySummaryBtn = document.getElementById('generate-journey-summary-btn');
+const journeyEditorView = document.getElementById('journey-editor-view');
+const journeyEditorTitle = document.getElementById('journey-editor-title');
+const backToJourneyBuilderBtn = document.getElementById('back-to-journey-builder-btn');
+const journeySummaryTextarea = document.getElementById('journey-summary-textarea');
+const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn');
+
 
 // App State
 let currentStudentId = null,
@@ -210,7 +216,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
@@ -1261,8 +1267,51 @@ journeyAnecdoteSelectionList.addEventListener('click', (e) => {
     }
 });
 
-// We will add the AI logic to this button in the next step
-generateJourneySummaryBtn.addEventListener('click', () => {
-    alert(`Next step: Send ${selectedJourneyAnecdotes.length} anecdotes to the AI for summary!`);
-    console.log("Selected Anecdote IDs:", selectedJourneyAnecdotes);
+generateJourneySummaryBtn.addEventListener('click', async () => {
+    if (selectedJourneyAnecdotes.length === 0) {
+        showMessage("Please select at least one anecdote.");
+        return;
+    }
+
+    loadingOverlay.classList.remove('hidden');
+
+    try {
+        const studentName = journeyStudentName.textContent.replace('Learning Journey for ', '');
+        const generateSummary = httpsCallable(functions, 'generateJourneySummary');
+
+        const result = await generateSummary({
+            studentName: studentName,
+            anecdoteIds: selectedJourneyAnecdotes
+        });
+
+        journeyEditorTitle.textContent = `Learning Journey Draft for ${studentName}`;
+        journeySummaryTextarea.value = result.data.summary;
+        showView(journeyEditorView);
+
+    } catch (error) {
+        console.error("Error generating summary:", error);
+        showMessage("Could not generate summary. Please check the function logs and try again.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+backToJourneyBuilderBtn.addEventListener('click', () => {
+    showView(journeyBuilderView);
+});
+
+downloadJourneyPdfBtn.addEventListener('click', () => {
+    const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
+    const summaryText = journeySummaryTextarea.value;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    pdf.setFontSize(18);
+    pdf.text(`Learning Journey for ${studentName}`, 14, 22);
+
+    pdf.setFontSize(12);
+    const splitText = pdf.splitTextToSize(summaryText, 180); // Split text to fit page width
+    pdf.text(splitText, 14, 32);
+
+    pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
