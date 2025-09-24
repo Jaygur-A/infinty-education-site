@@ -328,13 +328,33 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
                 microSkillCounts[anecdote.microSkill]++;
             }
         });
+        // Pass studentId to the render function
+        renderAnecdoteChart(microSkillCounts, targetCanvas, studentId); 
+    }, (error) => {
+        console.error("Error fetching anecdotes: ", error);
+    });
+}
+    
+    unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
+        const microSkillsForCore = skillMap[coreSkill] || [];
+        const microSkillCounts = {};
+        microSkillsForCore.forEach(skill => {
+            microSkillCounts[skill] = 0;
+        });
+
+        snapshot.forEach(doc => {
+            const anecdote = doc.data();
+            if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
+                microSkillCounts[anecdote.microSkill]++;
+            }
+        });
         renderAnecdoteChart(microSkillCounts, targetCanvas); // Pass the target canvas to the render function
     }, (error) => {
         console.error("Error fetching anecdotes: ", error);
     });
 }
 
-function renderAnecdoteChart(data, canvasElement) {
+function renderAnecdoteChart(data, canvasElement, studentId) { 
     if (anecdoteChart) anecdoteChart.destroy();
     const ctx = canvasElement.getContext('2d');
     anecdoteChart = new Chart(ctx, {
@@ -344,7 +364,7 @@ function renderAnecdoteChart(data, canvasElement) {
             datasets: [{
                 label: 'Anecdote Count',
                 data: Object.values(data),
-                backgroundColor: '#a7c7e7', 
+                backgroundColor: '#a7c7e7',
                 borderColor: '#6b93b9',
                 borderWidth: 1,
                 borderRadius: 4
@@ -356,26 +376,24 @@ function renderAnecdoteChart(data, canvasElement) {
                 if (points.length) {
                     const firstPoint = points[0];
                     const label = anecdoteChart.data.labels[firstPoint.index];
-                    // CHANGED: Removed the admin-only check here to allow everyone to view the details.
-                    showMicroSkillDetailPage(currentStudentId, currentCoreSkill, label);
+                    showMicroSkillDetailPage(studentId, currentCoreSkill, label);
                 }
             },
-            scales: { 
-                y: { 
-                    beginAtZero: true, 
-                    ticks: { 
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
                         stepSize: 1,
                         precision: 0
-                    } 
-                } 
-            }, 
-            plugins: { 
-                legend: { 
-                    display: false 
-                } 
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
             },
             onHover: (event, chartElement) => {
-                // CHANGED: Make cursor a pointer for anyone if the chart is interactive.
                 event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
             }
         }
@@ -395,7 +413,8 @@ alignedSkillsGrid.addEventListener('click', (e) => {
 });
 
 function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
-    currentMicroSkill = microSkill;
+    currentStudentId = studentId;
+	currentMicroSkill = microSkill;
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
     microSkillDescription.textContent = skillDescriptions[microSkill] || '';
