@@ -210,7 +210,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
