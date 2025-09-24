@@ -791,7 +791,6 @@ function renderMessagesChart(data) {
             plugins: { legend: { display: false } }
         }
     });
-}
 
 function renderParentStudentView(studentId, studentName) {
     parentWelcomeMessage.classList.add('hidden');
