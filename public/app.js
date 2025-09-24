@@ -158,6 +158,13 @@ const continuumTitle = document.getElementById('continuum-title');
 const backToStudentDetailFromContinuumBtn = document.getElementById('back-to-student-detail-from-continuum-btn');
 const downloadContinuumBtn = document.getElementById('download-continuum-btn');
 const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+const buildJourneyBtn = document.getElementById('build-journey-btn');
+const journeyBuilderView = document.getElementById('journey-builder-view');
+const journeyStudentName = document.getElementById('journey-student-name');
+const backToStudentFromJourneyBtn = document.getElementById('back-to-student-from-journey-btn');
+const journeyAnecdoteSelectionList = document.getElementById('journey-anecdote-selection-list');
+const journeySelectionCounter = document.getElementById('journey-selection-counter');
+const generateJourneySummaryBtn = document.getElementById('generate-journey-summary-btn');
 
 // App State
 let currentStudentId = null,
@@ -167,6 +174,7 @@ let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsu
 let anecdoteChart = null,
     allSkillsChart = null,
     messagesChart = null;
+let selectedJourneyAnecdotes = [];
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -741,6 +749,73 @@ parentCloseAnecdoteBtn.addEventListener('click', () => {
     }
 });
 
+async function showJourneyBuilderPage(studentId) {
+    selectedJourneyAnecdotes = []; // Reset selections
+    showView(journeyBuilderView);
+    journeyAnecdoteSelectionList.innerHTML = '<p class="text-gray-500">Loading anecdotes...</p>';
+    updateJourneyCounter();
+
+    // Fetch student name
+    const studentRef = doc(db, "students", studentId);
+    const studentSnap = await getDoc(studentRef);
+    if (studentSnap.exists()) {
+        journeyStudentName.textContent = `Learning Journey for ${studentSnap.data().name}`;
+    }
+
+    // Fetch all anecdotes for this student
+    const anecdotesRef = collection(db, "anecdotes");
+    const q = query(anecdotesRef, where("studentId", "==", studentId), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    journeyAnecdoteSelectionList.innerHTML = '';
+    if (querySnapshot.empty) {
+        journeyAnecdoteSelectionList.innerHTML = '<p class="text-gray-500">No anecdotes have been recorded for this student yet.</p>';
+        return;
+    }
+
+    const anecdotesBySkill = {};
+    querySnapshot.forEach(doc => {
+        const anecdote = { id: doc.id, ...doc.data() };
+        const key = `${anecdote.coreSkill} > ${anecdote.microSkill}`;
+        if (!anecdotesBySkill[key]) {
+            anecdotesBySkill[key] = [];
+        }
+        anecdotesBySkill[key].push(anecdote);
+    });
+
+    for (const skillGroup in anecdotesBySkill) {
+        const groupContainer = document.createElement('div');
+        groupContainer.innerHTML = `<h3 class="font-bold text-lg text-gray-700 mb-2 border-b pb-2">${skillGroup}</h3>`;
+        
+        anecdotesBySkill[skillGroup].forEach(anecdote => {
+            const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate().toLocaleDateString() : 'N/A';
+            const anecdoteEl = document.createElement('div');
+            anecdoteEl.className = 'flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50';
+            anecdoteEl.innerHTML = `
+                <input type="checkbox" data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                <label for="anecdote-${anecdote.id}" class="flex-1">
+                    <p class="text-gray-800">${anecdote.text}</p>
+                    <p class="text-xs text-gray-400 mt-1">Logged on: ${date}</p>
+                </label>
+            `;
+            groupContainer.appendChild(anecdoteEl);
+        });
+        journeyAnecdoteSelectionList.appendChild(groupContainer);
+    }
+}
+
+function updateJourneyCounter() {
+    const count = selectedJourneyAnecdotes.length;
+    journeySelectionCounter.textContent = `${count} anecdote${count !== 1 ? 's' : ''} selected`;
+    if (count > 0) {
+        generateJourneySummaryBtn.disabled = false;
+        generateJourneySummaryBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        generateJourneySummaryBtn.disabled = true;
+        generateJourneySummaryBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
     if (auth.currentUser.uid === ADMIN_UID) {
@@ -1158,4 +1233,36 @@ confirmDeleteAnecdoteBtn.addEventListener('click', async () => {
     } finally {
         loadingOverlay.classList.add('hidden');
     }
+});
+
+buildJourneyBtn.addEventListener('click', () => {
+    if (currentStudentId) {
+        showJourneyBuilderPage(currentStudentId);
+    }
+});
+
+backToStudentFromJourneyBtn.addEventListener('click', () => {
+    if (currentStudentId) {
+        showStudentDetailPage(currentStudentId);
+    }
+});
+
+journeyAnecdoteSelectionList.addEventListener('click', (e) => {
+    if (e.target.classList.contains('journey-anecdote-checkbox')) {
+        const anecdoteId = e.target.dataset.id;
+        if (e.target.checked) {
+            if (!selectedJourneyAnecdotes.includes(anecdoteId)) {
+                selectedJourneyAnecdotes.push(anecdoteId);
+            }
+        } else {
+            selectedJourneyAnecdotes = selectedJourneyAnecdotes.filter(id => id !== anecdoteId);
+        }
+        updateJourneyCounter();
+    }
+});
+
+// We will add the AI logic to this button in the next step
+generateJourneySummaryBtn.addEventListener('click', () => {
+    alert(`Next step: Send ${selectedJourneyAnecdotes.length} anecdotes to the AI for summary!`);
+    console.log("Selected Anecdote IDs:", selectedJourneyAnecdotes);
 });

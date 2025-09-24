@@ -165,6 +165,7 @@
 					<div class="flex items-center space-x-4">
 						<button id="back-to-dashboard-btn" class="btn btn-neutral">Back to Dashboard</button>
 						<button id="add-anecdote-btn" class="btn btn-secondary">Add Anecdote</button>
+						<button id="build-journey-btn" class="btn btn-primary">Build Learning Journey</button>
 					</div>
 				</div>
                 <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -1332,9 +1333,33 @@
 					</div>
                 </div>
             </div>
-        </main>
-    </div>
+		</div>
 
+	</main>
+	<main id="journey-builder-view" class="hidden container mx-auto p-8">
+		<div class="bg-white p-8 rounded-lg shadow">
+			<div class="flex justify-between items-center mb-6">
+				<div>
+					<h2 id="journey-student-name" class="text-3xl font-bold text-gray-800"></h2>
+					<p class="text-gray-600 mt-1">Select anecdotes to include in the summary report.</p>
+				</div>
+				<div class="flex space-x-4">
+					<button id="back-to-student-from-journey-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
+				</div>
+			</div>
+
+			<div id="journey-anecdote-selection-list" class="space-y-6">
+				</div>
+
+			<div class="mt-8 pt-6 border-t flex justify-end items-center">
+				<span id="journey-selection-counter" class="mr-4 text-gray-600 font-medium">0 anecdotes selected</span>
+				<button id="generate-journey-summary-btn" class="btn btn-primary opacity-50 cursor-not-allowed" disabled>
+					Generate Summary
+				</button>
+			</div>
+		</div>
+	</main>
+	
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
