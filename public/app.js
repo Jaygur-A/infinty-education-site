@@ -170,6 +170,9 @@ const journeyEditorTitle = document.getElementById('journey-editor-title');
 const backToJourneyBuilderBtn = document.getElementById('back-to-journey-builder-btn');
 const journeySummaryTextarea = document.getElementById('journey-summary-textarea');
 const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn');
+const usersView = document.getElementById('users-view');
+const usersLink = document.getElementById('users-link');
+const usersListBody = document.getElementById('users-list-body');
 
 
 // App State
@@ -181,6 +184,7 @@ let anecdoteChart = null,
     allSkillsChart = null,
     messagesChart = null;
 let selectedJourneyAnecdotes = [];
+let currentUserRole = null;
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -216,7 +220,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
@@ -226,28 +230,37 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         document.body.classList.remove('login-background');
         await createUserProfileIfNeeded(user);
+        
+        // Fetch user's role from their profile
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+        currentUserRole = docSnap.exists() ? docSnap.data().role : 'parent';
+
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
-        if (user.uid === ADMIN_UID) {
+        
+        // --- UI Setup based on Role ---
+        usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
+        const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
+        addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
+        messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
+        
+        if (isTeacherOrAdmin) {
             showView(dashboardView);
-            addRecordBtn.classList.remove('hidden');
-            messagesChartContainer.classList.remove('hidden');
             listenForStudentRecords();
             listenForAllAnecdotes();
-        } else {
+        } else { // This is a Parent
             showView(parentDashboardView);
-            addRecordBtn.classList.add('hidden');
-            messagesChartContainer.classList.add('hidden');
+            // Query for their specific child
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
             const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
             const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
+
             if (allStudentDocs.length > 0) {
                 const studentDoc = allStudentDocs[0];
-                const studentId = studentDoc.id;
-                const studentData = studentDoc.data();
-                renderParentStudentView(studentId, studentData.name);
+                renderParentStudentView(studentDoc.id, studentDoc.data().name);
             } else {
                 parentWelcomeMessage.classList.remove('hidden');
                 parentStudentView.classList.add('hidden');
@@ -255,6 +268,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         userEmailDisplay.textContent = user.email;
     } else {
+        currentUserRole = null;
         document.body.classList.add('login-background');
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
@@ -278,6 +292,7 @@ async function createUserProfileIfNeeded(user) {
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp()
+			role: 'parent'
         });
     }
 }
@@ -316,11 +331,11 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
     targetContainer.classList.remove('hidden');
 	if (buildContinuumBtn) {
         const user = auth.currentUser;
-        if (user && user.uid === ADMIN_UID) {
-            buildContinuumBtn.classList.remove('hidden');
-        } else {
-            buildContinuumBtn.classList.add('hidden');
-        }
+			if (currentUserRole === 'admin') {
+				buildContinuumBtn.classList.remove('hidden');
+			}	 else {
+				buildContinuumBtn.classList.add('hidden');
+			}
     }
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
@@ -1314,4 +1329,63 @@ downloadJourneyPdfBtn.addEventListener('click', () => {
     pdf.text(splitText, 14, 32);
 
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
+});
+
+// Add these to the end of app.js
+
+async function showUsersPage() {
+    showView(usersView);
+    usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Loading users...</td></tr>';
+    
+    const usersRef = collection(db, "users");
+    const snapshot = await getDocs(usersRef);
+
+    usersListBody.innerHTML = '';
+    snapshot.forEach(doc => {
+        const user = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">${user.displayName || user.email}</div>
+                <div class="text-sm text-gray-500">${user.email}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+                    <option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option>
+                    <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
+                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+            </td>
+        `;
+        usersListBody.appendChild(tr);
+    });
+}
+
+async function updateUserRole(userId, newRole) {
+    const userRef = doc(db, "users", userId);
+    try {
+        await updateDoc(userRef, { role: newRole });
+        showMessage("User role updated successfully!", false);
+    } catch (error) {
+        console.error("Error updating user role:", error);
+        showMessage("Failed to update user role.");
+    }
+}
+
+usersLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentUserRole === 'admin') {
+        showUsersPage();
+        profileDropdown.classList.add('hidden');
+    }
+});
+
+usersListBody.addEventListener('change', (e) => {
+    if (e.target.classList.contains('role-select')) {
+        const userId = e.target.dataset.uid;
+        const newRole = e.target.value;
+        if (userId && newRole) {
+            updateUserRole(userId, newRole);
+        }
+    }
 });

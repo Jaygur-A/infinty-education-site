@@ -51,6 +51,7 @@
                         </button>
                         <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                             <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+							<a href="#" id="users-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Users</a>
                             <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
                         </div>
                     </div>
@@ -1372,6 +1373,24 @@
 			<textarea id="journey-summary-textarea" class="w-full h-96 p-3 border border-gray-300 rounded-lg text-base" placeholder="AI summary will appear here..."></textarea>
 			<div class="mt-6 flex justify-end">
 				<button id="download-journey-pdf-btn" class="btn btn-secondary">Download as PDF</button>
+			</div>
+		</div>
+	</main>
+	
+	<main id="users-view" class="hidden container mx-auto p-8">
+		<div class="bg-white p-8 rounded-lg shadow">
+			<h2 class="text-3xl font-bold text-gray-800 mb-6">User Management</h2>
+			<div class="overflow-x-auto">
+				<table class="min-w-full">
+					<thead>
+						<tr>
+							<th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+							<th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+						</tr>
+					</thead>
+					<tbody id="users-list-body">
+						</tbody>
+				</table>
 			</div>
 		</div>
 	</main>
