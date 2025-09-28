@@ -291,7 +291,7 @@ async function createUserProfileIfNeeded(user) {
             email: user.email,
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
 			role: 'parent'
         });
     }
