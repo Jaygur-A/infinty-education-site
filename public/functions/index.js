@@ -6,10 +6,10 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // PASTE YOUR GOOGLE AI API KEY HERE
-const GEMINI_API_KEY = "AIzaSyADV_YSSgu9w6Af-rdp4yD7Ze-d26ENuK0";
+const GEMINI_API_KEY = "";
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
 exports.generateJourneySummary = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
