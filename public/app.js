@@ -231,15 +231,17 @@ onAuthStateChanged(auth, async (user) => {
         document.body.classList.remove('login-background');
         await createUserProfileIfNeeded(user);
         
-        // Fetch user's role from their profile
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
-        currentUserRole = docSnap.exists() ? docSnap.data().role : 'parent';
+        currentUserRole = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
 
+        if (auth.currentUser) {
+            checkIfParentAndAssignRole(auth.currentUser.email);
+        }
+        
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
-        // --- UI Setup based on Role ---
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
@@ -249,9 +251,14 @@ onAuthStateChanged(auth, async (user) => {
             showView(dashboardView);
             listenForStudentRecords();
             listenForAllAnecdotes();
+        } else if (currentUserRole === 'guest') { 
+            showView(parentDashboardView);
+            parentWelcomeMessage.classList.remove('hidden');
+            parentWelcomeMessage.querySelector('h2').textContent = 'Welcome!';
+            parentWelcomeMessage.querySelector('p').textContent = 'Your account is currently under review for access to student records.';
+            parentStudentView.classList.add('hidden');
         } else { // This is a Parent
             showView(parentDashboardView);
-            // Query for their specific child
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
@@ -292,7 +299,7 @@ async function createUserProfileIfNeeded(user) {
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
-			role: 'parent'
+			role: 'guest'
         });
     }
 }
@@ -927,15 +934,31 @@ alignedSkillsGrid.addEventListener('click', (e) => {
 
 addStudentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Get the parent email values and clean them up with .trim()
+    const parent1Email = document.getElementById('parent1Email').value.trim();
+    const parent2Email = document.getElementById('parent2Email').value.trim();
+
+    // Save the new student to the database
     await addDoc(collection(db, "students"), {
         name: document.getElementById('studentName').value,
         grade: document.getElementById('studentGrade').value,
         class: document.getElementById('studentClass').value,
-        parent1Email: document.getElementById('parent1Email').value,
-        parent2Email: document.getElementById('parent2Email').value,
+        parent1Email: parent1Email, 
+        parent2Email: parent2Email, 
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid
     });
+    
+    // After the student is saved, check if the parent emails belong to any users
+    // and assign them the 'parent' role if needed.
+    if (parent1Email) {
+        checkIfParentAndAssignRole(parent1Email);
+    }
+    if (parent2Email) {
+        checkIfParentAndAssignRole(parent2Email);
+    }
+
     addStudentForm.reset();
     addRecordModal.classList.add('hidden');
 });
@@ -1369,6 +1392,46 @@ async function updateUserRole(userId, newRole) {
     } catch (error) {
         console.error("Error updating user role:", error);
         showMessage("Failed to update user role.");
+    }
+}
+
+async function checkIfParentAndAssignRole(email) {
+    // Only proceed if the user is not already an admin or teacher
+    if (currentUserRole === 'admin' || currentUserRole === 'teacher') return;
+
+    // Check if this email exists in any student's parent fields
+    const studentsRef = collection(db, "students");
+    const q1 = query(studentsRef, where("parent1Email", "==", email));
+    const q2 = query(studentsRef, where("parent2Email", "==", email));
+
+    const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
+
+    if (allStudentDocs.length > 0 && currentUserRole !== 'parent') {
+        // If they are a parent and not already set to parent role, update their role
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        try {
+            await updateDoc(userRef, { role: 'parent' });
+            currentUserRole = 'parent'; // Update local state immediately
+            showMessage("You have been recognized as a parent and your role has been updated!", false);
+            // Re-render the student view for the parent
+            const studentDoc = allStudentDocs[0];
+            renderParentStudentView(studentDoc.id, studentDoc.data().name);
+        } catch (error) {
+            console.error("Error updating user to parent role:", error);
+            showMessage("Failed to automatically update your role to parent.");
+        }
+    } else if (allStudentDocs.length === 0 && currentUserRole === 'parent') {
+        // If they were a parent but their child record was removed/email changed, revert to guest
+        // This is a more complex scenario, might need admin intervention or specific logic
+        console.warn("User previously a parent, but no longer linked to a student. Admin review needed.");
+        // For now, we'll keep them as parent, but in a real app, you might revert to 'guest'
+        // await updateDoc(doc(db, "users", auth.currentUser.uid), { role: 'guest' });
+        // currentUserRole = 'guest';
+        // showView(parentDashboardView);
+        // parentWelcomeMessage.classList.remove('hidden');
+        // parentWelcomeMessage.textContent = 'Your parent access has been revoked. Please contact support.';
+        // parentStudentView.classList.add('hidden');
     }
 }
 
