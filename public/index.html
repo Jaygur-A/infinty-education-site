@@ -168,6 +168,7 @@
 						<button id="back-to-dashboard-btn" class="btn btn-neutral">Back to Dashboard</button>
 						<button id="add-anecdote-btn" class="btn btn-secondary">Add Anecdote</button>
 						<button id="build-journey-btn" class="btn btn-primary">Build Learning Journey</button>
+						<button id="contact-parents-btn" class="btn btn-tertiary">Contact Parents</button>
 					</div>
 				</div>
                 <div id="aligned-skills-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -1550,6 +1551,17 @@
 			</div>
 		</div>
 	</div>
+
+<div id="message-parents-modal" class="modal-backdrop hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm m-4">
+        <div class="flex justify-between items-center p-5 border-b">
+            <h3 id="message-modal-student-name" class="text-2xl font-semibold">Message Parents</h3>
+            <button id="close-message-parents-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+        </div>
+        <div id="message-options-container" class="p-6 space-y-3">
+            </div>
+    </div>
+</div>
 
 
     <script type="module" src="app.js"></script>

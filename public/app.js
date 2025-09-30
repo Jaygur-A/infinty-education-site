@@ -185,6 +185,11 @@ const editClassroomForm = document.getElementById('edit-classroom-form');
 const editClassroomName = document.getElementById('edit-classroom-name');
 const editTeacherSelect = document.getElementById('edit-teacher-select');
 const studentClassSelect = document.getElementById('studentClassSelect');
+const contactParentsBtn = document.getElementById('contact-parents-btn');
+const messageParentsModal = document.getElementById('message-parents-modal');
+const closeMessageParentsModalBtn = document.getElementById('close-message-parents-modal-btn');
+const messageModalStudentName = document.getElementById('message-modal-student-name');
+const messageOptionsContainer = document.getElementById('message-options-container');
 
 // App State
 let currentStudentId = null,
@@ -1650,5 +1655,98 @@ editClassroomForm.addEventListener('submit', async (e) => {
     } catch (error) {
         console.error("Error updating classroom: ", error);
         showMessage("Failed to update classroom.");
+    }
+});
+
+// --- PARENT MESSAGING FUNCTIONS ---
+
+async function showParentMessageModal() {
+    messageOptionsContainer.innerHTML = '<p class="text-gray-500">Loading parent info...</p>';
+    messageParentsModal.classList.remove('hidden');
+
+    const studentRef = doc(db, "students", currentStudentId);
+    const studentSnap = await getDoc(studentRef);
+
+    if (!studentSnap.exists()) {
+        messageOptionsContainer.innerHTML = '<p class="text-red-500">Could not find student record.</p>';
+        return;
+    }
+
+    const student = studentSnap.data();
+    messageModalStudentName.textContent = `Message Parents of ${student.name}`;
+    messageOptionsContainer.innerHTML = ''; // Clear loading message
+
+    let parentEmailsFound = false;
+
+    if (student.parent1Email) {
+        parentEmailsFound = true;
+        const btn = document.createElement('button');
+        btn.className = 'w-full btn btn-secondary message-parent-btn';
+        btn.textContent = `Message Parent 1 (${student.parent1Email})`;
+        btn.dataset.email = student.parent1Email;
+        messageOptionsContainer.appendChild(btn);
+    }
+
+    if (student.parent2Email) {
+        parentEmailsFound = true;
+        const btn = document.createElement('button');
+        btn.className = 'w-full btn btn-secondary message-parent-btn';
+        btn.textContent = `Message Parent 2 (${student.parent2Email})`;
+        btn.dataset.email = student.parent2Email;
+        messageOptionsContainer.appendChild(btn);
+    }
+
+    if (!parentEmailsFound) {
+        messageOptionsContainer.innerHTML = '<p class="text-gray-500">No parent emails are on file for this student.</p>';
+    }
+}
+
+async function initiateChatWithParent(parentEmail) {
+    loadingOverlay.classList.remove('hidden');
+    try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", parentEmail));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            showMessage("This parent has not created an account on the platform yet.");
+            return;
+        }
+
+        const parentUserDoc = snapshot.docs[0];
+        const parentData = parentUserDoc.data();
+        
+        // Reuse the existing openChat function
+        openChat(parentData);
+        
+        // Close the modal after initiating the chat
+        messageParentsModal.classList.add('hidden');
+
+    } catch (error) {
+        console.error("Error finding parent user:", error);
+        showMessage("Could not start chat. Please see console for details.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+// --- Parent Messaging Listeners ---
+
+contactParentsBtn.addEventListener('click', () => {
+    if (currentStudentId) {
+        showParentMessageModal();
+    }
+});
+
+closeMessageParentsModalBtn.addEventListener('click', () => {
+    messageParentsModal.classList.add('hidden');
+});
+
+messageOptionsContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('message-parent-btn')) {
+        const parentEmail = e.target.dataset.email;
+        if (parentEmail) {
+            initiateChatWithParent(parentEmail);
+        }
     }
 });
