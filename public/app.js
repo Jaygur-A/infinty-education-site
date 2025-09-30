@@ -259,25 +259,27 @@ onAuthStateChanged(auth, async (user) => {
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
         
-        // Prioritize Admin/Teacher roles first
         let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
         
-        // If the user's role is 'guest', check if they should be promoted to 'parent'
+        // --- THIS IS THE KEY LOGIC CHANGE ---
+        // If the user's role in the DB is 'guest', we check if they are a parent.
+        // If their role is already 'teacher' or 'admin', we DO NOT check if they are a parent.
+        // This prioritizes their higher-level role.
         if (role === 'guest') {
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
             const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            
             if (querySnapshot1.docs.length > 0 || querySnapshot2.docs.length > 0) {
                 role = 'parent'; // Promote to parent
-                // Optionally, update the role in the database permanently
+                // Update the role in the database so we don't have to check next time
                 await updateDoc(userRef, { role: 'parent' });
             }
         }
         
         currentUserRole = role;
         
-        // --- THIS IS THE NEW DEBUGGING LINE ---
         console.log(`User logged in. Final role for routing: ${currentUserRole}`);
 
         appContainer.classList.remove('hidden');
@@ -325,7 +327,6 @@ onAuthStateChanged(auth, async (user) => {
         }
         userEmailDisplay.textContent = user.email;
     } else {
-        // ... (logout cleanup code is the same)
         currentUserRole = null;
         document.body.classList.add('login-background');
         appContainer.classList.add('hidden');
@@ -1031,13 +1032,6 @@ addStudentForm.addEventListener('submit', async (e) => {
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid
     });
-    
-    if (parent1Email) {
-        checkIfParentAndAssignRole(parent1Email);
-    }
-    if (parent2Email) {
-        checkIfParentAndAssignRole(parent2Email);
-    }
 
     addStudentForm.reset();
     addRecordModal.classList.add('hidden');
@@ -1475,54 +1469,6 @@ async function updateUserRole(userId, newRole) {
         showMessage("Failed to update user role.");
     }
 }
-
-async function checkIfParentAndAssignRole(email) {
-    // Only proceed if the user is not already an admin or teacher
-    if (currentUserRole === 'admin' || currentUserRole === 'teacher') return;
-
-    // Check if this email exists in any student's parent fields
-    const studentsRef = collection(db, "students");
-    const q1 = query(studentsRef, where("parent1Email", "==", email));
-    const q2 = query(studentsRef, where("parent2Email", "==", email));
-
-    const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-    const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
-
-    if (allStudentDocs.length > 0 && currentUserRole !== 'parent') {
-        // If they are a parent and not already set to parent role, update their role
-        const userRef = doc(db, "users", auth.currentUser.uid);
-        try {
-            await updateDoc(userRef, { role: 'parent' });
-            currentUserRole = 'parent'; // Update local state immediately
-            showMessage("You have been recognized as a parent and your role has been updated!", false);
-            // Re-render the student view for the parent
-            const studentDoc = allStudentDocs[0];
-            renderParentStudentView(studentDoc.id, studentDoc.data().name);
-        } catch (error) {
-            console.error("Error updating user to parent role:", error);
-            showMessage("Failed to automatically update your role to parent.");
-        }
-    } else if (allStudentDocs.length === 0 && currentUserRole === 'parent') {
-        // If they were a parent but their child record was removed/email changed, revert to guest
-        // This is a more complex scenario, might need admin intervention or specific logic
-        console.warn("User previously a parent, but no longer linked to a student. Admin review needed.");
-        // For now, we'll keep them as parent, but in a real app, you might revert to 'guest'
-        // await updateDoc(doc(db, "users", auth.currentUser.uid), { role: 'guest' });
-        // currentUserRole = 'guest';
-        // showView(parentDashboardView);
-        // parentWelcomeMessage.classList.remove('hidden');
-        // parentWelcomeMessage.textContent = 'Your parent access has been revoked. Please contact support.';
-        // parentStudentView.classList.add('hidden');
-    }
-}
-
-usersLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (currentUserRole === 'admin') {
-        showUsersPage();
-        profileDropdown.classList.add('hidden');
-    }
-});
 
 usersListBody.addEventListener('change', (e) => {
     if (e.target.classList.contains('role-select')) {
