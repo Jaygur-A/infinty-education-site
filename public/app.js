@@ -258,12 +258,28 @@ onAuthStateChanged(auth, async (user) => {
         
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
-        currentUserRole = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
-
-        if (auth.currentUser) {
-            checkIfParentAndAssignRole(auth.currentUser.email);
+        
+        // Prioritize Admin/Teacher roles first
+        let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
+        
+        // If the user's role is 'guest', check if they should be promoted to 'parent'
+        if (role === 'guest') {
+            const studentsRef = collection(db, "students");
+            const q1 = query(studentsRef, where("parent1Email", "==", user.email));
+            const q2 = query(studentsRef, where("parent2Email", "==", user.email));
+            const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            if (querySnapshot1.docs.length > 0 || querySnapshot2.docs.length > 0) {
+                role = 'parent'; // Promote to parent
+                // Optionally, update the role in the database permanently
+                await updateDoc(userRef, { role: 'parent' });
+            }
         }
         
+        currentUserRole = role;
+        
+        // --- THIS IS THE NEW DEBUGGING LINE ---
+        console.log(`User logged in. Final role for routing: ${currentUserRole}`);
+
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
@@ -274,11 +290,8 @@ onAuthStateChanged(auth, async (user) => {
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
         
-        // --- THIS IS THE CORRECTED LOGIC BLOCK ---
         if (isTeacherOrAdmin) {
-            showView(dashboardView); // Both Admins and Teachers see the main dashboard
-            
-            // If the user is a teacher, we need to find their classroomId
+            showView(dashboardView);
             if (currentUserRole === 'teacher') {
                 const classroomsRef = collection(db, "classrooms");
                 const q = query(classroomsRef, where("teacherId", "==", user.uid));
@@ -287,24 +300,15 @@ onAuthStateChanged(auth, async (user) => {
                     currentUserClassroomId = classroomSnap.docs[0].id;
                 }
             }
-            
-            listenForStudentRecords(); // This function will now correctly filter for teachers
+            listenForStudentRecords();
             listenForAllAnecdotes();
-
-        } else if (currentUserRole === 'guest') { 
-            showView(parentDashboardView);
-            parentWelcomeMessage.classList.remove('hidden');
-            parentWelcomeMessage.querySelector('h2').textContent = 'Welcome!';
-            parentWelcomeMessage.querySelector('p').textContent = 'Your account is currently under review for access to student records.';
-            parentStudentView.classList.add('hidden');
-        } else { // This is a Parent
+        } else if (currentUserRole === 'parent') { 
             showView(parentDashboardView);
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
             const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
             const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
-
             if (allStudentDocs.length > 0) {
                 const studentDoc = allStudentDocs[0];
                 renderParentStudentView(studentDoc.id, studentDoc.data().name);
@@ -312,6 +316,12 @@ onAuthStateChanged(auth, async (user) => {
                 parentWelcomeMessage.classList.remove('hidden');
                 parentStudentView.classList.add('hidden');
             }
+        } else { // This is a Guest
+            showView(parentDashboardView);
+            parentWelcomeMessage.classList.remove('hidden');
+            parentWelcomeMessage.querySelector('h2').textContent = 'Welcome!';
+            parentWelcomeMessage.querySelector('p').textContent = 'Your account is currently under review for access to student records.';
+            parentStudentView.classList.add('hidden');
         }
         userEmailDisplay.textContent = user.email;
     } else {
