@@ -190,6 +190,10 @@ const messageParentsModal = document.getElementById('message-parents-modal');
 const closeMessageParentsModalBtn = document.getElementById('close-message-parents-modal-btn');
 const messageModalStudentName = document.getElementById('message-modal-student-name');
 const messageOptionsContainer = document.getElementById('message-options-container');
+const settingsLink = document.getElementById('settings-link');
+const settingsView = document.getElementById('settings-view');
+const anecdoteEmailsToggle = document.getElementById('anecdote-emails-toggle');
+const messageEmailsToggle = document.getElementById('message-emails-toggle');
 
 // App State
 let currentStudentId = null,
@@ -201,6 +205,7 @@ let anecdoteChart = null,
     messagesChart = null;
 let selectedJourneyAnecdotes = [];
 let currentUserRole = null;
+let currentUserClassroomId = null;
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -236,13 +241,17 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
+    // Reset state on auth change
+    currentUserRole = null;
+    currentUserClassroomId = null;
+
     if (user) {
         document.body.classList.remove('login-background');
         await createUserProfileIfNeeded(user);
@@ -259,14 +268,24 @@ onAuthStateChanged(auth, async (user) => {
         authContainer.classList.add('hidden');
         
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
-		classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
+        classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
         
-        if (isTeacherOrAdmin) {
+        if (currentUserRole === 'admin') {
             showView(dashboardView);
-            listenForStudentRecords();
+            listenForStudentRecords(); // Admin sees all students
+            listenForAllAnecdotes();
+        } else if (currentUserRole === 'teacher') {
+            const classroomsRef = collection(db, "classrooms");
+            const q = query(classroomsRef, where("teacherId", "==", user.uid));
+            const classroomSnap = await getDocs(q);
+            if (!classroomSnap.empty) {
+                currentUserClassroomId = classroomSnap.docs[0].id;
+            }
+            showView(dashboardView);
+            listenForStudentRecords(); // Teacher's view will now be filtered
             listenForAllAnecdotes();
         } else if (currentUserRole === 'guest') { 
             showView(parentDashboardView);
@@ -316,7 +335,12 @@ async function createUserProfileIfNeeded(user) {
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
-			role: 'guest'
+            role: 'guest',
+            // ADD THIS NEW OBJECT
+            notificationSettings: {
+                newAnecdote: true,
+                newMessage: true
+            }
         });
     }
 }
@@ -324,7 +348,23 @@ async function createUserProfileIfNeeded(user) {
 // Data Logic
 function listenForStudentRecords() {
     if (unsubscribeFromStudents) unsubscribeFromStudents();
-    const q = query(collection(db, "students"));
+    
+    let q;
+    const studentsRef = collection(db, "students");
+
+    // If the user is a teacher and has a classroom, filter by their classroom ID
+    if (currentUserRole === 'teacher' && currentUserClassroomId) {
+        q = query(studentsRef, where("classroomId", "==", currentUserClassroomId));
+    } else if (currentUserRole === 'admin') {
+        // Admin sees all students
+        q = query(studentsRef);
+    } else {
+        // If not admin or a teacher with a class, show nothing.
+        studentGrid.innerHTML = '';
+        noStudentsMessage.classList.remove('hidden');
+        return;
+    }
+
     unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
         studentGrid.innerHTML = '';
         noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
@@ -1749,4 +1789,51 @@ messageOptionsContainer.addEventListener('click', (e) => {
             initiateChatWithParent(parentEmail);
         }
     }
+});
+
+// --- NOTIFICATION SETTINGS ---
+
+async function showSettingsPage() {
+    showView(settingsView);
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(userRef);
+
+    if (docSnap.exists() && docSnap.data().notificationSettings) {
+        const settings = docSnap.data().notificationSettings;
+        anecdoteEmailsToggle.checked = settings.newAnecdote;
+        messageEmailsToggle.checked = settings.newMessage;
+    }
+}
+
+async function updateNotificationSetting(settingName, value) {
+    const user = auth.currentUser;
+    if (!user) return;
+    const userRef = doc(db, "users", user.uid);
+    try {
+        // Use dot notation to update a field within a map
+        await updateDoc(userRef, {
+            [`notificationSettings.${settingName}`]: value
+        });
+        showMessage("Settings saved!", false);
+    } catch (error) {
+        console.error("Error updating settings:", error);
+        showMessage("Could not save settings.");
+    }
+}
+
+settingsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSettingsPage();
+    profileDropdown.classList.add('hidden');
+});
+
+anecdoteEmailsToggle.addEventListener('change', (e) => {
+    updateNotificationSetting('newAnecdote', e.target.checked);
+});
+
+messageEmailsToggle.addEventListener('change', (e) => {
+    updateNotificationSetting('newMessage', e.target.checked);
 });

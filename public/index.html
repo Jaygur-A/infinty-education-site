@@ -51,6 +51,7 @@
                         </button>
                         <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                             <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+							<a href="#" id="settings-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
 							<a href="#" id="users-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Users</a>
 							<a href="#" id="classrooms-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Classrooms</a>
                             <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
@@ -1415,6 +1416,34 @@
             <button type="submit" class="btn btn-secondary">Create Classroom</button>
         </form>
     </div>
+
+<main id="settings-view" class="hidden container mx-auto p-8">
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Notification Settings</h2>
+        <div class="space-y-6">
+            <div class="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                    <label for="anecdote-emails-toggle" class="font-medium text-gray-800">New Anecdote Emails</label>
+                    <p class="text-sm text-gray-500">Receive an email when a new anecdote is logged for your child.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="anecdote-emails-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+            </div>
+            <div class="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                    <label for="message-emails-toggle" class="font-medium text-gray-800">New Message Emails</label>
+                    <p class="text-sm text-gray-500">Receive an email when you get a new message in the chat.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="message-emails-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+</main>
 
     <div class="bg-white p-8 rounded-lg shadow">
         <h2 class="text-3xl font-bold text-gray-800 mb-6">Existing Classrooms</h2>
