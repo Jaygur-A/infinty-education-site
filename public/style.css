@@ -123,3 +123,9 @@ body {
 .rubric-table .admin-clickable {
      cursor: pointer;
 }
+
+@media (min-width: 1280px) {
+    .container {
+        max-width: 1440px; /* Increases the max width from 1280px to 1440px */
+    }
+}
