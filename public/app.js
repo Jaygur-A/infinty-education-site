@@ -267,26 +267,30 @@ onAuthStateChanged(auth, async (user) => {
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
+        // --- UI Setup based on Role ---
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
         classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
         
-        if (currentUserRole === 'admin') {
-            showView(dashboardView);
-            listenForStudentRecords(); // Admin sees all students
-            listenForAllAnecdotes();
-        } else if (currentUserRole === 'teacher') {
-            const classroomsRef = collection(db, "classrooms");
-            const q = query(classroomsRef, where("teacherId", "==", user.uid));
-            const classroomSnap = await getDocs(q);
-            if (!classroomSnap.empty) {
-                currentUserClassroomId = classroomSnap.docs[0].id;
+        // --- THIS IS THE CORRECTED LOGIC BLOCK ---
+        if (isTeacherOrAdmin) {
+            showView(dashboardView); // Both Admins and Teachers see the main dashboard
+            
+            // If the user is a teacher, we need to find their classroomId
+            if (currentUserRole === 'teacher') {
+                const classroomsRef = collection(db, "classrooms");
+                const q = query(classroomsRef, where("teacherId", "==", user.uid));
+                const classroomSnap = await getDocs(q);
+                if (!classroomSnap.empty) {
+                    currentUserClassroomId = classroomSnap.docs[0].id;
+                }
             }
-            showView(dashboardView);
-            listenForStudentRecords(); // Teacher's view will now be filtered
+            
+            listenForStudentRecords(); // This function will now correctly filter for teachers
             listenForAllAnecdotes();
+
         } else if (currentUserRole === 'guest') { 
             showView(parentDashboardView);
             parentWelcomeMessage.classList.remove('hidden');
@@ -311,6 +315,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         userEmailDisplay.textContent = user.email;
     } else {
+        // ... (logout cleanup code is the same)
         currentUserRole = null;
         document.body.classList.add('login-background');
         appContainer.classList.add('hidden');
