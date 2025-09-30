@@ -173,7 +173,18 @@ const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn'
 const usersView = document.getElementById('users-view');
 const usersLink = document.getElementById('users-link');
 const usersListBody = document.getElementById('users-list-body');
-
+const classroomsLink = document.getElementById('classrooms-link');
+const classroomsView = document.getElementById('classrooms-view');
+const createClassroomForm = document.getElementById('create-classroom-form');
+const newClassroomName = document.getElementById('new-classroom-name');
+const teacherSelectDropdown = document.getElementById('teacher-select-dropdown');
+const classroomsList = document.getElementById('classrooms-list');
+const editClassroomModal = document.getElementById('edit-classroom-modal');
+const closeEditClassroomModalBtn = document.getElementById('close-edit-classroom-modal-btn');
+const editClassroomForm = document.getElementById('edit-classroom-form');
+const editClassroomName = document.getElementById('edit-classroom-name');
+const editTeacherSelect = document.getElementById('edit-teacher-select');
+const studentClassSelect = document.getElementById('studentClassSelect');
 
 // App State
 let currentStudentId = null,
@@ -220,7 +231,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
@@ -243,6 +254,7 @@ onAuthStateChanged(auth, async (user) => {
         authContainer.classList.add('hidden');
         
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
+		classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
@@ -900,7 +912,10 @@ backToMessagesBtn.addEventListener('click', () => showView(messagesView));
 
 googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
 
-addRecordBtn.addEventListener('click', () => addRecordModal.classList.remove('hidden'));
+addRecordBtn.addEventListener('click', () => {
+    populateClassroomDropdown(); // Populate the dropdown first
+    addRecordModal.classList.remove('hidden');
+});
 closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
 
 addAnecdoteBtn.addEventListener('click', () => {
@@ -935,23 +950,28 @@ alignedSkillsGrid.addEventListener('click', (e) => {
 addStudentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // Get the parent email values and clean them up with .trim()
     const parent1Email = document.getElementById('parent1Email').value.trim();
     const parent2Email = document.getElementById('parent2Email').value.trim();
+    const selectedClassroomId = studentClassSelect.value;
+    const selectedClassroomName = studentClassSelect.options[studentClassSelect.selectedIndex].text;
+
+    if (!selectedClassroomId) {
+        showMessage("Please select a classroom.");
+        return;
+    }
 
     // Save the new student to the database
     await addDoc(collection(db, "students"), {
         name: document.getElementById('studentName').value,
         grade: document.getElementById('studentGrade').value,
-        class: document.getElementById('studentClass').value,
-        parent1Email: parent1Email, 
-        parent2Email: parent2Email, 
+        classroomId: selectedClassroomId, // Save the Classroom ID
+        className: selectedClassroomName, // Save the Classroom Name for easy display
+        parent1Email: parent1Email,
+        parent2Email: parent2Email,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid
     });
     
-    // After the student is saved, check if the parent emails belong to any users
-    // and assign them the 'parent' role if needed.
     if (parent1Email) {
         checkIfParentAndAssignRole(parent1Email);
     }
@@ -1451,5 +1471,184 @@ usersListBody.addEventListener('change', (e) => {
         if (userId && newRole) {
             updateUserRole(userId, newRole);
         }
+    }
+});
+
+// --- CLASSROOM MANAGEMENT ---
+
+let teachers = []; // Cache for teacher list
+
+async function populateTeacherDropdown(dropdownElement) {
+    dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
+    
+    // Fetch all users with the 'teacher' role
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("role", "==", "teacher"));
+    const snapshot = await getDocs(q);
+    
+    teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (teachers.length === 0) {
+        dropdownElement.innerHTML = '<option value="">No teachers found</option>';
+        return;
+    }
+
+    teachers.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.id;
+        option.textContent = teacher.displayName || teacher.email;
+        dropdownElement.appendChild(option);
+    });
+}
+
+async function populateClassroomDropdown() {
+    studentClassSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
+    
+    const q = query(collection(db, "classrooms"), orderBy("className"));
+    const snapshot = await getDocs(q);
+
+    studentClassSelect.innerHTML = '<option value="" disabled selected>Select a classroom</option>'; // Reset after loading
+
+    if (snapshot.empty) {
+        studentClassSelect.innerHTML = '<option value="" disabled>No classrooms found</option>';
+        return;
+    }
+
+    snapshot.forEach(doc => {
+        const classroom = doc.data();
+        const option = document.createElement('option');
+        option.value = doc.id; // The value is the unique Classroom ID
+        option.textContent = classroom.className; // The text is the classroom name
+        studentClassSelect.appendChild(option);
+    });
+}
+
+function listenForClassrooms() {
+    const q = query(collection(db, "classrooms"));
+    onSnapshot(q, (snapshot) => {
+        classroomsList.innerHTML = '';
+        if (snapshot.empty) {
+            classroomsList.innerHTML = '<p class="text-gray-500">No classrooms created yet.</p>';
+            return;
+        }
+        snapshot.forEach(doc => {
+            const classroom = doc.data();
+            const classroomId = doc.id;
+            const card = document.createElement('div');
+            card.className = 'p-4 border rounded-lg flex justify-between items-center';
+            card.innerHTML = `
+                <div>
+                    <p class="font-bold text-lg">${classroom.className}</p>
+                    <p class="text-sm text-gray-500">Teacher: ${classroom.teacherName}</p>
+                </div>
+                <div class="space-x-2">
+                    <button class="edit-classroom-btn text-sm text-blue-600 hover:underline" data-id="${classroomId}">Edit</button>
+                    <button class="delete-classroom-btn text-sm text-red-600 hover:underline" data-id="${classroomId}">Delete</button>
+                </div>
+            `;
+            classroomsList.appendChild(card);
+        });
+    });
+}
+
+async function showClassroomsPage() {
+    showView(classroomsView);
+    await populateTeacherDropdown(teacherSelectDropdown);
+    listenForClassrooms();
+}
+
+async function deleteClassroom(classroomId) {
+    if (confirm('Are you sure you want to delete this classroom? This cannot be undone.')) {
+        try {
+            await deleteDoc(doc(db, "classrooms", classroomId));
+            showMessage("Classroom deleted successfully.", false);
+        } catch (error) {
+            console.error("Error deleting classroom: ", error);
+            showMessage("Failed to delete classroom.");
+        }
+    }
+}
+
+// --- Event Listeners for Classroom Management ---
+
+classroomsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentUserRole === 'admin') {
+        showClassroomsPage();
+        profileDropdown.classList.add('hidden');
+    }
+});
+
+createClassroomForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const selectedTeacherId = teacherSelectDropdown.value;
+    const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
+
+    if (!selectedTeacher) {
+        showMessage("Please select a valid teacher.");
+        return;
+    }
+    
+    try {
+        await addDoc(collection(db, "classrooms"), {
+            className: newClassroomName.value,
+            teacherId: selectedTeacher.id,
+            teacherName: selectedTeacher.displayName || selectedTeacher.email,
+            createdAt: serverTimestamp()
+        });
+        showMessage("Classroom created successfully!", false);
+        createClassroomForm.reset();
+    } catch (error) {
+        console.error("Error creating classroom: ", error);
+        showMessage("Failed to create classroom.");
+    }
+});
+
+classroomsList.addEventListener('click', async (e) => {
+    const classroomId = e.target.dataset.id;
+    if (e.target.classList.contains('delete-classroom-btn')) {
+        deleteClassroom(classroomId);
+    }
+    if (e.target.classList.contains('edit-classroom-btn')) {
+        const classroomRef = doc(db, "classrooms", classroomId);
+        const classroomSnap = await getDoc(classroomRef);
+        if (classroomSnap.exists()) {
+            const classroom = classroomSnap.data();
+            editClassroomName.value = classroom.className;
+            await populateTeacherDropdown(editTeacherSelect);
+            editTeacherSelect.value = classroom.teacherId;
+            editClassroomModal.dataset.id = classroomId;
+            editClassroomModal.classList.remove('hidden');
+        }
+    }
+});
+
+closeEditClassroomModalBtn.addEventListener('click', () => {
+    editClassroomModal.classList.add('hidden');
+});
+
+editClassroomForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const classroomId = editClassroomModal.dataset.id;
+    const selectedTeacherId = editTeacherSelect.value;
+    const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
+
+    if (!classroomId || !selectedTeacher) {
+        showMessage("An error occurred. Please try again.");
+        return;
+    }
+
+    const classroomRef = doc(db, "classrooms", classroomId);
+    try {
+        await updateDoc(classroomRef, {
+            className: editClassroomName.value,
+            teacherId: selectedTeacher.id,
+            teacherName: selectedTeacher.displayName || selectedTeacher.email
+        });
+        showMessage("Classroom updated successfully!", false);
+        editClassroomModal.classList.add('hidden');
+    } catch (error) {
+        console.error("Error updating classroom: ", error);
+        showMessage("Failed to update classroom.");
     }
 });

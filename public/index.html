@@ -52,6 +52,7 @@
                         <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                             <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
 							<a href="#" id="users-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Users</a>
+							<a href="#" id="classrooms-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Classrooms</a>
                             <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Log Out</a>
                         </div>
                     </div>
@@ -1337,6 +1338,7 @@
 		</div>
 
 	</main>
+	
 	<main id="journey-builder-view" class="hidden container mx-auto p-8">
 		<div class="bg-white p-8 rounded-lg shadow">
 			<div class="flex justify-between items-center mb-6">
@@ -1361,7 +1363,7 @@
 		</div>
 	</main>
 	
-	</main> <main id="journey-editor-view" class="hidden container mx-auto p-8">
+	<main id="journey-editor-view" class="hidden container mx-auto p-8">
 		<div class="bg-white p-8 rounded-lg shadow">
 			<div class="flex justify-between items-center mb-6">
 				<h2 id="journey-editor-title" class="text-3xl font-bold text-gray-800">Learning Journey Draft</h2>
@@ -1395,13 +1397,43 @@
 		</div>
 	</main>
 	
+	<main id="classrooms-view" class="hidden container mx-auto p-8">
+    <div class="bg-white p-8 rounded-lg shadow mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Create New Classroom</h2>
+        <form id="create-classroom-form" class="space-y-4">
+            <div>
+                <label for="new-classroom-name" class="block text-sm font-medium">Classroom Name</label>
+                <input type="text" id="new-classroom-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+            </div>
+            <div>
+                <label for="teacher-select-dropdown" class="block text-sm font-medium">Assign Teacher</label>
+                <select id="teacher-select-dropdown" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                    <option value="">Loading teachers...</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">Create Classroom</button>
+        </form>
+    </div>
+
+    <div class="bg-white p-8 rounded-lg shadow">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Existing Classrooms</h2>
+        <div id="classrooms-list" class="space-y-4">
+            </div>
+    </div>
+	</main>
+	
     <div id="addRecordModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add New Student</h3><button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="addStudentForm">
                 <div class="mb-5"><label for="studentName" class="block mb-2 text-sm font-medium">Student Name</label><input type="text" id="studentName" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-5"><label for="studentGrade" class="block mb-2 text-sm font-medium">Grade</label><input type="text" id="studentGrade" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-6"><label for="studentClass" class="block mb-2 text-sm font-medium">Class</label><input type="text" id="studentClass" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-6">
+					<label for="studentClassSelect" class="block mb-2 text-sm font-medium">Class</label>
+					<select id="studentClassSelect" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+						<option value="" disabled selected>Select a classroom</option>
+					</select>
+				</div>
                 <div class="mb-5">
 				<label for="parent1Email" class="block mb-2 text-sm font-medium">Parent 1 (Optional)</label>
 				<input type="email" id="parent1Email" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="parent1@example.com">
@@ -1496,6 +1528,28 @@
             </div>
         </div>
     </div>
+	
+	<div id="edit-classroom-modal" class="modal-backdrop hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+        <div class="flex justify-between items-center p-5 border-b">
+            <h3 class="text-2xl font-semibold">Edit Classroom</h3>
+            <button id="close-edit-classroom-modal-btn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+        </div>
+        <div class="p-6">
+            <form id="edit-classroom-form">
+                <div class="mb-5">
+                    <label for="edit-classroom-name" class="block mb-2 text-sm font-medium">Classroom Name</label>
+                    <input type="text" id="edit-classroom-name" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+                </div>
+                <div class="mb-5">
+                    <label for="edit-teacher-select" class="block mb-2 text-sm font-medium">Re-assign Teacher</label>
+                    <select id="edit-teacher-select" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></select>
+                </div>
+                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Changes</button>
+            </form>
+			</div>
+		</div>
+	</div>
 
 
     <script type="module" src="app.js"></script>
