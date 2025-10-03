@@ -194,6 +194,8 @@ const settingsLink = document.getElementById('settings-link');
 const settingsView = document.getElementById('settings-view');
 const anecdoteEmailsToggle = document.getElementById('anecdote-emails-toggle');
 const messageEmailsToggle = document.getElementById('message-emails-toggle');
+const continuumTableContainer = document.getElementById('continuum-table-container');
+
 
 // App State
 let currentStudentId = null,
@@ -206,6 +208,7 @@ let anecdoteChart = null,
 let selectedJourneyAnecdotes = [];
 let currentUserRole = null;
 let currentUserClassroomId = null;
+let teachers = []; // Cache for teacher list
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -261,10 +264,6 @@ onAuthStateChanged(auth, async (user) => {
         
         let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
         
-        // --- THIS IS THE KEY LOGIC CHANGE ---
-        // If the user's role in the DB is 'guest', we check if they are a parent.
-        // If their role is already 'teacher' or 'admin', we DO NOT check if they are a parent.
-        // This prioritizes their higher-level role.
         if (role === 'guest') {
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
@@ -272,8 +271,7 @@ onAuthStateChanged(auth, async (user) => {
             const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
             
             if (querySnapshot1.docs.length > 0 || querySnapshot2.docs.length > 0) {
-                role = 'parent'; // Promote to parent
-                // Update the role in the database so we don't have to check next time
+                role = 'parent';
                 await updateDoc(userRef, { role: 'parent' });
             }
         }
@@ -285,7 +283,6 @@ onAuthStateChanged(auth, async (user) => {
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
-        // --- UI Setup based on Role ---
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
         classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
@@ -598,35 +595,53 @@ async function saveRubricHighlights(microSkill) {
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
-    document.querySelectorAll('.continuum-rubric-container').forEach(c => c.classList.add('hidden'));
-    let activeTable;
-    if (coreSkill === 'Vitality') {
-        const container = document.getElementById('vitality-continuum-container');
-        container.classList.remove('hidden');
-        activeTable = container.querySelector('table');
-    } else if (coreSkill === 'Integrity') {
-        const container = document.getElementById('integrity-continuum-container');
-        container.classList.remove('hidden');
-        activeTable = container.querySelector('table');
-    } else if (coreSkill === 'Curiosity') {
-        const container = document.getElementById('curiosity-continuum-container');
-        container.classList.remove('hidden');
-        activeTable = container.querySelector('table');
-    } else if (coreSkill === 'Critical Thinking') {
-        const container = document.getElementById('critical-thinking-continuum-container');
-        container.classList.remove('hidden');
-        activeTable = container.querySelector('table');
+    continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
+
+    // Generate document ID from the core skill name (e.g., "Critical Thinking" -> "critical-thinking")
+    const continuumId = coreSkill.toLowerCase().replace(/\s+/g, '-');
+    const continuumRef = doc(db, "continuums", continuumId);
+    const continuumSnap = await getDoc(continuumRef);
+
+    if (!continuumSnap.exists()) {
+        continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" has not been created in the database yet.</p>`;
+        return;
     }
-    if (!activeTable) return;
-    activeTable.classList.toggle('admin-clickable', auth.currentUser && auth.currentUser.uid === ADMIN_UID);
-    activeTable.querySelectorAll('td').forEach(cell => cell.classList.remove('admin-highlight'));
-    const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
-    const highlightsSnap = await getDoc(highlightsRef);
-    if (highlightsSnap.exists()) {
-        highlightsSnap.data().highlightedCells?.forEach(cellId => {
-            const cell = document.getElementById(cellId);
-            if (cell) cell.classList.add('admin-highlight');
+
+    const continuumData = continuumSnap.data();
+    
+    // Start building the table HTML as a string
+    let tableHTML = '<table class="rubric-table text-sm">';
+    
+    // Build the table header row from the 'headers' array in the database
+    tableHTML += '<thead><tr>';
+    continuumData.headers.forEach((header, index) => {
+        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
+        const thClass = index === 0 ? 'skill-label-cell' : '';
+        tableHTML += `<th class="${thClass}" ${style}>${header}</th>`;
+    });
+    tableHTML += '</tr></thead>';
+
+    // Build the table body rows from the 'rows' array in the database
+    tableHTML += '<tbody>';
+    continuumData.rows.forEach(rowData => {
+        tableHTML += '<tr>';
+        // First cell is the skill label
+        tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
+        // The rest of the cells are the level descriptions
+        rowData.levels.forEach(levelText => {
+            tableHTML += `<td>${levelText}</td>`;
         });
+        tableHTML += '</tr>';
+    });
+    tableHTML += '</tbody></table>';
+
+    // Inject the finished HTML table into the container
+    continuumTableContainer.innerHTML = tableHTML;
+
+    // We will re-implement the highlighting logic in a later step
+    const activeTable = continuumTableContainer.querySelector('table');
+    if (activeTable && currentUserRole === 'admin') {
+        activeTable.classList.add('admin-clickable');
     }
 }
 
