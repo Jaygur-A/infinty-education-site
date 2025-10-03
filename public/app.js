@@ -1497,9 +1497,6 @@ usersListBody.addEventListener('change', (e) => {
 });
 
 // --- CLASSROOM MANAGEMENT ---
-
-let teachers = []; // Cache for teacher list
-
 async function populateTeacherDropdown(dropdownElement) {
     dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
     
