@@ -129,7 +129,6 @@ const profileLink = document.getElementById('profile-link');
 const logoutLink = document.getElementById('logout-link');
 const profileName = document.getElementById('profile-name');
 const profileEmail = document.getElementById('profile-email');
-const rubricView = document.getElementById('rubric-view');
 const viewRubricBtn = document.getElementById('view-rubric-btn');
 const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
 const downloadRubricBtn = document.getElementById('download-rubric-btn');
@@ -155,7 +154,6 @@ const parentCloseAnecdoteBtn = document.getElementById('parent-close-anecdote-di
 const continuumView = document.getElementById('continuum-view');
 const buildContinuumBtn = document.getElementById('build-continuum-btn');
 const continuumTitle = document.getElementById('continuum-title');
-const backToStudentDetailFromContinuumBtn = document.getElementById('back-to-student-detail-from-continuum-btn');
 const downloadContinuumBtn = document.getElementById('download-continuum-btn');
 const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 const buildJourneyBtn = document.getElementById('build-journey-btn');
@@ -244,7 +242,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => view.classList.add('hidden'));
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => view.classList.add('hidden'));
     viewToShow.classList.remove('hidden');
 };
 
@@ -594,10 +592,19 @@ async function saveRubricHighlights(microSkill) {
 
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
-    continuumTitle.textContent = `${coreSkill} Continuum`;
+    // Add a "Back" button to the title
+    continuumTitle.innerHTML = `
+        <span class="mr-4">${coreSkill} Continuum</span>
+        <button id="back-from-continuum-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
+    `;
+
+    // Add an event listener to the new button
+    document.getElementById('back-from-continuum-btn').addEventListener('click', () => {
+        showStudentDetailPage(currentStudentId);
+    });
+
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
 
-    // Generate document ID from the core skill name (e.g., "Critical Thinking" -> "critical-thinking")
     const continuumId = coreSkill.toLowerCase().replace(/\s+/g, '-');
     const continuumRef = doc(db, "continuums", continuumId);
     const continuumSnap = await getDoc(continuumRef);
@@ -606,7 +613,6 @@ async function showContinuumPage(coreSkill) {
         continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" has not been created in the database yet.</p>`;
         return;
     }
-
     const continuumData = continuumSnap.data();
     
     // Start building the table HTML as a string
@@ -620,8 +626,6 @@ async function showContinuumPage(coreSkill) {
         tableHTML += `<th class="${thClass}" ${style}>${header}</th>`;
     });
     tableHTML += '</tr></thead>';
-
-    // Build the table body rows from the 'rows' array in the database
     tableHTML += '<tbody>';
     continuumData.rows.forEach(rowData => {
         tableHTML += '<tr>';
@@ -1203,10 +1207,6 @@ backToAnecdotesBtn.addEventListener('click', () => {
 
 buildContinuumBtn.addEventListener('click', () => {
     showContinuumPage(currentCoreSkill);
-});
-
-backToStudentDetailFromContinuumBtn.addEventListener('click', () => {
-    showStudentDetailPage(currentStudentId);
 });
 
 rubricView.addEventListener('click', (e) => {
