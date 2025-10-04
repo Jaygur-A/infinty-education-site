@@ -597,16 +597,16 @@ async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
 
-    const backBtnContainer = continuumTitle.parentNode.querySelector('.flex.space-x-4');
-    backBtnContainer.innerHTML = `
-        <button id="edit-continuum-btn" class="hidden text-sm font-semibold text-white bg-yellow-600 px-4 py-2 rounded-md hover:bg-yellow-700">Edit</button>
-        <button id="save-continuum-btn" class="hidden text-sm font-semibold text-white bg-green-600 px-4 py-2 rounded-md hover:bg-green-700">Save</button>
-        <button id="cancel-continuum-btn" class="hidden text-sm font-semibold text-gray-700 hover:underline">Cancel</button>
-        <button id="download-continuum-btn" class="text-sm font-semibold text-white bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700">Download</button>
-        <button id="back-from-continuum-btn" class="text-sm font-semibold text-green-600 hover:underline">Back to Student Page</button>
-    `;
-    document.getElementById('back-from-continuum-btn').addEventListener('click', () => showStudentDetailPage(currentStudentId));
-
+    // Handle the 'Back to Student Page' button
+    const backBtnContainer = document.getElementById('download-continuum-btn').parentNode;
+    const oldBackBtn = backBtnContainer.querySelector('#back-from-continuum-btn');
+    if (oldBackBtn) oldBackBtn.remove();
+    const backBtn = document.createElement('button');
+    backBtn.id = 'back-from-continuum-btn';
+    backBtn.className = 'text-sm font-semibold text-green-600 hover:underline';
+    backBtn.textContent = 'Back to Student Page';
+    backBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
+    backBtnContainer.insertBefore(backBtn, document.getElementById('download-continuum-btn'));
 
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
 
@@ -616,37 +616,46 @@ async function showContinuumPage(coreSkill) {
 
     if (!continuumSnap.exists()) {
         continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" has not been created in the database yet.</p>`;
-        editContinuumBtn.classList.add('hidden');
+        if(editContinuumBtn) editContinuumBtn.classList.add('hidden');
         return;
     }
 
-    originalContinuumData = continuumSnap.data(); // Store original data for 'cancel'
-
-    // Build table HTML (same as before)
+    originalContinuumData = continuumSnap.data();
+    
     let tableHTML = '<table class="rubric-table text-sm">';
-    originalContinuumData.headers.forEach((header, index) => { /* ... */ });
-    tableHTML += '</tr></thead><tbody>';
-    originalContinuumData.rows.forEach(rowData => { /* ... */ });
+    tableHTML += '<thead><tr>';
+    originalContinuumData.headers.forEach((header, index) => {
+        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
+        tableHTML += `<th ${style}>${header}</th>`;
+    });
+    tableHTML += '</tr></thead>';
+    tableHTML += '<tbody>';
+    originalContinuumData.rows.forEach((rowData, rowIndex) => {
+        tableHTML += '<tr>';
+        tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
+        rowData.levels.forEach((levelText, levelIndex) => {
+            // Give each cell a unique identifier for highlighting
+            const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
+            tableHTML += `<td id="${cellId}">${levelText}</td>`;
+        });
+        tableHTML += '</tr>';
+    });
     tableHTML += '</tbody></table>';
     continuumTableContainer.innerHTML = tableHTML;
 
-    // --- NEW HIGHLIGHTING AND EDIT MODE LOGIC ---
-    const activeTable = continuumTableContainer.querySelector('table');
     if (currentUserRole === 'admin') {
         setContinuumMode('highlight'); // Start in highlight mode for admins
-
         // Re-implement highlight fetching
         const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
             highlightsSnap.data().highlightedCells?.forEach(cellId => {
-                // We need to find cells by content/position now, not ID
-                // This is complex, for now we will skip re-loading highlights
+                const cell = document.getElementById(cellId);
+                if (cell) cell.classList.add('admin-highlight');
             });
         }
-
     } else {
-        setContinuumMode('view'); // Read-only mode for non-admins
+        setContinuumMode('view');
     }
 }
 
