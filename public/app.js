@@ -129,10 +129,6 @@ const profileLink = document.getElementById('profile-link');
 const logoutLink = document.getElementById('logout-link');
 const profileName = document.getElementById('profile-name');
 const profileEmail = document.getElementById('profile-email');
-const viewRubricBtn = document.getElementById('view-rubric-btn');
-const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
-const downloadRubricBtn = document.getElementById('download-rubric-btn');
-const rubricTitle = document.getElementById('rubric-title');
 const downloadOptionsModal = document.getElementById('download-options-modal');
 const downloadPngBtn = document.getElementById('download-png-btn');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
@@ -193,6 +189,11 @@ const settingsView = document.getElementById('settings-view');
 const anecdoteEmailsToggle = document.getElementById('anecdote-emails-toggle');
 const messageEmailsToggle = document.getElementById('message-emails-toggle');
 const continuumTableContainer = document.getElementById('continuum-table-container');
+const rubricView = document.getElementById('rubric-view');
+const viewRubricBtn = document.getElementById('view-rubric-btn');
+const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
+const downloadRubricBtn = document.getElementById('download-rubric-btn');
+const rubricTitle = document.getElementById('rubric-title');
 
 
 // App State
@@ -1232,22 +1233,27 @@ cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList
 downloadPngBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
     loadingOverlay.classList.remove('hidden');
+    
     let elementToCapture, fileName;
-    if (!rubricView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-        const studentNameText = studentDetailName.textContent.trim() || 'student';
-        fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
-    } else if (!continuumView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
-        const studentNameText = studentDetailName.textContent.trim() || 'student';
+    const studentNameText = studentDetailName.textContent.trim() || 'student';
+
+    // Check if we are on the NEW dynamic continuum view
+    if (continuumView && !continuumView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
+    } 
+    // ELSE check if we are on the OLD static rubric view
+    else if (rubricView && !rubricView.classList.contains('hidden')) { 
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
     }
+
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
+        showMessage("Could not find content to download.");
         return;
     }
-    elementToCapture.style.border = 'none';
-    elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+
     try {
         const canvas = await html2canvas(elementToCapture, { scale: 2 });
         const link = document.createElement('a');
@@ -1258,8 +1264,49 @@ downloadPngBtn.addEventListener('click', async () => {
         console.error("Error generating PNG:", error);
         showMessage("Could not download as PNG.");
     } finally {
-        elementToCapture.style.border = '';
-        elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+downloadPdfBtn.addEventListener('click', async () => {
+    downloadOptionsModal.classList.add('hidden');
+    loadingOverlay.classList.remove('hidden');
+
+    let elementToCapture, fileName;
+    const studentNameText = studentDetailName.textContent.trim() || 'student';
+
+    // Check if we are on the NEW dynamic continuum view
+    if (continuumView && !continuumView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
+        fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
+    } 
+    // ELSE check if we are on the OLD static rubric view
+    else if (rubricView && !rubricView.classList.contains('hidden')) { 
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+    }
+
+    if (!elementToCapture) {
+        loadingOverlay.classList.add('hidden');
+        showMessage("Could not find content to download.");
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    try {
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(fileName);
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        showMessage("Could not download as PDF.");
+    } finally {
         loadingOverlay.classList.add('hidden');
     }
 });
