@@ -545,22 +545,28 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
     
-    // Hide all edit/save buttons initially
-    editRubricBtn.classList.add('hidden');
-    saveRubricBtn.classList.add('hidden');
-    cancelRubricBtn.classList.add('hidden');
+    // --- THIS IS THE NEW LOGIC ---
+    let rubricId;
+    if (microSkill === "Emotional Energy Regulation") {
+        // Special case for the document ID you created
+        rubricId = "Emotional-Regulation";
+    } else {
+        // Standard logic for all other rubrics
+        rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
+    }
+    // --- END OF NEW LOGIC ---
 
-    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
     const rubricRef = doc(db, "rubrics", rubricId);
     const rubricSnap = await getDoc(rubricRef);
 
     if (!rubricSnap.exists()) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet. Check the Document ID.</p>`;
         return;
     }
 
     const rubricData = rubricSnap.data();
     
+    // The rest of the function remains the same
     let tableHTML = '<table class="rubric-table text-sm">';
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
@@ -580,7 +586,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     
     const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
     if (isTeacherOrAdmin) {
-        setRubricMode('highlight'); // Start in highlight mode for teachers/admins
+        setRubricMode('highlight');
         const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
@@ -590,7 +596,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
             });
         }
     } else {
-        setRubricMode('view'); // Read-only mode for parents
+        setRubricMode('view');
     }
 }
 
@@ -1236,8 +1242,9 @@ buildContinuumBtn.addEventListener('click', () => {
 });
 
 rubricView.addEventListener('click', (e) => {
-    const user = auth.currentUser;
-    if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+    if (isRubricEditMode) return; 
+
+    if ((currentUserRole === 'admin' || currentUserRole === 'teacher') && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveRubricHighlights(currentMicroSkill);
     }
