@@ -245,8 +245,10 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => view.classList.add('hidden'));
-    viewToShow.classList.remove('hidden');
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => {
+        if (view) view.classList.add('hidden');
+    });
+    if (viewToShow) viewToShow.classList.remove('hidden');
 };
 
 // Auth Logic
