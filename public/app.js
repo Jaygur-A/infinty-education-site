@@ -1979,3 +1979,68 @@ cancelContinuumBtn.addEventListener('click', () => {
 });
 
 saveContinuumBtn.addEventListener('click', saveContinuumChanges);
+
+// --- RUBRIC EDITING AND HIGHLIGHTING ---
+
+let isRubricEditMode = false;
+
+function setRubricMode(mode) {
+    const table = rubricTableContainer.querySelector('table');
+    if (!table) return;
+
+    isRubricEditMode = (mode === 'edit');
+    
+    // Toggle button visibility based on the current mode
+    editRubricBtn.classList.toggle('hidden', mode !== 'highlight');
+    saveRubricBtn.classList.toggle('hidden', mode !== 'edit');
+    cancelRubricBtn.classList.toggle('hidden', mode !== 'edit');
+    downloadRubricBtn.classList.toggle('hidden', mode === 'edit');
+    backToAnecdotesBtn.classList.toggle('hidden', mode === 'edit');
+
+    // Make table cells editable or just clickable for highlighting
+    table.querySelectorAll('th, td').forEach(cell => {
+        cell.contentEditable = (mode === 'edit');
+    });
+    table.classList.toggle('admin-clickable', mode === 'highlight');
+}
+
+async function saveRubricChanges() {
+    const table = rubricTableContainer.querySelector('table');
+    if (!table) return;
+
+    loadingOverlay.classList.remove('hidden');
+    const newData = { name: currentMicroSkill, headers: [], rows: [] };
+
+    // Reconstruct the data from the edited HTML table
+    table.querySelectorAll('thead th').forEach((th, index) => {
+        if (index > 0) newData.headers.push(th.innerText); // Skip the first "Behavior" header
+    });
+
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        const rowData = { skillLabel: '', levels: [] };
+        const cells = tr.querySelectorAll('td');
+        rowData.skillLabel = cells[0].innerText;
+        for (let i = 1; i < cells.length; i++) {
+            rowData.levels.push(cells[i].innerText);
+        }
+        newData.rows.push(rowData);
+    });
+
+    try {
+        const rubricId = currentMicroSkill.toLowerCase().replace(/\s+/g, '-');
+        const rubricRef = doc(db, "rubrics", rubricId);
+        await setDoc(rubricRef, newData);
+        showMessage("Rubric saved successfully!", false);
+        setRubricMode('highlight'); // Return to highlight mode after saving
+    } catch (error) {
+        console.error("Error saving rubric:", error);
+        showMessage("Failed to save rubric.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+// Add the event listeners for the new buttons
+editRubricBtn.addEventListener('click', () => setRubricMode('edit'));
+saveRubricBtn.addEventListener('click', saveRubricChanges);
+cancelRubricBtn.addEventListener('click', () => showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill));
