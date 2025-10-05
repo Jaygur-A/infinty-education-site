@@ -198,6 +198,9 @@ const editContinuumBtn = document.getElementById('edit-continuum-btn');
 const saveContinuumBtn = document.getElementById('save-continuum-btn');
 const cancelContinuumBtn = document.getElementById('cancel-continuum-btn');
 const rubricTableContainer = document.getElementById('rubric-table-container');
+const editRubricBtn = document.getElementById('edit-rubric-btn');
+const saveRubricBtn = document.getElementById('save-rubric-btn');
+const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
 
 // App State
 let currentStudentId = null,
@@ -541,6 +544,11 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
+    
+    // Hide all edit/save buttons initially
+    editRubricBtn.classList.add('hidden');
+    saveRubricBtn.classList.add('hidden');
+    cancelRubricBtn.classList.add('hidden');
 
     const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
     const rubricRef = doc(db, "rubrics", rubricId);
@@ -554,13 +562,9 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     const rubricData = rubricSnap.data();
     
     let tableHTML = '<table class="rubric-table text-sm">';
-    // Build header
-    tableHTML += '<thead><tr>';
-    tableHTML += '<th>Behavior</th>'; // Add the first header manually
+    tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
-
-    // Build rows
     tableHTML += '<tbody>';
     rubricData.rows.forEach((rowData, rowIndex) => {
         tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
@@ -573,11 +577,10 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     tableHTML += '</tbody></table>';
 
     rubricTableContainer.innerHTML = tableHTML;
-
-    // Re-implement highlight fetching for the new dynamic cells
-    const activeTable = rubricTableContainer.querySelector('table');
-    if (activeTable && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
-        activeTable.classList.add('admin-clickable');
+    
+    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
+    if (isTeacherOrAdmin) {
+        setRubricMode('highlight'); // Start in highlight mode for teachers/admins
         const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
@@ -586,6 +589,8 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
                 if (cell) cell.classList.add('admin-highlight');
             });
         }
+    } else {
+        setRubricMode('view'); // Read-only mode for parents
     }
 }
 
