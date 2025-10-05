@@ -397,6 +397,8 @@ async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
     showView(studentDetailView);
     anecdoteDisplayContainer.classList.add('hidden');
+	document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
+    
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
@@ -597,16 +599,19 @@ async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
 
-    // Handle the 'Back to Student Page' button
     const backBtnContainer = document.getElementById('download-continuum-btn').parentNode;
     const oldBackBtn = backBtnContainer.querySelector('#back-from-continuum-btn');
     if (oldBackBtn) oldBackBtn.remove();
+    
     const backBtn = document.createElement('button');
     backBtn.id = 'back-from-continuum-btn';
     backBtn.className = 'text-sm font-semibold text-green-600 hover:underline';
     backBtn.textContent = 'Back to Student Page';
-    backBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
-    backBtnContainer.insertBefore(backBtn, document.getElementById('download-continuum-btn'));
+    backBtn.addEventListener('click', () => {
+        showStudentDetailPage(currentStudentId);
+    });
+    
+    backBtnContainer.insertBefore(backBtn, document.getElementById('edit-continuum-btn'));
 
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
 
@@ -629,23 +634,25 @@ async function showContinuumPage(coreSkill) {
         tableHTML += `<th ${style}>${header}</th>`;
     });
     tableHTML += '</tr></thead>';
+
     tableHTML += '<tbody>';
     originalContinuumData.rows.forEach((rowData, rowIndex) => {
         tableHTML += '<tr>';
         tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
         rowData.levels.forEach((levelText, levelIndex) => {
-            // Give each cell a unique identifier for highlighting
             const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
             tableHTML += `<td id="${cellId}">${levelText}</td>`;
         });
         tableHTML += '</tr>';
     });
     tableHTML += '</tbody></table>';
+
     continuumTableContainer.innerHTML = tableHTML;
 
+    const activeTable = continuumTableContainer.querySelector('table');
     if (currentUserRole === 'admin') {
-        setContinuumMode('highlight'); // Start in highlight mode for admins
-        // Re-implement highlight fetching
+        setContinuumMode('highlight');
+        
         const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
