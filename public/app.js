@@ -197,6 +197,7 @@ const rubricTitle = document.getElementById('rubric-title');
 const editContinuumBtn = document.getElementById('edit-continuum-btn');
 const saveContinuumBtn = document.getElementById('save-continuum-btn');
 const cancelContinuumBtn = document.getElementById('cancel-continuum-btn');
+const rubricTableContainer = document.getElementById('rubric-table-container');
 
 // App State
 let currentStudentId = null,
@@ -539,61 +540,62 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
 async function showRubricPage(studentId, coreSkill, microSkill) {
     showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
-    document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
-    let activeTable;
-    const rubricMap = {
-        'Mindset': document.getElementById('mindset-rubric-container'),
-        'Emotional Energy Regulation': document.getElementById('emotional-regulation-rubric-container'),
-        'Physical Conditioning': document.getElementById('physical-conditioning-rubric-container'),
-        'Health': document.getElementById('health-rubric-container'),
-        'Connection': document.getElementById('connection-rubric-container'),
-        'Honesty & Accountability': document.getElementById('honesty-accountability-rubric-container'),
-        'Discipline': document.getElementById('discipline-rubric-container'),
-        'Courage': document.getElementById('courage-rubric-container'),
-        'Respect': document.getElementById('respect-rubric-container'),
-        'Questioning': document.getElementById('questioning-rubric-container'),
-        'Reflecting': document.getElementById('reflecting-rubric-container'),
-        'Researching': document.getElementById('researching-rubric-container'),
-        'Creating': document.getElementById('creating-rubric-container'),
-        'Communicating': document.getElementById('communicating-rubric-container'),
-        'Analyzing Information': document.getElementById('analyzing-information-rubric-container'),
-        'Evaluating Evidence': document.getElementById('evaluating-evidence-rubric-container'),
-        'Making Informed Judgments': document.getElementById('making-informed-judgments-rubric-container')
-    };
-    const container = rubricMap[microSkill];
-    if (container) {
-        container.classList.remove('hidden');
-        activeTable = container.querySelector('table');
+    rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
+
+    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
+    const rubricRef = doc(db, "rubrics", rubricId);
+    const rubricSnap = await getDoc(rubricRef);
+
+    if (!rubricSnap.exists()) {
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
+        return;
     }
-    if (!activeTable) return;
-    const user = auth.currentUser;
-    const isAdmin = user && user.uid === ADMIN_UID;
-    downloadRubricBtn.style.display = isAdmin ? 'block' : 'none';
-    activeTable.classList.toggle('admin-clickable', isAdmin);
-    activeTable.querySelectorAll('td').forEach(cell => {
-        cell.classList.remove('admin-highlight');
-    });
-    const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
-    const highlightsSnap = await getDoc(highlightsRef);
-    if (highlightsSnap.exists()) {
-        const data = highlightsSnap.data();
-        data.highlightedCells?.forEach(cellId => {
-            const cell = document.getElementById(cellId);
-            if (cell) {
-                cell.classList.add('admin-highlight');
-            }
+
+    const rubricData = rubricSnap.data();
+    
+    let tableHTML = '<table class="rubric-table text-sm">';
+    // Build header
+    tableHTML += '<thead><tr>';
+    tableHTML += '<th>Behavior</th>'; // Add the first header manually
+    rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
+    tableHTML += '</tr></thead>';
+
+    // Build rows
+    tableHTML += '<tbody>';
+    rubricData.rows.forEach((rowData, rowIndex) => {
+        tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
+        rowData.levels.forEach((levelText, levelIndex) => {
+            const cellId = `${rubricId}-r${rowIndex}-c${levelIndex}`;
+            tableHTML += `<td id="${cellId}">${levelText}</td>`;
         });
+        tableHTML += '</tr>';
+    });
+    tableHTML += '</tbody></table>';
+
+    rubricTableContainer.innerHTML = tableHTML;
+
+    // Re-implement highlight fetching for the new dynamic cells
+    const activeTable = rubricTableContainer.querySelector('table');
+    if (activeTable && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
+        activeTable.classList.add('admin-clickable');
+        const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
+        const highlightsSnap = await getDoc(highlightsRef);
+        if (highlightsSnap.exists()) {
+            highlightsSnap.data().highlightedCells?.forEach(cellId => {
+                const cell = document.getElementById(cellId);
+                if (cell) cell.classList.add('admin-highlight');
+            });
+        }
     }
 }
 
 async function saveRubricHighlights(microSkill) {
-    const activeContainer = document.querySelector('.rubric-container:not(.hidden)');
-    if (!activeContainer) return;
+    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
     const highlightedCells = [];
-    activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
+    rubricTableContainer.querySelectorAll('.admin-highlight').forEach(cell => {
         highlightedCells.push(cell.id);
     });
-    const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${microSkill.toLowerCase().replace(/\s+/g, '-')}`);
+    const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${rubricId}`);
     await setDoc(highlightsRef, { highlightedCells });
 }
 
