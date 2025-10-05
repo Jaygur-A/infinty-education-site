@@ -1228,6 +1228,8 @@ rubricView.addEventListener('click', (e) => {
 });
 
 continuumView.addEventListener('click', (e) => {
+    if (isContinuumEditMode) return;
+
     const user = auth.currentUser;
     if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
@@ -1879,15 +1881,21 @@ function setContinuumMode(mode) {
     if (!table) return;
 
     isContinuumEditMode = (mode === 'edit');
-
+    
     // Toggle button visibility
-    editContinuumBtn.classList.toggle('hidden', mode !== 'view');
+    editContinuumBtn.classList.toggle('hidden', mode === 'edit');
     saveContinuumBtn.classList.toggle('hidden', mode !== 'edit');
-    cancelContinuumBtn.classList.toggle('hidden', mode === 'view');
+    cancelContinuumBtn.classList.toggle('hidden', mode !== 'edit');
+    
     downloadContinuumBtn.classList.toggle('hidden', mode === 'edit');
-    document.getElementById('back-from-continuum-btn').classList.toggle('hidden', mode === 'edit');
 
-    // Make table cells editable or just clickable for highlighting
+    // Find the dynamically created back button to hide/show it
+    const backBtn = document.getElementById('back-from-continuum-btn');
+    if (backBtn) {
+        backBtn.classList.toggle('hidden', mode === 'edit');
+    }
+
+    // Make table cells editable OR just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
         cell.contentEditable = (mode === 'edit');
     });
