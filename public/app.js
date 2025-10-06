@@ -498,14 +498,15 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     'Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 
     'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 
     'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 
-    'Analyzing Information', 'Evaluating Evidence', 'Problem Solving' 
-	];
+    'Analyzing Information', 'Evaluating Evidence', 'Problem Solving',
+    'Literacy', 'Math', 'Science', 'Social Studies', 'Arts' 
+];
 
-	if (rubricsAvailable.includes(microSkill)) {
-		viewRubricBtn.classList.remove('hidden');
-	} else {
-		viewRubricBtn.classList.add('hidden');
-	}
+if (rubricsAvailable.includes(microSkill)) {
+    viewRubricBtn.classList.remove('hidden');
+} else {
+    viewRubricBtn.classList.add('hidden');
+}
     if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
     unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
