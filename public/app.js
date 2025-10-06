@@ -810,20 +810,6 @@ function updateJourneyCounter() {
     }
 }
 
-async function showUsersPage() {
-    showView(usersView);
-    usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Loading users...</td></tr>';
-    const usersRef = collection(db, "users");
-    const snapshot = await getDocs(usersRef);
-    usersListBody.innerHTML = '';
-    snapshot.forEach(doc => {
-        const user = doc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="px-6 py-4 whitespace-nowrap"> <div class="text-sm text-gray-900">${user.displayName || user.email}</div> <div class="text-sm text-gray-500">${user.email}</div> </td> <td class="px-6 py-4 whitespace-nowrap"> <select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2"> <option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option> <option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option> <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option> </select> </td>`;
-        usersListBody.appendChild(tr);
-    });
-}
-
 async function updateUserRole(userId, newRole) {
     const userRef = doc(db, "users", userId);
     try {
