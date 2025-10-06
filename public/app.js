@@ -494,12 +494,18 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
     microSkillDescription.textContent = skillDescriptions[microSkill] || '';
-    const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'];
-    if (rubricsAvailable.includes(microSkill)) {
-        viewRubricBtn.classList.remove('hidden');
-    } else {
-        viewRubricBtn.classList.add('hidden');
-    }
+    const rubricsAvailable = [
+    'Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 
+    'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 
+    'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 
+    'Analyzing Information', 'Evaluating Evidence', 'Problem Solving' 
+	];
+
+	if (rubricsAvailable.includes(microSkill)) {
+		viewRubricBtn.classList.remove('hidden');
+	} else {
+		viewRubricBtn.classList.add('hidden');
+	}
     if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
     unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
