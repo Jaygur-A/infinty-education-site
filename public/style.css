@@ -134,3 +134,7 @@ body {
     table-layout: auto;
     width: 100%;
 }
+
+#rubric-table-container {
+    overflow-x: auto;
+}
