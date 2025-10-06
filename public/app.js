@@ -28,7 +28,7 @@ const skillMap = {
     'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
     'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
     'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
-    'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Making Informed Judgments'],
+    'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
     'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
 };
 
