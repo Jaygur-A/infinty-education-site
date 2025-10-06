@@ -578,7 +578,6 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
-    tableHTML += '<tbody>';
     rubricData.rows.forEach((rowData, rowIndex) => {
         tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
         rowData.levels.forEach((levelText, levelIndex) => {
