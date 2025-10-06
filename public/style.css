@@ -96,45 +96,43 @@ body {
     font-weight: 600;
 }
 
-/* Rubric Table Styles */
-.rubric-table {
+/* Rubric Table Styles (UPDATED) */
+.rubric-table, .rubric-table-auto {
     border-collapse: collapse;
     width: 100%;
-    table-layout: fixed; /* This is for standard 7-column tables */
+    /* This is the key change: forcing fixed layout lets us control widths */
+    table-layout: fixed; 
 }
 
-/* This is the NEW flexible class for wider tables */
-.rubric-table-auto {
-    border-collapse: collapse;
-    width: 100%;
-    table-layout: auto; /* This lets columns resize based on content */
-}
-
-/* This rule applies border/padding to BOTH table types */
 .rubric-table th, .rubric-table td,
 .rubric-table-auto th, .rubric-table-auto td {
     border: 1px solid var(--border-secondary);
-    padding: 1rem;
+    padding: 0.75rem; /* Slightly reduced padding for better fit */
     text-align: left;
     vertical-align: top;
+    word-wrap: break-word; /* Ensures long words don't overflow */
+    line-height: 1.4;      /* Improves readability of wrapped text */
 }
 
 .rubric-table th, 
 .rubric-table-auto th {
     background-color: var(--bg-secondary);
     font-weight: 600;
+    font-size: 0.9rem; /* Make header text slightly smaller */
 }
 
-.rubric-table .skill-label-cell,
+/* Give the first column of standard rubrics a bit more space */
+.rubric-table .skill-label-cell {
+    background-color: var(--bg-secondary);
+    font-weight: 700;
+    width: 20%; 
+}
+
+/* Give the first column of WIDE rubrics even MORE space */
 .rubric-table-auto .skill-label-cell {
     background-color: var(--bg-secondary);
     font-weight: 700;
-    width: 15%;
-}
-
-/* Make the first column on auto-layout tables size itself */
-.rubric-table-auto .skill-label-cell {
-    width: auto; 
+    width: 30%; /* This is the main fix for the "Behavior" column */
 }
 
 .rubric-table .admin-highlight,
@@ -147,17 +145,12 @@ body {
      cursor: pointer;
 }
 
+#rubric-table-container {
+    overflow-x: auto; /* Allows horizontal scrolling on small screens */
+}
+
 @media (min-width: 1280px) {
     .container {
         max-width: 1440px; /* Increases the max width from 1280px to 1440px */
     }
-}
-
-.rubric-table-auto {
-    table-layout: auto;
-    width: 100%;
-}
-
-#rubric-table-container {
-    overflow-x: auto;
 }
