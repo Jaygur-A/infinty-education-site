@@ -1541,18 +1541,7 @@ async function showUsersPage() {
         usersListBody.appendChild(tr);
     });
 }
-async function updateUserRole(userId, newRole) {
-    const userRef = doc(db, "users", userId);
-    try {
-        await updateDoc(userRef, {
-            role: newRole
-        });
-        showMessage("User role updated successfully!", false);
-    } catch (error) {
-        console.error("Error updating user role:", error);
-        showMessage("Failed to update user role.");
-    }
-}
+
 usersLink.addEventListener('click', (e) => {
     e.preventDefault();
     if (currentUserRole === 'admin') {
