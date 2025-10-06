@@ -562,7 +562,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     }
 
     const rubricData = rubricSnap.data();
-    const tableClass = rubricData.headers.length > 6 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
+    const tableClass = rubricData.headers.length > 6 ? 'rubric-table rubric-table-auto text-sm' : 'rubric-table text-sm';
     let tableHTML = `<table class="${tableClass}">`;
 
 
