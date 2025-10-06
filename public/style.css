@@ -154,3 +154,14 @@ body {
         max-width: 1440px; /* Increases the max width from 1280px to 1440px */
     }
 }
+
+.bg-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4); /* 40% black overlay */
+    z-index: 1; /* Sits above the background */
+}
