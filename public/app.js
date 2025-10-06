@@ -1276,9 +1276,9 @@ downloadPngBtn.addEventListener('click', async () => {
     } 
     // ELSE check if we are on the OLD static rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-        fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
-    }
+		elementToCapture = document.querySelector('#rubric-table-container table');
+		fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
+	}
 
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
@@ -1314,9 +1314,9 @@ downloadPdfBtn.addEventListener('click', async () => {
     } 
     // ELSE check if we are on the OLD static rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
-    }
+		elementToCapture = document.querySelector('#rubric-table-container table');
+		fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+	}
 
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
