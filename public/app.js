@@ -16,15 +16,50 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+window.auth = auth; // Expose auth for debugging
 const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
-// Data Structures
-const skillMap = { 'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'], 'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'], 'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'], 'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'], 'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts'] };
-const skillDescriptions = { 'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness', 'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy', 'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills', 'Health': 'Nutrition, Body Systems, Lifestyle Inputs', 'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature', 'Honesty & Accountability': 'Owning Actions, Following Through, Making it Right', 'Discipline': 'Self-Control & Focus, Consistency, Goal Setting, Responsibility', 'Courage': 'Embracing discomfort, Speaking up, Being true to myself', 'Respect': 'Listening, Kindness & Compassion, Caring for the environment, Manners', 'Questioning': 'Formulating Clear Questions, Asking Deeper Questions', 'Reflecting': 'Asking questions, Adjusting, Connecting Ideas, Metacognition', 'Researching': 'Finding Sources, Research Methods, Organizing Information', 'Creating': 'Generating Ideas, Organizing Ideas, Using Tools & Techniques, Problem-Solving & Iterating', 'Communicating': 'Writing - Choosing Format, Organizing Content, Using Language and Visuals. Speaking - Voice Control, Body Language, Clarity & Structure, Audience Awareness', 'Analyzing Information': 'Identifying Key Details, Recognizing Patterns and Relationships, Breaking Down Complex Ideas, Differentiating Fact from Opinion', 'Evaluating Evidence': 'Checking the Source, Identifying Bias or Agenda, Judging Relevance, Comparing Multiple Sources & Perspectives & Weighing Evidence', 'Problem Solving': 'Problem Solving, Cause & Effect, Justifying a Decision', 'Literacy': 'Oral & Non Verbal Communication, Reading & Writing, Foundations, Comprehension, Composition', 'Math': 'Number Sense, Patterns, Coding, Data & Probability, Spatial Sense, Financial Literacy & Entrepreneurship', 'Science': 'Life Systems, Structures', 'Social Studies': 'Place, Past, People, Culture', 'Arts': 'Visual Art, Drama, Music' };
+// ===================================================================
+// DATA STRUCTURES
+// ===================================================================
+const skillMap = {
+    'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
+    'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
+    'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
+    'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
+    'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
+};
 
-// Auth Config
+const skillDescriptions = {
+    'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness',
+    'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy',
+    'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills',
+    'Health': 'Nutrition, Body Systems, Lifestyle Inputs',
+    'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature',
+    'Honesty & Accountability': 'Owning Actions, Following Through, Making it Right',
+    'Discipline': 'Self-Control & Focus, Consistency, Goal Setting, Responsibility',
+    'Courage': 'Embracing discomfort, Speaking up, Being true to myself',
+    'Respect': 'Listening, Kindness & Compassion, Caring for the environment, Manners',
+    'Questioning': 'Formulating Clear Questions, Asking Deeper Questions',
+    'Reflecting': 'Asking questions, Adjusting, Connecting Ideas, Metacognition',
+    'Researching': 'Finding Sources, Research Methods, Organizing Information',
+    'Creating': 'Generating Ideas, Organizing Ideas, Using Tools & Techniques, Problem-Solving & Iterating',
+    'Communicating': 'Writing - Choosing Format, Organizing Content, Using Language and Visuals. Speaking - Voice Control, Body Language, Clarity & Structure, Audience Awareness',
+    'Analyzing Information': 'Identifying Key Details, Recognizing Patterns and Relationships, Breaking Down Complex Ideas, Differentiating Fact from Opinion',
+    'Evaluating Evidence': 'Checking the Source, Identifying Bias or Agenda, Judging Relevance, Comparing Multiple Sources & Perspectives & Weighing Evidence',
+    'Making Informed Judgments': 'Problem Solving, Cause & Effect, Justifying a Decision',
+    'Literacy': 'Oral & Non Verbal Communication, Reading & Writing, Foundations, Comprehension, Composition',
+    'Math': 'Number Sense, Patterns, Coding, Data & Probability, Spatial Sense, Financial Literacy & Entrepreneurship',
+    'Science': 'Life Systems, Structures',
+    'Social Studies': 'Place, Past, People, Culture',
+    'Arts': 'Visual Art, Drama, Music'
+};
+
+// ===================================================================
+// AUTHORIZATION CONFIGURATION
+// ===================================================================
 const ADMIN_UID = "qogikivAnTej3fWMPHhBrjsfbQu2";
 
 // DOM Elements
@@ -116,6 +151,7 @@ const continuumView = document.getElementById('continuum-view');
 const buildContinuumBtn = document.getElementById('build-continuum-btn');
 const continuumTitle = document.getElementById('continuum-title');
 const downloadContinuumBtn = document.getElementById('download-continuum-btn');
+const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 const buildJourneyBtn = document.getElementById('build-journey-btn');
 const journeyBuilderView = document.getElementById('journey-builder-view');
 const journeyStudentName = document.getElementById('journey-student-name');
@@ -158,25 +194,26 @@ const viewRubricBtn = document.getElementById('view-rubric-btn');
 const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
 const downloadRubricBtn = document.getElementById('download-rubric-btn');
 const rubricTitle = document.getElementById('rubric-title');
-const rubricTableContainer = document.getElementById('rubric-table-container');
 const editContinuumBtn = document.getElementById('edit-continuum-btn');
 const saveContinuumBtn = document.getElementById('save-continuum-btn');
 const cancelContinuumBtn = document.getElementById('cancel-continuum-btn');
+const rubricTableContainer = document.getElementById('rubric-table-container');
 const editRubricBtn = document.getElementById('edit-rubric-btn');
 const saveRubricBtn = document.getElementById('save-rubric-btn');
 const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
 
 // App State
-let currentStudentId = null, currentCoreSkill = null, currentMicroSkill = null;
+let currentStudentId = null,
+    currentCoreSkill = null,
+    currentMicroSkill = null;
 let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
-let anecdoteChart = null, allSkillsChart = null, messagesChart = null;
+let anecdoteChart = null,
+    allSkillsChart = null,
+    messagesChart = null;
 let selectedJourneyAnecdotes = [];
 let currentUserRole = null;
 let currentUserClassroomId = null;
-let teachers = [];
-let isContinuumEditMode = false;
-let originalContinuumData = null;
-let isRubricEditMode = false;
+let teachers = []; // Cache for teacher list
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -212,15 +249,16 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView, rubricView].forEach(view => {
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => {
         if (view) view.classList.add('hidden');
     });
     if (viewToShow) viewToShow.classList.remove('hidden');
 };
 
-// Auth & Routing Logic
+// Auth Logic
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
+    // Reset state on auth change
     currentUserRole = null;
     currentUserClassroomId = null;
 
@@ -318,6 +356,7 @@ async function createUserProfileIfNeeded(user) {
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
             role: 'guest',
+            // ADD THIS NEW OBJECT
             notificationSettings: {
                 newAnecdote: true,
                 newMessage: true
@@ -326,19 +365,26 @@ async function createUserProfileIfNeeded(user) {
     }
 }
 
+// Data Logic
 function listenForStudentRecords() {
     if (unsubscribeFromStudents) unsubscribeFromStudents();
+    
     let q;
     const studentsRef = collection(db, "students");
+
+    // If the user is a teacher and has a classroom, filter by their classroom ID
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
         q = query(studentsRef, where("classroomId", "==", currentUserClassroomId));
     } else if (currentUserRole === 'admin') {
+        // Admin sees all students
         q = query(studentsRef);
     } else {
+        // If not admin or a teacher with a class, show nothing.
         studentGrid.innerHTML = '';
         noStudentsMessage.classList.remove('hidden');
         return;
     }
+
     unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
         studentGrid.innerHTML = '';
         noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
@@ -357,6 +403,8 @@ async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
     showView(studentDetailView);
     anecdoteDisplayContainer.classList.add('hidden');
+	document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
+    
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
@@ -367,18 +415,21 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
     if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
     targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
     targetContainer.classList.remove('hidden');
-    if (buildContinuumBtn) {
-        if (currentUserRole === 'admin') {
-            buildContinuumBtn.classList.remove('hidden');
-        } else {
-            buildContinuumBtn.classList.add('hidden');
-        }
+	if (buildContinuumBtn) {
+        const user = auth.currentUser;
+			if (currentUserRole === 'admin') {
+				buildContinuumBtn.classList.remove('hidden');
+			}	 else {
+				buildContinuumBtn.classList.add('hidden');
+			}
     }
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
         const microSkillsForCore = skillMap[coreSkill] || [];
         const microSkillCounts = {};
-        microSkillsForCore.forEach(skill => { microSkillCounts[skill] = 0; });
+        microSkillsForCore.forEach(skill => {
+            microSkillCounts[skill] = 0;
+        });
         snapshot.forEach(doc => {
             const anecdote = doc.data();
             if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
@@ -398,7 +449,14 @@ function renderAnecdoteChart(data, canvasElement, studentId) {
         type: 'bar',
         data: {
             labels: Object.keys(data),
-            datasets: [{ label: 'Anecdote Count', data: Object.values(data), backgroundColor: '#a7c7e7', borderColor: '#6b93b9', borderWidth: 1, borderRadius: 4 }]
+            datasets: [{
+                label: 'Anecdote Count',
+                data: Object.values(data),
+                backgroundColor: '#a7c7e7',
+                borderColor: '#6b93b9',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
         },
         options: {
             onClick: (e) => {
@@ -409,8 +467,20 @@ function renderAnecdoteChart(data, canvasElement, studentId) {
                     showMicroSkillDetailPage(studentId, currentCoreSkill, label);
                 }
             },
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
             onHover: (event, chartElement) => {
                 event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
             }
@@ -424,12 +494,19 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
     microSkillDescription.textContent = skillDescriptions[microSkill] || '';
-    const rubricsAvailable = ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 'Analyzing Information', 'Evaluating Evidence', 'Problem Solving', 'Literacy', 'Math', 'Science', 'Social Studies', 'Arts'];
-    if (rubricsAvailable.includes(microSkill)) {
-        viewRubricBtn.classList.remove('hidden');
-    } else {
-        viewRubricBtn.classList.add('hidden');
-    }
+    const rubricsAvailable = [
+    'Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 
+    'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 
+    'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 
+    'Analyzing Information', 'Evaluating Evidence', 'Problem Solving',
+    'Literacy', 'Math', 'Science', 'Social Studies', 'Arts' 
+];
+
+if (rubricsAvailable.includes(microSkill)) {
+    viewRubricBtn.classList.remove('hidden');
+} else {
+    viewRubricBtn.classList.add('hidden');
+}
     if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
     unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
@@ -442,8 +519,16 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
             const anecdoteCard = document.createElement('div');
             anecdoteCard.className = 'anecdote-card relative p-4 border rounded-lg bg-gray-50';
             let adminButtons = '';
-            if (currentUserRole === 'admin') {
-                adminButtons = `<div class="absolute top-2 right-2 flex space-x-2"> <button class="edit-anecdote-btn text-gray-500 hover:text-blue-600" data-id="${anecdoteId}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button> <button class="delete-anecdote-btn text-gray-500 hover:text-red-600" data-id="${anecdoteId}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button> </div>`;
+            if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+                adminButtons = `
+                    <div class="absolute top-2 right-2 flex space-x-2">
+                        <button class="edit-anecdote-btn text-gray-500 hover:text-blue-600" data-id="${anecdoteId}" title="Edit">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="delete-anecdote-btn text-gray-500 hover:text-red-600" data-id="${anecdoteId}" title="Delete">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>`;
             }
             const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate() : new Date();
             let timestampHTML = `<p class="text-xs text-gray-400 mt-2">Logged on: ${date.toLocaleDateString()}</p>`;
@@ -452,7 +537,11 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
                 timestampHTML += `<p class="text-xs text-gray-400 mt-1 italic">Edited on: ${editedDate.toLocaleDateString()}</p>`;
             }
             const imageHtml = anecdote.imageUrl ? `<img src="${anecdote.imageUrl}" alt="Anecdote Image" class="mt-2 rounded-lg max-w-full h-auto max-h-96">` : '';
-            anecdoteCard.innerHTML = `${adminButtons} <p class="anecdote-text-content text-gray-600 pr-12">${anecdote.text}</p> ${imageHtml} ${timestampHTML}`;
+            anecdoteCard.innerHTML = `
+                ${adminButtons}
+                <p class="anecdote-text-content text-gray-600 pr-12">${anecdote.text}</p>
+                ${imageHtml}
+                ${timestampHTML}`;
             microSkillAnecdoteList.appendChild(anecdoteCard);
         });
     });
@@ -462,21 +551,21 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
-    let rubricId;
-    if (microSkill === "Emotional Energy Regulation") {
-        rubricId = "Emotional-Regulation";
-    } else {
-        rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
-    }
+
+    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
     const rubricRef = doc(db, "rubrics", rubricId);
     const rubricSnap = await getDoc(rubricRef);
+
     if (!rubricSnap.exists()) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet. Check the Document ID.</p>`;
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
         return;
     }
+
     const rubricData = rubricSnap.data();
-    const tableClass = rubricData.headers.length > 6 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
+    const tableClass = rubricData.headers.length > 7 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
     let tableHTML = `<table class="${tableClass}">`;
+
+
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
@@ -490,7 +579,9 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
         tableHTML += '</tr>';
     });
     tableHTML += '</tbody></table>';
+
     rubricTableContainer.innerHTML = tableHTML;
+    
     const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
     if (isTeacherOrAdmin) {
         setRubricMode('highlight');
@@ -520,32 +611,46 @@ async function saveRubricHighlights(microSkill) {
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
+
     const backBtnContainer = document.getElementById('download-continuum-btn').parentNode;
     const oldBackBtn = backBtnContainer.querySelector('#back-from-continuum-btn');
     if (oldBackBtn) oldBackBtn.remove();
+    
     const backBtn = document.createElement('button');
     backBtn.id = 'back-from-continuum-btn';
     backBtn.className = 'text-sm font-semibold text-green-600 hover:underline';
     backBtn.textContent = 'Back to Student Page';
-    backBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
+    backBtn.addEventListener('click', () => {
+        showStudentDetailPage(currentStudentId);
+    });
+    
     backBtnContainer.insertBefore(backBtn, document.getElementById('edit-continuum-btn'));
+
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
+
     const continuumId = coreSkill.toLowerCase().replace(/\s+/g, '-');
     const continuumRef = doc(db, "continuums", continuumId);
     const continuumSnap = await getDoc(continuumRef);
+
     if (!continuumSnap.exists()) {
         continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" has not been created in the database yet.</p>`;
-        if (editContinuumBtn) editContinuumBtn.classList.add('hidden');
+        if(editContinuumBtn) editContinuumBtn.classList.add('hidden');
         return;
     }
+
     originalContinuumData = continuumSnap.data();
-    let tableHTML = `<table class="rubric-table text-sm">`;
-    tableHTML += '<thead><tr><th></th>';
-    originalContinuumData.headers.forEach(header => { tableHTML += `<th>${header}</th>`; });
+    
+    let tableHTML = '<table class="rubric-table text-sm">';
+    tableHTML += '<thead><tr>';
+    originalContinuumData.headers.forEach((header, index) => {
+        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
+        tableHTML += `<th ${style}>${header}</th>`;
+    });
     tableHTML += '</tr></thead>';
+
     tableHTML += '<tbody>';
     originalContinuumData.rows.forEach((rowData, rowIndex) => {
-        tableHTML += `<tr>`;
+        tableHTML += '<tr>';
         tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
         rowData.levels.forEach((levelText, levelIndex) => {
             const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
@@ -554,9 +659,13 @@ async function showContinuumPage(coreSkill) {
         tableHTML += '</tr>';
     });
     tableHTML += '</tbody></table>';
+
     continuumTableContainer.innerHTML = tableHTML;
+
+    const activeTable = continuumTableContainer.querySelector('table');
     if (currentUserRole === 'admin') {
         setContinuumMode('highlight');
+        
         const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
@@ -571,7 +680,7 @@ async function showContinuumPage(coreSkill) {
 }
 
 async function saveContinuumHighlights(coreSkill) {
-    const activeContainer = continuumTableContainer;
+    const activeContainer = document.querySelector('.continuum-rubric-container:not(.hidden)');
     if (!activeContainer) return;
     const highlightedCells = [];
     activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
@@ -603,21 +712,39 @@ function renderAllSkillsChart(data) {
         type: 'bar',
         data: {
             labels: Object.keys(data),
-            datasets: [{ label: 'Total Anecdotes', data: Object.values(data), backgroundColor: '#9cb8d9', borderWidth: 0 }]
+            datasets: [{
+                label: 'Total Anecdotes',
+                data: Object.values(data),
+                backgroundColor: '#9cb8d9',
+                borderWidth: 0
+            }]
         },
         options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-            plugins: { legend: { display: false } }
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
         }
     });
 }
 
+// CHAT LOGIC
 async function listenForUsers() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     if (unsubscribeFromUsers) unsubscribeFromUsers();
     userList.innerHTML = '';
-    if (currentUserRole === 'admin') {
+    if (currentUser.uid === ADMIN_UID) {
         const usersRef = collection(db, "users");
         unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
             userList.innerHTML = '';
@@ -688,7 +815,7 @@ function openChat(recipient) {
 
 function listenForAdminMessages() {
     const currentUser = auth.currentUser;
-    if (!currentUser || currentUserRole !== 'admin') return;
+    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
     const { start, end } = getWeekDates();
     const options = { month: 'long', day: 'numeric' };
     const formattedStartDate = start.toLocaleDateString('en-US', options);
@@ -698,7 +825,7 @@ function listenForAdminMessages() {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
     const messagesCollectionGroup = collectionGroup(db, 'messages');
-    const q = query(messagesCollectionGroup, where("senderId", "==", currentUser.uid), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
+    const q = query(messagesCollectionGroup, where("senderId", "==", ADMIN_UID), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
     onSnapshot(q, (snapshot) => {
         const dailyCounts = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -716,9 +843,7 @@ function listenForAdminMessages() {
         renderMessagesChart(dailyCounts);
     }, (error) => {
         console.error("Error fetching admin messages:", error);
-        if (chartTitleEl) {
-            chartTitleEl.textContent = 'Messages Sent This Week';
-        }
+        if (chartTitleEl) { chartTitleEl.textContent = 'Messages Sent This Week'; }
         showMessage("Could not load message chart. See console for details.");
     });
 }
@@ -730,10 +855,19 @@ function renderMessagesChart(data) {
         type: 'bar',
         data: {
             labels: Object.keys(data),
-            datasets: [{ label: 'Messages Sent', data: Object.values(data), backgroundColor: 'rgba(52, 211, 153, 0.5)', borderColor: 'rgba(5, 150, 105, 1)', borderWidth: 1 }]
+            datasets: [{
+                label: 'Messages Sent',
+                data: Object.values(data),
+                backgroundColor: 'rgba(52, 211, 153, 0.5)',
+                borderColor: 'rgba(5, 150, 105, 1)',
+                borderWidth: 1
+            }]
         },
         options: {
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            },
             plugins: { legend: { display: false } }
         }
     });
@@ -757,24 +891,38 @@ function renderParentStudentView(studentId, studentName) {
     });
 }
 
+parentCloseAnecdoteBtn.addEventListener('click', () => {
+    parentAnecdoteContainer.classList.add('hidden');
+    if (anecdoteChart) {
+        anecdoteChart.destroy();
+        anecdoteChart = null;
+    }
+});
+
 async function showJourneyBuilderPage(studentId) {
-    selectedJourneyAnecdotes = [];
+    selectedJourneyAnecdotes = []; // Reset selections
     showView(journeyBuilderView);
     journeyAnecdoteSelectionList.innerHTML = '<p class="text-gray-500">Loading anecdotes...</p>';
     updateJourneyCounter();
+
+    // Fetch student name
     const studentRef = doc(db, "students", studentId);
     const studentSnap = await getDoc(studentRef);
     if (studentSnap.exists()) {
         journeyStudentName.textContent = `Learning Journey for ${studentSnap.data().name}`;
     }
+
+    // Fetch all anecdotes for this student
     const anecdotesRef = collection(db, "anecdotes");
     const q = query(anecdotesRef, where("studentId", "==", studentId), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
+
     journeyAnecdoteSelectionList.innerHTML = '';
     if (querySnapshot.empty) {
         journeyAnecdoteSelectionList.innerHTML = '<p class="text-gray-500">No anecdotes have been recorded for this student yet.</p>';
         return;
     }
+
     const anecdotesBySkill = {};
     querySnapshot.forEach(doc => {
         const anecdote = { id: doc.id, ...doc.data() };
@@ -784,14 +932,22 @@ async function showJourneyBuilderPage(studentId) {
         }
         anecdotesBySkill[key].push(anecdote);
     });
+
     for (const skillGroup in anecdotesBySkill) {
         const groupContainer = document.createElement('div');
         groupContainer.innerHTML = `<h3 class="font-bold text-lg text-gray-700 mb-2 border-b pb-2">${skillGroup}</h3>`;
+        
         anecdotesBySkill[skillGroup].forEach(anecdote => {
             const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate().toLocaleDateString() : 'N/A';
             const anecdoteEl = document.createElement('div');
             anecdoteEl.className = 'flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50';
-            anecdoteEl.innerHTML = `<input type="checkbox" data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"> <label for="anecdote-${anecdote.id}" class="flex-1"> <p class="text-gray-800">${anecdote.text}</p> <p class="text-xs text-gray-400 mt-1">Logged on: ${date}</p> </label>`;
+            anecdoteEl.innerHTML = `
+                <input type="checkbox" data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                <label for="anecdote-${anecdote.id}" class="flex-1">
+                    <p class="text-gray-800">${anecdote.text}</p>
+                    <p class="text-xs text-gray-400 mt-1">Logged on: ${date}</p>
+                </label>
+            `;
             groupContainer.appendChild(anecdoteEl);
         });
         journeyAnecdoteSelectionList.appendChild(groupContainer);
@@ -810,270 +966,6 @@ function updateJourneyCounter() {
     }
 }
 
-async function updateUserRole(userId, newRole) {
-    const userRef = doc(db, "users", userId);
-    try {
-        await updateDoc(userRef, { role: newRole });
-        showMessage("User role updated successfully!", false);
-    } catch (error) {
-        console.error("Error updating user role:", error);
-        showMessage("Failed to update user role.");
-    }
-}
-
-async function populateTeacherDropdown(dropdownElement) {
-    dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("role", "==", "teacher"));
-    const snapshot = await getDocs(q);
-    teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    if (teachers.length === 0) {
-        dropdownElement.innerHTML = '<option value="">No teachers found</option>';
-        return;
-    }
-    teachers.forEach(teacher => {
-        const option = document.createElement('option');
-        option.value = teacher.id;
-        option.textContent = teacher.displayName || teacher.email;
-        dropdownElement.appendChild(option);
-    });
-}
-
-async function populateClassroomDropdown() {
-    studentClassSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
-    const q = query(collection(db, "classrooms"), orderBy("className"));
-    const snapshot = await getDocs(q);
-    studentClassSelect.innerHTML = '<option value="" disabled selected>Select a classroom</option>';
-    if (snapshot.empty) {
-        studentClassSelect.innerHTML = '<option value="" disabled>No classrooms found</option>';
-        return;
-    }
-    snapshot.forEach(doc => {
-        const classroom = doc.data();
-        const option = document.createElement('option');
-        option.value = doc.id;
-        option.textContent = classroom.className;
-        studentClassSelect.appendChild(option);
-    });
-}
-
-function listenForClassrooms() {
-    const q = query(collection(db, "classrooms"));
-    onSnapshot(q, (snapshot) => {
-        classroomsList.innerHTML = '';
-        if (snapshot.empty) {
-            classroomsList.innerHTML = '<p class="text-gray-500">No classrooms created yet.</p>';
-            return;
-        }
-        snapshot.forEach(doc => {
-            const classroom = doc.data();
-            const classroomId = doc.id;
-            const card = document.createElement('div');
-            card.className = 'p-4 border rounded-lg flex justify-between items-center';
-            card.innerHTML = `<div> <p class="font-bold text-lg">${classroom.className}</p> <p class="text-sm text-gray-500">Teacher: ${classroom.teacherName}</p> </div> <div class="space-x-2"> <button class="edit-classroom-btn text-sm text-blue-600 hover:underline" data-id="${classroomId}">Edit</button> <button class="delete-classroom-btn text-sm text-red-600 hover:underline" data-id="${classroomId}">Delete</button> </div>`;
-            classroomsList.appendChild(card);
-        });
-    });
-}
-
-async function showClassroomsPage() {
-    showView(classroomsView);
-    await populateTeacherDropdown(teacherSelectDropdown);
-    listenForClassrooms();
-}
-
-async function deleteClassroom(classroomId) {
-    if (confirm('Are you sure you want to delete this classroom? This cannot be undone.')) {
-        try {
-            await deleteDoc(doc(db, "classrooms", classroomId));
-            showMessage("Classroom deleted successfully.", false);
-        } catch (error) {
-            console.error("Error deleting classroom: ", error);
-            showMessage("Failed to delete classroom.");
-        }
-    }
-}
-
-async function showParentMessageModal() {
-    messageOptionsContainer.innerHTML = '<p class="text-gray-500">Loading parent info...</p>';
-    messageParentsModal.classList.remove('hidden');
-    const studentRef = doc(db, "students", currentStudentId);
-    const studentSnap = await getDoc(studentRef);
-    if (!studentSnap.exists()) {
-        messageOptionsContainer.innerHTML = '<p class="text-red-500">Could not find student record.</p>';
-        return;
-    }
-    const student = studentSnap.data();
-    messageModalStudentName.textContent = `Message Parents of ${student.name}`;
-    messageOptionsContainer.innerHTML = '';
-    let parentEmailsFound = false;
-    if (student.parent1Email) {
-        parentEmailsFound = true;
-        const btn = document.createElement('button');
-        btn.className = 'w-full btn btn-secondary message-parent-btn';
-        btn.textContent = `Message Parent 1 (${student.parent1Email})`;
-        btn.dataset.email = student.parent1Email;
-        messageOptionsContainer.appendChild(btn);
-    }
-    if (student.parent2Email) {
-        parentEmailsFound = true;
-        const btn = document.createElement('button');
-        btn.className = 'w-full btn btn-secondary message-parent-btn';
-        btn.textContent = `Message Parent 2 (${student.parent2Email})`;
-        btn.dataset.email = student.parent2Email;
-        messageOptionsContainer.appendChild(btn);
-    }
-    if (!parentEmailsFound) {
-        messageOptionsContainer.innerHTML = '<p class="text-gray-500">No parent emails are on file for this student.</p>';
-    }
-}
-
-async function initiateChatWithParent(parentEmail) {
-    loadingOverlay.classList.remove('hidden');
-    try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("email", "==", parentEmail));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            showMessage("This parent has not created an account on the platform yet.");
-            return;
-        }
-        const parentUserDoc = snapshot.docs[0];
-        const parentData = parentUserDoc.data();
-        openChat(parentData);
-        messageParentsModal.classList.add('hidden');
-    } catch (error) {
-        console.error("Error finding parent user:", error);
-        showMessage("Could not start chat. Please see console for details.");
-    } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-}
-
-async function showSettingsPage() {
-    showView(settingsView);
-    const user = auth.currentUser;
-    if (!user) return;
-    const userRef = doc(db, "users", user.uid);
-    const docSnap = await getDoc(userRef);
-    if (docSnap.exists() && docSnap.data().notificationSettings) {
-        const settings = docSnap.data().notificationSettings;
-        anecdoteEmailsToggle.checked = settings.newAnecdote;
-        messageEmailsToggle.checked = settings.newMessage;
-    }
-}
-
-async function updateNotificationSetting(settingName, value) {
-    const user = auth.currentUser;
-    if (!user) return;
-    const userRef = doc(db, "users", user.uid);
-    try {
-        await updateDoc(userRef, {
-            [`notificationSettings.${settingName}`]: value
-        });
-        showMessage("Settings saved!", false);
-    } catch (error) {
-        console.error("Error updating settings:", error);
-        showMessage("Could not save settings.");
-    }
-}
-
-function setContinuumMode(mode) {
-    const table = continuumTableContainer.querySelector('table');
-    if (!table) return;
-    isContinuumEditMode = (mode === 'edit');
-    editContinuumBtn.classList.toggle('hidden', mode === 'edit');
-    saveContinuumBtn.classList.toggle('hidden', mode !== 'edit');
-    cancelContinuumBtn.classList.toggle('hidden', mode !== 'edit');
-    downloadContinuumBtn.classList.toggle('hidden', mode === 'edit');
-    const backBtn = document.getElementById('back-from-continuum-btn');
-    if (backBtn) {
-        backBtn.classList.toggle('hidden', mode === 'edit');
-    }
-    table.querySelectorAll('th, td').forEach(cell => {
-        cell.contentEditable = (mode === 'edit');
-    });
-    table.classList.toggle('admin-clickable', mode === 'highlight');
-}
-
-async function saveContinuumChanges() {
-    const table = continuumTableContainer.querySelector('table');
-    if (!table) return;
-    loadingOverlay.classList.remove('hidden');
-    const newData = { name: currentCoreSkill, headers: [], rows: [] };
-    table.querySelectorAll('thead th').forEach((th, index) => {
-        if (index > 0) newData.headers.push(th.innerText);
-    });
-    table.querySelectorAll('tbody tr').forEach(tr => {
-        const rowData = { skillLabel: '', levels: [] };
-        const cells = tr.querySelectorAll('td');
-        rowData.skillLabel = cells[0].innerHTML.replace(/<br>/g, '\n');
-        for (let i = 1; i < cells.length; i++) {
-            rowData.levels.push(cells[i].innerText);
-        }
-        newData.rows.push(rowData);
-    });
-    try {
-        const continuumId = currentCoreSkill.toLowerCase().replace(/\s+/g, '-');
-        const continuumRef = doc(db, "continuums", continuumId);
-        await setDoc(continuumRef, newData);
-        showMessage("Continuum saved successfully!", false);
-        originalContinuumData = newData;
-        setContinuumMode('view');
-    } catch (error) {
-        console.error("Error saving continuum:", error);
-        showMessage("Failed to save continuum.");
-    } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-}
-
-function setRubricMode(mode) {
-    const table = rubricTableContainer.querySelector('table');
-    if (!table) return;
-    isRubricEditMode = (mode === 'edit');
-    editRubricBtn.classList.toggle('hidden', mode !== 'highlight');
-    saveRubricBtn.classList.toggle('hidden', mode !== 'edit');
-    cancelRubricBtn.classList.toggle('hidden', mode !== 'edit');
-    downloadRubricBtn.classList.toggle('hidden', mode === 'edit');
-    backToAnecdotesBtn.classList.toggle('hidden', mode === 'edit');
-    table.querySelectorAll('th, td').forEach(cell => {
-        cell.contentEditable = (mode === 'edit');
-    });
-    table.classList.toggle('admin-clickable', mode === 'highlight');
-}
-
-async function saveRubricChanges() {
-    const table = rubricTableContainer.querySelector('table');
-    if (!table) return;
-    loadingOverlay.classList.remove('hidden');
-    const newData = { name: currentMicroSkill, headers: [], rows: [] };
-    table.querySelectorAll('thead th').forEach((th, index) => {
-        if (index > 0) newData.headers.push(th.innerText);
-    });
-    table.querySelectorAll('tbody tr').forEach(tr => {
-        const rowData = { skillLabel: '', levels: [] };
-        const cells = tr.querySelectorAll('td');
-        rowData.skillLabel = cells[0].innerText;
-        for (let i = 1; i < cells.length; i++) {
-            rowData.levels.push(cells[i].innerText);
-        }
-        newData.rows.push(rowData);
-    });
-    try {
-        const rubricId = currentMicroSkill.toLowerCase().replace(/\s+/g, '-');
-        const rubricRef = doc(db, "rubrics", rubricId);
-        await setDoc(rubricRef, newData);
-        showMessage("Rubric saved successfully!", false);
-        setRubricMode('highlight');
-    } catch (error) {
-        console.error("Error saving rubric:", error);
-        showMessage("Failed to save rubric.");
-    } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-}
-
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
     const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
@@ -1087,8 +979,16 @@ dashboardBtn.addEventListener('click', () => {
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
-    if (currentUserRole === 'admin') {
+    if (auth.currentUser.uid === ADMIN_UID) {
         listenForAdminMessages();
+    }
+});
+
+backToDashboardBtn.addEventListener('click', () => {
+    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+        showView(dashboardView);
+    } else {
+        showView(parentDashboardView);
     }
 });
 
@@ -1120,20 +1020,26 @@ document.addEventListener('click', (e) => {
 });
 
 backToMessagesBtn.addEventListener('click', () => showView(messagesView));
+
 googleSignInBtn.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
+
 addRecordBtn.addEventListener('click', () => {
-    populateClassroomDropdown();
+    populateClassroomDropdown(); // Populate the dropdown first
     addRecordModal.classList.remove('hidden');
 });
 closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
+
 addAnecdoteBtn.addEventListener('click', () => {
     updateMicroSkillsDropdown(coreSkillSelect.value);
     addAnecdoteModal.classList.remove('hidden');
 });
+
 coreSkillSelect.addEventListener('change', (e) => {
     updateMicroSkillsDropdown(e.target.value);
 });
+
 closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
+
 closeAnecdoteDisplayBtn.addEventListener('click', () => {
     anecdoteDisplayContainer.classList.add('hidden');
     if (anecdoteChart) {
@@ -1141,41 +1047,46 @@ closeAnecdoteDisplayBtn.addEventListener('click', () => {
         anecdoteChart = null;
     }
 });
+
 alignedSkillsGrid.addEventListener('click', (e) => {
     const skillCard = e.target.closest('.skill-card');
     if (skillCard) {
         listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
         setTimeout(() => {
-            anecdoteDisplayContainer.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     }
 });
+
 addStudentForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const parent1Email = document.getElementById('parent1Email').value.trim();
     const parent2Email = document.getElementById('parent2Email').value.trim();
     const selectedClassroomId = studentClassSelect.value;
     const selectedClassroomName = studentClassSelect.options[studentClassSelect.selectedIndex].text;
+
     if (!selectedClassroomId) {
         showMessage("Please select a classroom.");
         return;
     }
+
+    // Save the new student to the database
     await addDoc(collection(db, "students"), {
         name: document.getElementById('studentName').value,
         grade: document.getElementById('studentGrade').value,
-        classroomId: selectedClassroomId,
-        className: selectedClassroomName,
+        classroomId: selectedClassroomId, // Save the Classroom ID
+        className: selectedClassroomName, // Save the Classroom Name for easy display
         parent1Email: parent1Email,
         parent2Email: parent2Email,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid
     });
+
     addStudentForm.reset();
     addRecordModal.classList.add('hidden');
 });
+
 addAnecdoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loadingOverlay.classList.remove('hidden');
@@ -1206,28 +1117,31 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 attachFileBtn.addEventListener('click', () => fileInput.click());
+
 messageList.addEventListener('click', (e) => {
     if (e.target && e.target.classList.contains('chat-image-preview')) {
         modalImage.src = e.target.src;
         imageModal.classList.remove('hidden');
     }
 });
+
 closeImageModalBtn.addEventListener('click', () => imageModal.classList.add('hidden'));
+
 imageModal.addEventListener('click', (e) => {
     if (e.target === imageModal) {
         imageModal.classList.add('hidden');
     }
 });
+
 fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
     if (file) {
         filePreviewName.textContent = file.name;
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                filePreviewImage.src = e.target.result;
-            };
+            reader.onload = (e) => { filePreviewImage.src = e.target.result; };
             reader.readAsDataURL(file);
         } else {
             filePreviewImage.src = 'https://placehold.co/100x100/E2E8F0/4A5568?text=FILE';
@@ -1235,10 +1149,12 @@ fileInput.addEventListener('change', () => {
         filePreviewContainer.classList.remove('hidden');
     }
 });
+
 removeFileBtn.addEventListener('click', () => {
     fileInput.value = '';
     filePreviewContainer.classList.add('hidden');
 });
+
 messageForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = messageInput.value;
@@ -1274,9 +1190,7 @@ messageForm.addEventListener('submit', async (e) => {
         await setDoc(chatDocRef, {
             participants: [currentUser.uid, recipientId],
             lastMessage: file ? (text || 'File sent') : text
-        }, {
-            merge: true
-        });
+        }, { merge: true });
         messageInput.value = '';
         fileInput.value = '';
         filePreviewContainer.classList.add('hidden');
@@ -1287,13 +1201,17 @@ messageForm.addEventListener('submit', async (e) => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
+
 deleteAccountBtn.addEventListener('click', () => {
     deleteConfirmModal.classList.remove('hidden');
 });
+
 cancelDeleteBtn.addEventListener('click', () => {
     deleteConfirmModal.classList.add('hidden');
 });
+
 confirmDeleteBtn.addEventListener('click', async () => {
     loadingOverlay.classList.remove('hidden');
     deleteConfirmModal.classList.add('hidden');
@@ -1308,53 +1226,68 @@ confirmDeleteBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 viewRubricBtn.addEventListener('click', () => {
     showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill);
 });
+
 backToAnecdotesBtn.addEventListener('click', () => {
     showMicroSkillDetailPage(currentStudentId, currentCoreSkill, currentMicroSkill);
 });
+
 buildContinuumBtn.addEventListener('click', () => {
     showContinuumPage(currentCoreSkill);
 });
+
 rubricView.addEventListener('click', (e) => {
-    if (isRubricEditMode) return;
+    if (isRubricEditMode) return; 
+
     if ((currentUserRole === 'admin' || currentUserRole === 'teacher') && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveRubricHighlights(currentMicroSkill);
     }
 });
+
 continuumView.addEventListener('click', (e) => {
     if (isContinuumEditMode) return;
-    if (currentUserRole === 'admin' && e.target.tagName === 'TD' && e.target.id) {
+
+    const user = auth.currentUser;
+    if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveContinuumHighlights(currentCoreSkill);
     }
 });
+
 downloadRubricBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
 downloadContinuumBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
 cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList.add('hidden'));
+
 downloadPngBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
     loadingOverlay.classList.remove('hidden');
+    
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
+
+    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('#continuum-table-container table');
+        elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
-    } else if (rubricView && !rubricView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('#rubric-table-container table');
+    } 
+    // ELSE check if we are on the OLD static rubric view
+    else if (rubricView && !rubricView.classList.contains('hidden')) { 
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
         fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
     }
+
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
         showMessage("Could not find content to download.");
         return;
     }
+
     try {
-        const canvas = await html2canvas(elementToCapture, {
-            scale: 2
-        });
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
         link.download = fileName;
@@ -1366,30 +1299,34 @@ downloadPngBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 downloadPdfBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
     loadingOverlay.classList.remove('hidden');
+
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
+
+    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('#continuum-table-container table');
+        elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
-    } else if (rubricView && !rubricView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('#rubric-table-container table');
+    } 
+    // ELSE check if we are on the OLD static rubric view
+    else if (rubricView && !rubricView.classList.contains('hidden')) { 
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
         fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
     }
+
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
         showMessage("Could not find content to download.");
         return;
     }
-    const {
-        jsPDF
-    } = window.jspdf;
+    
+    const { jsPDF } = window.jspdf;
     try {
-        const canvas = await html2canvas(elementToCapture, {
-            scale: 2
-        });
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
             orientation: 'landscape',
@@ -1405,6 +1342,47 @@ downloadPdfBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
+downloadPdfBtn.addEventListener('click', async () => {
+    downloadOptionsModal.classList.add('hidden');
+    loadingOverlay.classList.remove('hidden');
+    let elementToCapture, fileName;
+    if (!rubricView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+    } else if (!continuumView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
+        const studentNameText = studentDetailName.textContent.trim() || 'student';
+        fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
+    }
+    if (!elementToCapture) {
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+    elementToCapture.style.border = 'none';
+    elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
+    const { jsPDF } = window.jspdf;
+    try {
+        const canvas = await html2canvas(elementToCapture, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(fileName);
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        showMessage("Could not download as PDF.");
+    } finally {
+        elementToCapture.style.border = '';
+        elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
 microSkillAnecdoteList.addEventListener('click', (e) => {
     const editButton = e.target.closest('.edit-anecdote-btn');
     const deleteButton = e.target.closest('.delete-anecdote-btn');
@@ -1422,9 +1400,11 @@ microSkillAnecdoteList.addEventListener('click', (e) => {
         deleteAnecdoteConfirmModal.classList.remove('hidden');
     }
 });
+
 closeEditAnecdoteModalBtn.addEventListener('click', () => {
     editAnecdoteModal.classList.add('hidden');
 });
+
 editAnecdoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const anecdoteId = editAnecdoteModal.dataset.id;
@@ -1446,9 +1426,11 @@ editAnecdoteForm.addEventListener('submit', async (e) => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 cancelDeleteAnecdoteBtn.addEventListener('click', () => {
     deleteAnecdoteConfirmModal.classList.add('hidden');
 });
+
 confirmDeleteAnecdoteBtn.addEventListener('click', async () => {
     const anecdoteId = deleteAnecdoteConfirmModal.dataset.id;
     if (!anecdoteId) return;
@@ -1465,16 +1447,19 @@ confirmDeleteAnecdoteBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 buildJourneyBtn.addEventListener('click', () => {
     if (currentStudentId) {
         showJourneyBuilderPage(currentStudentId);
     }
 });
+
 backToStudentFromJourneyBtn.addEventListener('click', () => {
     if (currentStudentId) {
         showStudentDetailPage(currentStudentId);
     }
 });
+
 journeyAnecdoteSelectionList.addEventListener('click', (e) => {
     if (e.target.classList.contains('journey-anecdote-checkbox')) {
         const anecdoteId = e.target.dataset.id;
@@ -1488,22 +1473,28 @@ journeyAnecdoteSelectionList.addEventListener('click', (e) => {
         updateJourneyCounter();
     }
 });
+
 generateJourneySummaryBtn.addEventListener('click', async () => {
     if (selectedJourneyAnecdotes.length === 0) {
         showMessage("Please select at least one anecdote.");
         return;
     }
+
     loadingOverlay.classList.remove('hidden');
+
     try {
         const studentName = journeyStudentName.textContent.replace('Learning Journey for ', '');
         const generateSummary = httpsCallable(functions, 'generateJourneySummary');
+
         const result = await generateSummary({
             studentName: studentName,
             anecdoteIds: selectedJourneyAnecdotes
         });
+
         journeyEditorTitle.textContent = `Learning Journey Draft for ${studentName}`;
         journeySummaryTextarea.value = result.data.summary;
         showView(journeyEditorView);
+
     } catch (error) {
         console.error("Error generating summary:", error);
         showMessage("Could not generate summary. Please check the function logs and try again.");
@@ -1511,44 +1502,69 @@ generateJourneySummaryBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 backToJourneyBuilderBtn.addEventListener('click', () => {
     showView(journeyBuilderView);
 });
+
 downloadJourneyPdfBtn.addEventListener('click', () => {
     const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
     const summaryText = journeySummaryTextarea.value;
-    const {
-        jsPDF
-    } = window.jspdf;
+    const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
+
     pdf.setFontSize(18);
     pdf.text(`Learning Journey for ${studentName}`, 14, 22);
+
     pdf.setFontSize(12);
-    const splitText = pdf.splitTextToSize(summaryText, 180);
+    const splitText = pdf.splitTextToSize(summaryText, 180); // Split text to fit page width
     pdf.text(splitText, 14, 32);
+
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
+
+// Add these to the end of app.js
+
 async function showUsersPage() {
     showView(usersView);
     usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Loading users...</td></tr>';
+    
     const usersRef = collection(db, "users");
     const snapshot = await getDocs(usersRef);
+
     usersListBody.innerHTML = '';
     snapshot.forEach(doc => {
         const user = doc.data();
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="px-6 py-4 whitespace-nowrap"> <div class="text-sm text-gray-900">${user.displayName || user.email}</div> <div class="text-sm text-gray-500">${user.email}</div> </td> <td class="px-6 py-4 whitespace-nowrap"> <select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2"> <option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option> <option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option> <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option> </select> </td>`;
+        tr.innerHTML = `
+			<td class="px-6 py-4 whitespace-nowrap">
+				<div class="text-sm text-gray-900">${user.displayName || user.email}</div>
+				<div class="text-sm text-gray-500">${user.email}</div>
+			</td>
+			<td class="px-6 py-4 whitespace-nowrap">
+				<select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+					<option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option>
+					<option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> 
+					<option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
+					<option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+				</select>
+			</td>
+		`;;
         usersListBody.appendChild(tr);
     });
 }
 
-usersLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (currentUserRole === 'admin') {
-        showUsersPage();
-        profileDropdown.classList.add('hidden');
+async function updateUserRole(userId, newRole) {
+    const userRef = doc(db, "users", userId);
+    try {
+        await updateDoc(userRef, { role: newRole });
+        showMessage("User role updated successfully!", false);
+    } catch (error) {
+        console.error("Error updating user role:", error);
+        showMessage("Failed to update user role.");
     }
-});
+}
+
 usersListBody.addEventListener('change', (e) => {
     if (e.target.classList.contains('role-select')) {
         const userId = e.target.dataset.uid;
@@ -1558,19 +1574,23 @@ usersListBody.addEventListener('change', (e) => {
         }
     }
 });
+
+// --- CLASSROOM MANAGEMENT ---
 async function populateTeacherDropdown(dropdownElement) {
     dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
+    
+    // Fetch all users with the 'teacher' role
     const usersRef = collection(db, "users");
     const q = query(usersRef, where("role", "==", "teacher"));
     const snapshot = await getDocs(q);
-    teachers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    
+    teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
     if (teachers.length === 0) {
         dropdownElement.innerHTML = '<option value="">No teachers found</option>';
         return;
     }
+
     teachers.forEach(teacher => {
         const option = document.createElement('option');
         option.value = teacher.id;
@@ -1578,23 +1598,29 @@ async function populateTeacherDropdown(dropdownElement) {
         dropdownElement.appendChild(option);
     });
 }
+
 async function populateClassroomDropdown() {
     studentClassSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
+    
     const q = query(collection(db, "classrooms"), orderBy("className"));
     const snapshot = await getDocs(q);
-    studentClassSelect.innerHTML = '<option value="" disabled selected>Select a classroom</option>';
+
+    studentClassSelect.innerHTML = '<option value="" disabled selected>Select a classroom</option>'; // Reset after loading
+
     if (snapshot.empty) {
         studentClassSelect.innerHTML = '<option value="" disabled>No classrooms found</option>';
         return;
     }
+
     snapshot.forEach(doc => {
         const classroom = doc.data();
         const option = document.createElement('option');
-        option.value = doc.id;
-        option.textContent = classroom.className;
+        option.value = doc.id; // The value is the unique Classroom ID
+        option.textContent = classroom.className; // The text is the classroom name
         studentClassSelect.appendChild(option);
     });
 }
+
 function listenForClassrooms() {
     const q = query(collection(db, "classrooms"));
     onSnapshot(q, (snapshot) => {
@@ -1608,16 +1634,27 @@ function listenForClassrooms() {
             const classroomId = doc.id;
             const card = document.createElement('div');
             card.className = 'p-4 border rounded-lg flex justify-between items-center';
-            card.innerHTML = `<div> <p class="font-bold text-lg">${classroom.className}</p> <p class="text-sm text-gray-500">Teacher: ${classroom.teacherName}</p> </div> <div class="space-x-2"> <button class="edit-classroom-btn text-sm text-blue-600 hover:underline" data-id="${classroomId}">Edit</button> <button class="delete-classroom-btn text-sm text-red-600 hover:underline" data-id="${classroomId}">Delete</button> </div>`;
+            card.innerHTML = `
+                <div>
+                    <p class="font-bold text-lg">${classroom.className}</p>
+                    <p class="text-sm text-gray-500">Teacher: ${classroom.teacherName}</p>
+                </div>
+                <div class="space-x-2">
+                    <button class="edit-classroom-btn text-sm text-blue-600 hover:underline" data-id="${classroomId}">Edit</button>
+                    <button class="delete-classroom-btn text-sm text-red-600 hover:underline" data-id="${classroomId}">Delete</button>
+                </div>
+            `;
             classroomsList.appendChild(card);
         });
     });
 }
+
 async function showClassroomsPage() {
     showView(classroomsView);
     await populateTeacherDropdown(teacherSelectDropdown);
     listenForClassrooms();
 }
+
 async function deleteClassroom(classroomId) {
     if (confirm('Are you sure you want to delete this classroom? This cannot be undone.')) {
         try {
@@ -1629,6 +1666,9 @@ async function deleteClassroom(classroomId) {
         }
     }
 }
+
+// --- Event Listeners for Classroom Management ---
+
 classroomsLink.addEventListener('click', (e) => {
     e.preventDefault();
     if (currentUserRole === 'admin') {
@@ -1636,14 +1676,17 @@ classroomsLink.addEventListener('click', (e) => {
         profileDropdown.classList.add('hidden');
     }
 });
+
 createClassroomForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const selectedTeacherId = teacherSelectDropdown.value;
     const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
+
     if (!selectedTeacher) {
         showMessage("Please select a valid teacher.");
         return;
     }
+    
     try {
         await addDoc(collection(db, "classrooms"), {
             className: newClassroomName.value,
@@ -1658,6 +1701,7 @@ createClassroomForm.addEventListener('submit', async (e) => {
         showMessage("Failed to create classroom.");
     }
 });
+
 classroomsList.addEventListener('click', async (e) => {
     const classroomId = e.target.dataset.id;
     if (e.target.classList.contains('delete-classroom-btn')) {
@@ -1676,18 +1720,22 @@ classroomsList.addEventListener('click', async (e) => {
         }
     }
 });
+
 closeEditClassroomModalBtn.addEventListener('click', () => {
     editClassroomModal.classList.add('hidden');
 });
+
 editClassroomForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const classroomId = editClassroomModal.dataset.id;
     const selectedTeacherId = editTeacherSelect.value;
     const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
+
     if (!classroomId || !selectedTeacher) {
         showMessage("An error occurred. Please try again.");
         return;
     }
+
     const classroomRef = doc(db, "classrooms", classroomId);
     try {
         await updateDoc(classroomRef, {
@@ -1702,19 +1750,27 @@ editClassroomForm.addEventListener('submit', async (e) => {
         showMessage("Failed to update classroom.");
     }
 });
+
+// --- PARENT MESSAGING FUNCTIONS ---
+
 async function showParentMessageModal() {
     messageOptionsContainer.innerHTML = '<p class="text-gray-500">Loading parent info...</p>';
     messageParentsModal.classList.remove('hidden');
+
     const studentRef = doc(db, "students", currentStudentId);
     const studentSnap = await getDoc(studentRef);
+
     if (!studentSnap.exists()) {
         messageOptionsContainer.innerHTML = '<p class="text-red-500">Could not find student record.</p>';
         return;
     }
+
     const student = studentSnap.data();
     messageModalStudentName.textContent = `Message Parents of ${student.name}`;
-    messageOptionsContainer.innerHTML = '';
+    messageOptionsContainer.innerHTML = ''; // Clear loading message
+
     let parentEmailsFound = false;
+
     if (student.parent1Email) {
         parentEmailsFound = true;
         const btn = document.createElement('button');
@@ -1723,6 +1779,7 @@ async function showParentMessageModal() {
         btn.dataset.email = student.parent1Email;
         messageOptionsContainer.appendChild(btn);
     }
+
     if (student.parent2Email) {
         parentEmailsFound = true;
         const btn = document.createElement('button');
@@ -1731,24 +1788,33 @@ async function showParentMessageModal() {
         btn.dataset.email = student.parent2Email;
         messageOptionsContainer.appendChild(btn);
     }
+
     if (!parentEmailsFound) {
         messageOptionsContainer.innerHTML = '<p class="text-gray-500">No parent emails are on file for this student.</p>';
     }
 }
+
 async function initiateChatWithParent(parentEmail) {
     loadingOverlay.classList.remove('hidden');
     try {
         const usersRef = collection(db, "users");
         const q = query(usersRef, where("email", "==", parentEmail));
         const snapshot = await getDocs(q);
+
         if (snapshot.empty) {
             showMessage("This parent has not created an account on the platform yet.");
             return;
         }
+
         const parentUserDoc = snapshot.docs[0];
         const parentData = parentUserDoc.data();
+        
+        // Reuse the existing openChat function
         openChat(parentData);
+        
+        // Close the modal after initiating the chat
         messageParentsModal.classList.add('hidden');
+
     } catch (error) {
         console.error("Error finding parent user:", error);
         showMessage("Could not start chat. Please see console for details.");
@@ -1756,14 +1822,19 @@ async function initiateChatWithParent(parentEmail) {
         loadingOverlay.classList.add('hidden');
     }
 }
+
+// --- Parent Messaging Listeners ---
+
 contactParentsBtn.addEventListener('click', () => {
     if (currentStudentId) {
         showParentMessageModal();
     }
 });
+
 closeMessageParentsModalBtn.addEventListener('click', () => {
     messageParentsModal.classList.add('hidden');
 });
+
 messageOptionsContainer.addEventListener('click', (e) => {
     if (e.target.classList.contains('message-parent-btn')) {
         const parentEmail = e.target.dataset.email;
@@ -1772,23 +1843,30 @@ messageOptionsContainer.addEventListener('click', (e) => {
         }
     }
 });
+
+// --- NOTIFICATION SETTINGS ---
+
 async function showSettingsPage() {
     showView(settingsView);
     const user = auth.currentUser;
     if (!user) return;
+
     const userRef = doc(db, "users", user.uid);
     const docSnap = await getDoc(userRef);
+
     if (docSnap.exists() && docSnap.data().notificationSettings) {
         const settings = docSnap.data().notificationSettings;
         anecdoteEmailsToggle.checked = settings.newAnecdote;
         messageEmailsToggle.checked = settings.newMessage;
     }
 }
+
 async function updateNotificationSetting(settingName, value) {
     const user = auth.currentUser;
     if (!user) return;
     const userRef = doc(db, "users", user.uid);
     try {
+        // Use dot notation to update a field within a map
         await updateDoc(userRef, {
             [`notificationSettings.${settingName}`]: value
         });
@@ -1798,59 +1876,90 @@ async function updateNotificationSetting(settingName, value) {
         showMessage("Could not save settings.");
     }
 }
+
 settingsLink.addEventListener('click', (e) => {
     e.preventDefault();
     showSettingsPage();
     profileDropdown.classList.add('hidden');
 });
+
 anecdoteEmailsToggle.addEventListener('change', (e) => {
     updateNotificationSetting('newAnecdote', e.target.checked);
 });
+
 messageEmailsToggle.addEventListener('change', (e) => {
     updateNotificationSetting('newMessage', e.target.checked);
 });
 
+// --- CONTINUUM EDITING AND HIGHLIGHTING ---
+
+let isContinuumEditMode = false;
+let originalContinuumData = null; // To store data for 'cancel'
+
+// This function toggles the UI between view, edit, and highlight modes
 function setContinuumMode(mode) {
     const table = continuumTableContainer.querySelector('table');
     if (!table) return;
+
     isContinuumEditMode = (mode === 'edit');
-    editContinuumBtn.classList.toggle('hidden', mode === 'edit' || currentUserRole !== 'admin');
+    
+    // Toggle button visibility
+    editContinuumBtn.classList.toggle('hidden', mode === 'edit');
     saveContinuumBtn.classList.toggle('hidden', mode !== 'edit');
-    cancelContinuumBtn.classList.toggle('hidden', mode === 'view');
+    cancelContinuumBtn.classList.toggle('hidden', mode !== 'edit');
+    
     downloadContinuumBtn.classList.toggle('hidden', mode === 'edit');
+
+    // Find the dynamically created back button to hide/show it
     const backBtn = document.getElementById('back-from-continuum-btn');
     if (backBtn) {
         backBtn.classList.toggle('hidden', mode === 'edit');
     }
+
+    // Make table cells editable OR just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
         cell.contentEditable = (mode === 'edit');
     });
     table.classList.toggle('admin-clickable', mode === 'highlight');
 }
+
+// New function to save the edited continuum
 async function saveContinuumChanges() {
     const table = continuumTableContainer.querySelector('table');
     if (!table) return;
+
     loadingOverlay.classList.remove('hidden');
-    const newData = { name: currentCoreSkill, headers: [], rows: [] };
-    table.querySelectorAll('thead th').forEach((th, index) => {
-        if (index > 0) newData.headers.push(th.innerText);
+
+    // Reconstruct the data object from the HTML table
+    const newData = {
+        name: currentCoreSkill,
+        headers: [],
+        rows: []
+    };
+
+    // Read headers
+    table.querySelectorAll('thead th').forEach(th => {
+        newData.headers.push(th.innerText);
     });
+
+    // Read rows
     table.querySelectorAll('tbody tr').forEach(tr => {
         const rowData = { skillLabel: '', levels: [] };
         const cells = tr.querySelectorAll('td');
-        rowData.skillLabel = cells[0].innerHTML.replace(/<br>/g, '\n');
+        rowData.skillLabel = cells[0].innerHTML.replace(/<br>/g, '\n'); // Convert <br> back to \n
         for (let i = 1; i < cells.length; i++) {
             rowData.levels.push(cells[i].innerText);
         }
         newData.rows.push(rowData);
     });
+
     try {
         const continuumId = currentCoreSkill.toLowerCase().replace(/\s+/g, '-');
         const continuumRef = doc(db, "continuums", continuumId);
         await setDoc(continuumRef, newData);
         showMessage("Continuum saved successfully!", false);
-        originalContinuumData = newData;
-        setContinuumMode('highlight');
+        originalContinuumData = newData; // Update the 'cancel' data
+        setContinuumMode('view'); // Exit edit mode
     } catch (error) {
         console.error("Error saving continuum:", error);
         showMessage("Failed to save continuum.");
@@ -1858,40 +1967,60 @@ async function saveContinuumChanges() {
         loadingOverlay.classList.add('hidden');
     }
 }
+
+// Add event listeners for the new buttons
 editContinuumBtn.addEventListener('click', () => {
     setContinuumMode('edit');
 });
+
 cancelContinuumBtn.addEventListener('click', () => {
     if (isContinuumEditMode) {
-        showContinuumPage(currentCoreSkill);
+        // If in edit mode, revert changes
+        showContinuumPage(currentCoreSkill); // This will re-fetch and re-render
     } else {
+        // If in highlight mode, just exit to view mode
         setContinuumMode('view');
     }
 });
+
 saveContinuumBtn.addEventListener('click', saveContinuumChanges);
+
+// --- RUBRIC EDITING AND HIGHLIGHTING ---
+
+let isRubricEditMode = false;
 
 function setRubricMode(mode) {
     const table = rubricTableContainer.querySelector('table');
     if (!table) return;
+
     isRubricEditMode = (mode === 'edit');
-    editRubricBtn.classList.toggle('hidden', mode !== 'highlight' || currentUserRole !== 'admin');
+    
+    // Toggle button visibility based on the current mode
+    editRubricBtn.classList.toggle('hidden', mode !== 'highlight');
     saveRubricBtn.classList.toggle('hidden', mode !== 'edit');
-    cancelRubricBtn.classList.toggle('hidden', mode === 'view');
+    cancelRubricBtn.classList.toggle('hidden', mode !== 'edit');
     downloadRubricBtn.classList.toggle('hidden', mode === 'edit');
     backToAnecdotesBtn.classList.toggle('hidden', mode === 'edit');
+
+    // Make table cells editable or just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
         cell.contentEditable = (mode === 'edit');
     });
     table.classList.toggle('admin-clickable', mode === 'highlight');
 }
+
 async function saveRubricChanges() {
     const table = rubricTableContainer.querySelector('table');
     if (!table) return;
+
     loadingOverlay.classList.remove('hidden');
     const newData = { name: currentMicroSkill, headers: [], rows: [] };
+
+    // Reconstruct the data from the edited HTML table
     table.querySelectorAll('thead th').forEach((th, index) => {
-        if (index > 0) newData.headers.push(th.innerText);
+        if (index > 0) newData.headers.push(th.innerText); // Skip the first "Behavior" header
     });
+
     table.querySelectorAll('tbody tr').forEach(tr => {
         const rowData = { skillLabel: '', levels: [] };
         const cells = tr.querySelectorAll('td');
@@ -1901,12 +2030,13 @@ async function saveRubricChanges() {
         }
         newData.rows.push(rowData);
     });
+
     try {
         const rubricId = currentMicroSkill.toLowerCase().replace(/\s+/g, '-');
         const rubricRef = doc(db, "rubrics", rubricId);
         await setDoc(rubricRef, newData);
         showMessage("Rubric saved successfully!", false);
-        setRubricMode('highlight');
+        setRubricMode('highlight'); // Return to highlight mode after saving
     } catch (error) {
         console.error("Error saving rubric:", error);
         showMessage("Failed to save rubric.");
@@ -1914,6 +2044,8 @@ async function saveRubricChanges() {
         loadingOverlay.classList.add('hidden');
     }
 }
+
+// Add the event listeners for the new buttons
 editRubricBtn.addEventListener('click', () => setRubricMode('edit'));
 saveRubricBtn.addEventListener('click', saveRubricChanges);
 cancelRubricBtn.addEventListener('click', () => showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill));
