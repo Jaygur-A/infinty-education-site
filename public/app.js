@@ -249,7 +249,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 };
 
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => {
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView, rubricView].forEach(view => {
         if (view) view.classList.add('hidden');
     });
     if (viewToShow) viewToShow.classList.remove('hidden');
@@ -1268,14 +1268,12 @@ downloadPngBtn.addEventListener('click', async () => {
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
 
-    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
     } 
-    // ELSE check if we are on the OLD static rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        elementToCapture = document.querySelector('#rubric-table-container .rubric-table');
         fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
     }
 
@@ -1306,12 +1304,10 @@ downloadPdfBtn.addEventListener('click', async () => {
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
 
-    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
     } 
-    // Check if we are on the NEW dynamic rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
         elementToCapture = document.querySelector('#rubric-table-container .rubric-table');
         fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
