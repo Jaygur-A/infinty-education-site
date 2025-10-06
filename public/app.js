@@ -264,8 +264,9 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         document.body.classList.remove('login-background');
-        await createUserProfileIfNeeded(user);
-        
+        document.body.classList.remove('bg-overlay');
+		await createUserProfileIfNeeded(user);
+		
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
         
@@ -292,7 +293,7 @@ onAuthStateChanged(auth, async (user) => {
         
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
         classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
-        const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
+        const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
         
