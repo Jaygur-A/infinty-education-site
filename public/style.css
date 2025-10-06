@@ -96,12 +96,21 @@ body {
     font-weight: 600;
 }
 
-/* Rubric Table Styles (Updated with new colors) */
+/* Rubric Table Styles */
 .rubric-table {
     border-collapse: collapse;
     width: 100%;
-    table-layout: fixed;
+    table-layout: fixed; /* This is for standard 7-column tables */
 }
+
+/* This is the NEW flexible class for wider tables */
+.rubric-table-auto {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: auto; /* This lets columns resize based on content */
+}
+
+/* This rule applies border/padding to BOTH table types */
 .rubric-table th, .rubric-table td,
 .rubric-table-auto th, .rubric-table-auto td {
     border: 1px solid var(--border-secondary);
@@ -109,19 +118,32 @@ body {
     text-align: left;
     vertical-align: top;
 }
-.rubric-table th {
+
+.rubric-table th, 
+.rubric-table-auto th {
     background-color: var(--bg-secondary);
     font-weight: 600;
 }
-.rubric-table .skill-label-cell, .rubric-table thead tr th:first-child {
+
+.rubric-table .skill-label-cell,
+.rubric-table-auto .skill-label-cell {
     background-color: var(--bg-secondary);
     font-weight: 700;
     width: 15%;
 }
-.rubric-table .admin-highlight {
+
+/* Make the first column on auto-layout tables size itself */
+.rubric-table-auto .skill-label-cell {
+    width: auto; 
+}
+
+.rubric-table .admin-highlight,
+.rubric-table-auto .admin-highlight {
     background-color: var(--admin-highlight) !important;
 }
-.rubric-table .admin-clickable {
+
+.rubric-table .admin-clickable,
+.rubric-table-auto .admin-clickable {
      cursor: pointer;
 }
 

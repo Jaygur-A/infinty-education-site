@@ -552,23 +552,30 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
 
-    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
+    // Special case for your custom ID
+    let rubricId;
+    if (microSkill === "Emotional Energy Regulation") {
+        rubricId = "Emotional-Regulation";
+    } else {
+        rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
+    }
+
     const rubricRef = doc(db, "rubrics", rubricId);
     const rubricSnap = await getDoc(rubricRef);
 
     if (!rubricSnap.exists()) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet. Check the Document ID.</p>`;
         return;
     }
 
     const rubricData = rubricSnap.data();
-    const tableClass = rubricData.headers.length > 7 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
+    
+    const tableClass = rubricData.headers.length > 6 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
     let tableHTML = `<table class="${tableClass}">`;
-
-
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
+
     tableHTML += '<tbody>';
     rubricData.rows.forEach((rowData, rowIndex) => {
         tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
@@ -584,7 +591,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     
     const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
     if (isTeacherOrAdmin) {
-        setRubricMode('highlight');
+        setContinuumMode('highlight');
         const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
@@ -594,7 +601,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
             });
         }
     } else {
-        setRubricMode('view');
+        setContinuumMode('view');
     }
 }
 
@@ -615,15 +622,11 @@ async function showContinuumPage(coreSkill) {
     const backBtnContainer = document.getElementById('download-continuum-btn').parentNode;
     const oldBackBtn = backBtnContainer.querySelector('#back-from-continuum-btn');
     if (oldBackBtn) oldBackBtn.remove();
-    
     const backBtn = document.createElement('button');
     backBtn.id = 'back-from-continuum-btn';
     backBtn.className = 'text-sm font-semibold text-green-600 hover:underline';
     backBtn.textContent = 'Back to Student Page';
-    backBtn.addEventListener('click', () => {
-        showStudentDetailPage(currentStudentId);
-    });
-    
+    backBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
     backBtnContainer.insertBefore(backBtn, document.getElementById('edit-continuum-btn'));
 
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
@@ -640,17 +643,15 @@ async function showContinuumPage(coreSkill) {
 
     originalContinuumData = continuumSnap.data();
     
-    let tableHTML = '<table class="rubric-table text-sm">';
-    tableHTML += '<thead><tr>';
-    originalContinuumData.headers.forEach((header, index) => {
-        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
-        tableHTML += `<th ${style}>${header}</th>`;
+    let tableHTML = `<table class="rubric-table text-sm">`;
+    tableHTML += '<thead><tr><th></th>'; // Blank top-left header
+    originalContinuumData.headers.forEach(header => {
+        tableHTML += `<th>${header}</th>`;
     });
     tableHTML += '</tr></thead>';
-
     tableHTML += '<tbody>';
     originalContinuumData.rows.forEach((rowData, rowIndex) => {
-        tableHTML += '<tr>';
+        tableHTML += `<tr>`;
         tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
         rowData.levels.forEach((levelText, levelIndex) => {
             const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
@@ -659,13 +660,10 @@ async function showContinuumPage(coreSkill) {
         tableHTML += '</tr>';
     });
     tableHTML += '</tbody></table>';
-
     continuumTableContainer.innerHTML = tableHTML;
 
-    const activeTable = continuumTableContainer.querySelector('table');
     if (currentUserRole === 'admin') {
         setContinuumMode('highlight');
-        
         const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
@@ -678,6 +676,7 @@ async function showContinuumPage(coreSkill) {
         setContinuumMode('view');
     }
 }
+
 
 async function saveContinuumHighlights(coreSkill) {
     const activeContainer = document.querySelector('.continuum-rubric-container:not(.hidden)');
