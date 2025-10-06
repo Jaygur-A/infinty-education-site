@@ -1311,9 +1311,9 @@ downloadPdfBtn.addEventListener('click', async () => {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
     } 
-    // ELSE check if we are on the OLD static rubric view
+    // Check if we are on the NEW dynamic rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
+        elementToCapture = document.querySelector('#rubric-table-container .rubric-table');
         fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
     }
 
