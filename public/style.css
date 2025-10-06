@@ -129,3 +129,8 @@ body {
         max-width: 1440px; /* Increases the max width from 1280px to 1440px */
     }
 }
+
+.rubric-table-auto {
+    table-layout: auto;
+    width: 100%;
+}

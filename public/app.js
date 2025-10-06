@@ -551,33 +551,25 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
-    
-    // --- THIS IS THE NEW LOGIC ---
-    let rubricId;
-    if (microSkill === "Emotional Energy Regulation") {
-        // Special case for the document ID you created
-        rubricId = "Emotional-Regulation";
-    } else {
-        // Standard logic for all other rubrics
-        rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
-    }
-    // --- END OF NEW LOGIC ---
 
+    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
     const rubricRef = doc(db, "rubrics", rubricId);
     const rubricSnap = await getDoc(rubricRef);
 
     if (!rubricSnap.exists()) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet. Check the Document ID.</p>`;
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
         return;
     }
 
     const rubricData = rubricSnap.data();
-    
-    // The rest of the function remains the same
-    let tableHTML = '<table class="rubric-table text-sm">';
+    const tableClass = rubricData.headers.length > 6 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
+    let tableHTML = `<table class="${tableClass}">`;
+
+
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
+    tableHTML += '<tbody>';
     rubricData.rows.forEach((rowData, rowIndex) => {
         tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
         rowData.levels.forEach((levelText, levelIndex) => {
