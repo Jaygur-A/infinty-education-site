@@ -981,7 +981,7 @@ function updateJourneyCounter() {
 
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
-    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
+    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
     if (isTeacherOrAdmin) {
         showView(dashboardView);
     } else {
