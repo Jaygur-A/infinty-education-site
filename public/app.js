@@ -315,16 +315,24 @@ onAuthStateChanged(auth, async (user) => {
                 parentWelcomeMessage.classList.remove('hidden');
                 parentStudentView.classList.add('hidden');
             }
-        } else {
-			showView(parentDashboardView);
-			parentStudentView.classList.add('hidden'); 
-			parentWelcomeMessage.classList.remove('hidden'); 
-			parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
-			parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
-
-			const subscribeButton = parentWelcomeMessage.querySelector('#subscribe-btn');
-			if (subscribeButton) {
-				subscribeButton.classList.remove('hidden');
+        } else { // This is a Guest
+			// Check if the user intended to subscribe
+			if (sessionStorage.getItem('isSubscribing') === 'true') {
+				sessionStorage.removeItem('isSubscribing'); // Clear the flag
+				subscriptionModal.classList.remove('hidden'); // Immediately show the subscription modal
+			} else {
+				// Otherwise, show the normal guest welcome screen
+				showView(parentDashboardView);
+				parentStudentView.classList.add('hidden');
+				parentWelcomeMessage.classList.remove('hidden');
+				parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
+				parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
+				
+				// This part seems to be missing from your code, so we'll add it back.
+				const subscribeButtonInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+				if (subscribeButtonInWelcome) {
+					subscribeButtonInWelcome.classList.remove('hidden');
+				}
 			}
 		}
         userEmailDisplay.textContent = user.email;
