@@ -202,6 +202,11 @@ const editRubricBtn = document.getElementById('edit-rubric-btn');
 const saveRubricBtn = document.getElementById('save-rubric-btn');
 const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
 const subscribeBtn = document.getElementById('subscribe-btn');
+const subscribeBtn = document.getElementById('subscribe-btn');
+const subscriptionModal = document.getElementById('subscription-modal');
+const closeSubscriptionModalBtn = document.getElementById('close-subscription-modal-btn');
+const selectMonthlyPlanBtn = document.getElementById('select-monthly-plan-btn');
+const selectYearlyPlanBtn = document.getElementById('select-yearly-plan-btn');
 
 // App State
 let currentStudentId = null,
@@ -2076,15 +2081,49 @@ if (subscribeBtn) {
     subscribeBtn.addEventListener('click', () => {
         const user = auth.currentUser;
         if (user) {
-            // If user is already logged in (as a guest), proceed to checkout.
-            console.log('User is already signed in. Proceeding to checkout...');
-            // TODO: We will add the Stripe checkout logic here in the next step.
-            showMessage("Stripe checkout integration is the next step!", false);
+            // If user is logged in, show the subscription choice modal
+            subscriptionModal.classList.remove('hidden');
         } else {
             // If no user, prompt Google Sign-in first.
-            // After they sign in, onAuthStateChanged will handle the rest.
-            console.log('User not signed in. Prompting Google Sign-in before subscribing.');
+            showMessage("Please sign in with Google to subscribe.");
             signInWithPopup(auth, new GoogleAuthProvider());
         }
+    });
+}
+
+function goToCheckout(priceId) {
+    loadingOverlay.classList.remove('hidden');
+    const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+
+    createCheckoutSession({ priceId: priceId })
+        .then(result => {
+            const stripe = Stripe('pk_test_YOUR_STRIPE_PUBLISHABLE_KEY'); // ⚠️ Add your publishable key
+            return stripe.redirectToCheckout({ sessionId: result.data.id });
+        })
+        .catch(error => {
+            console.error("Error redirecting to checkout:", error);
+            showMessage("Could not initiate subscription. Please try again.");
+            loadingOverlay.classList.add('hidden');
+        });
+}
+
+// Event listeners for the modal buttons
+if (closeSubscriptionModalBtn) {
+    closeSubscriptionModalBtn.addEventListener('click', () => {
+        subscriptionModal.classList.add('hidden');
+    });
+}
+
+if (selectMonthlyPlanBtn) {
+    selectMonthlyPlanBtn.addEventListener('click', () => {
+        const monthlyPriceId = 'price_...'; // ⚠️ Paste your Monthly Price ID from Stripe
+        goToCheckout(monthlyPriceId);
+    });
+}
+
+if (selectYearlyPlanBtn) {
+    selectYearlyPlanBtn.addEventListener('click', () => {
+        const yearlyPriceId = 'price_...'; // ⚠️ Paste your Yearly Price ID from Stripe
+        goToCheckout(yearlyPriceId);
     });
 }

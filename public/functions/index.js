@@ -180,3 +180,75 @@ exports.sendNewMessageNotification = functions.firestore
     }
     return null;
   });
+  
+// This function runs when a Stripe checkout session is completed.
+exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = 'whsec_...'; // ⚠️ Your Stripe Webhook secret
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+    } catch (err) {
+        console.error('Webhook signature verification failed.', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the checkout.session.completed event
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const userId = session.client_reference_id; // The Firebase UID we passed earlier
+
+        if (!userId) {
+            return res.status(400).send('No userId found in session.');
+        }
+
+        try {
+            // 1. Create the new school document
+            const schoolRef = await db.collection('schools').add({
+                ownerUid: userId,
+                name: "New School", // You can let them name this later
+                subscriptionStatus: 'active',
+                stripeCustomerId: session.customer,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            const newSchoolId = schoolRef.id;
+
+            // 2. Update the user's role and schoolId
+            const userRef = db.collection('users').doc(userId);
+            await userRef.update({
+                role: 'schoolAdmin',
+                schoolId: newSchoolId
+            });
+
+            // 3. Clone the master templates (rubrics and continuums)
+            const templates = {
+                rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
+                continuums: await db.collection('continuums').where('schoolId', '==', null).get()
+            };
+
+            const batch = db.batch();
+
+            templates.rubrics.forEach(doc => {
+                const templateData = doc.data();
+                const newDocRef = db.collection('rubrics').doc();
+                batch.set(newDocRef, { ...templateData, schoolId: newSchoolId });
+            });
+
+            templates.continuums.forEach(doc => {
+                const templateData = doc.data();
+                const newDocRef = db.collection('continuums').doc();
+                batch.set(newDocRef, { ...templateData, schoolId: newSchoolId });
+            });
+
+            await batch.commit();
+            console.log(`Successfully provisioned new school ${newSchoolId} for user ${userId}`);
+
+        } catch (error) {
+            console.error('Error provisioning new school:', error);
+            return res.status(500).send('Internal Server Error');
+        }
+    }
+
+    res.status(200).send();
+});
