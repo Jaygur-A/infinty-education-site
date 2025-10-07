@@ -1601,7 +1601,7 @@ async function populateTeacherDropdown(dropdownElement) {
     
     // Fetch all users with the 'teacher' role
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("role", "==", "teacher"));
+    const q = query(usersRef, where("role", "in", ["teacher", "admin", "superAdmin"]));
     const snapshot = await getDocs(q);
     
     teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
