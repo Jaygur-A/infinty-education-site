@@ -271,20 +271,6 @@ onAuthStateChanged(auth, async (user) => {
         const docSnap = await createUserProfileIfNeeded(user);
         
         let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
-        
-        if (role === 'guest') {
-            const userRef = doc(db, "users", user.uid); // Define userRef here for the updateDoc call
-            const studentsRef = collection(db, "students");
-            const q1 = query(studentsRef, where("parent1Email", "==", user.email));
-            const q2 = query(studentsRef, where("parent2Email", "==", user.email));
-            const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-            
-            if (querySnapshot1.docs.length > 0 || querySnapshot2.docs.length > 0) {
-                role = 'parent';
-                await updateDoc(userRef, { role: 'parent' });
-            }
-        }
-        
         currentUserRole = role;
         currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
         
