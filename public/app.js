@@ -1016,6 +1016,22 @@ profileLink.addEventListener('click', (e) => {
     }
 });
 
+usersLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+        showUsersPage();
+        profileDropdown.classList.add('hidden');
+    }
+});
+
+classroomsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+        showClassroomsPage();
+        profileDropdown.classList.add('hidden');
+    }
+});
+
 logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
     signOut(auth);
@@ -1085,17 +1101,18 @@ addStudentForm.addEventListener('submit', async (e) => {
     }
 
     // Save the new student to the database
-    await addDoc(collection(db, "students"), {
-        name: document.getElementById('studentName').value,
-        grade: document.getElementById('studentGrade').value,
-        classroomId: selectedClassroomId, // Save the Classroom ID
-        className: selectedClassroomName, // Save the Classroom Name for easy display
-        parent1Email: parent1Email,
-        parent2Email: parent2Email,
-        createdAt: serverTimestamp(),
-        createdBy: auth.currentUser.uid
-    });
-
+	await addDoc(collection(db, "students"), {
+		name: document.getElementById('studentName').value,
+		grade: document.getElementById('studentGrade').value,
+		classroomId: selectedClassroomId, 
+		className: selectedClassroomName, 
+		parent1Email: parent1Email,
+		parent2Email: parent2Email,
+		createdAt: serverTimestamp(),
+		createdBy: auth.currentUser.uid,
+		schoolId: currentUserSchoolId // Add this line
+	});
+	
     addStudentForm.reset();
     addRecordModal.classList.add('hidden');
 });
