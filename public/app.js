@@ -389,7 +389,8 @@ function listenForStudentRecords() {
     // The main change: ALL queries are now filtered by schoolId first.
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
         q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), where("classroomId", "==", currentUserClassroomId));
-    } else if (currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
+    } else if (currentUserRole === 'admin' || currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
+        // This now correctly handles all admin types for a given school.
         q = query(studentsRef, where("schoolId", "==", currentUserSchoolId));
     } else {
         studentGrid.innerHTML = '';
