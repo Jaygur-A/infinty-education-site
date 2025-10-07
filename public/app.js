@@ -2080,10 +2080,10 @@ if (subscribeBtn) {
     subscribeBtn.addEventListener('click', () => {
         const user = auth.currentUser;
         if (user) {
-            // If user is logged in, show the subscription choice modal
             subscriptionModal.classList.remove('hidden');
         } else {
-            // If no user, prompt Google Sign-in first.
+            // Set a flag in session storage before signing in
+            sessionStorage.setItem('isSubscribing', 'true');
             showMessage("Please sign in with Google to subscribe.");
             signInWithPopup(auth, new GoogleAuthProvider());
         }
