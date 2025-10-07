@@ -325,13 +325,18 @@ onAuthStateChanged(auth, async (user) => {
                 parentWelcomeMessage.classList.remove('hidden');
                 parentStudentView.classList.add('hidden');
             }
-        } else { // This is a Guest
-            showView(parentDashboardView);
-            parentWelcomeMessage.classList.remove('hidden');
-            parentWelcomeMessage.querySelector('h2').textContent = 'Welcome!';
-            parentWelcomeMessage.querySelector('p').textContent = 'Your account is currently under review for access to student records.';
-            parentStudentView.classList.add('hidden');
-        }
+        } else {
+			showView(parentDashboardView);
+			parentStudentView.classList.add('hidden'); 
+			parentWelcomeMessage.classList.remove('hidden'); 
+			parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
+			parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
+
+			const subscribeButton = parentWelcomeMessage.querySelector('#subscribe-btn');
+			if (subscribeButton) {
+				subscribeButton.classList.remove('hidden');
+			}
+		}
         userEmailDisplay.textContent = user.email;
     } else {
         // This 'else' block for logging out is correct
