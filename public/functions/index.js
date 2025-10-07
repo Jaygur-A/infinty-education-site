@@ -184,7 +184,7 @@ exports.sendNewMessageNotification = functions.firestore
 // This function runs when a Stripe checkout session is completed.
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = 'whsec_p9afVZnQyawwDrVLW2hZwW2cUqdNuuMy'; // ⚠️ Your Stripe Webhook secret
+    const endpointSecret = ''; // ⚠️ Your Stripe Webhook secret
     let event;
 
     try {
