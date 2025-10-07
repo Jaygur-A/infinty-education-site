@@ -263,19 +263,17 @@ onAuthStateChanged(auth, async (user) => {
     // Reset state on auth change
     currentUserRole = null;
     currentUserClassroomId = null;
-	currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null;
 
     if (user) {
         document.body.classList.remove('login-background');
         document.body.classList.remove('bg-overlay');
-		await createUserProfileIfNeeded(user);
-		
-        const userRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(userRef);
+
+        const docSnap = await createUserProfileIfNeeded(user);
         
         let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
         
         if (role === 'guest') {
+            const userRef = doc(db, "users", user.uid); // Define userRef here for the updateDoc call
             const studentsRef = collection(db, "students");
             const q1 = query(studentsRef, where("parent1Email", "==", user.email));
             const q2 = query(studentsRef, where("parent2Email", "==", user.email));
@@ -288,17 +286,18 @@ onAuthStateChanged(auth, async (user) => {
         }
         
         currentUserRole = role;
+        currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
         
         console.log(`User logged in. Final role for routing: ${currentUserRole}`);
 
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
-        usersLink.classList.toggle('hidden', currentUserRole !== 'admin');
-        classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin');
+        usersLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
+        classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
         const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
-        messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin');
+        messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
         
         if (isTeacherOrAdmin) {
             showView(dashboardView);
@@ -335,8 +334,11 @@ onAuthStateChanged(auth, async (user) => {
         }
         userEmailDisplay.textContent = user.email;
     } else {
+        // This 'else' block for logging out is correct
         currentUserRole = null;
+        currentUserSchoolId = null; // Also reset schoolId on logout
         document.body.classList.add('login-background');
+        document.body.classList.add('bg-overlay');
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
         if (unsubscribeFromUsers) unsubscribeFromUsers();
