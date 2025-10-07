@@ -1614,7 +1614,7 @@ async function populateTeacherDropdown(dropdownElement) {
 async function populateClassroomDropdown() {
     studentClassSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
     
-    const q = query(collection(db, "classrooms"), orderBy("className"));
+    const q = query(collection(db, "classrooms"), where("schoolId", "==", currentUserSchoolId), orderBy("className"));
     const snapshot = await getDocs(q);
 
     studentClassSelect.innerHTML = '<option value="" disabled selected>Select a classroom</option>'; // Reset after loading
