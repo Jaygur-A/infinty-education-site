@@ -1,15 +1,83 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const stripe = require("stripe")("sk_test_YOUR_STRIPE_SECRET_KEY"); // ⚠️ ADD YOUR STRIPE SECRET KEY
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Make sure your Google AI API Key is pasted here
+// ⚠️ MAKE SURE YOUR GEMINI API KEY IS PASTED HERE
 const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+
+
+/*
+ * ===================================================================
+ * STRIPE & SUBSCRIPTION FUNCTIONS (NEW)
+ * ===================================================================
+ */
+exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
+  // Check if user is authenticated.
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "You must be logged in to subscribe."
+    );
+  }
+
+  const { priceId } = data;
+  const userId = context.auth.uid;
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "subscription",
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      // This is CRITICAL for linking the purchase back to the user
+      client_reference_id: userId,
+      // Use your actual deployed URL
+      success_url: `https://infinity-education-c170b.web.app?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://infinity-education-c170b.web.app`,
+    });
+
+    return { id: session.id };
+  } catch (error) {
+    console.error("Stripe Checkout Error:", error);
+    throw new functions.https.HttpsError("internal", "Unable to create checkout session.");
+  }
+});
+
+
+/*
+ * ===================================================================
+ * AUTHENTICATION & CUSTOM CLAIMS FUNCTION (NEW)
+ * ===================================================================
+ */
+exports.setUserClaims = functions.firestore
+  .document("users/{userId}")
+  .onWrite(async (change, context) => {
+    const userData = change.after.data();
+    const userId = context.params.userId;
+
+    try {
+      // Set the custom claims
+      await admin.auth().setCustomUserClaims(userId, {
+        role: userData.role || "guest",
+        schoolId: userData.schoolId || null,
+      });
+      console.log(`Claims set for ${userId}: role=${userData.role}, schoolId=${userData.schoolId}`);
+    } catch (error) {
+      console.error("Error setting custom claims:", error);
+    }
+});
+
 
 /*
  * ===================================================================
@@ -17,7 +85,6 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
  * ===================================================================
  */
 exports.generateJourneySummary = functions.https.onCall(async (data, context) => {
-  // ... (your existing generateJourneySummary function code is here)
   if (!context.auth) { throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated."); }
   const { studentName, anecdoteIds } = data;
   if (!studentName || !anecdoteIds || anecdoteIds.length === 0) { throw new functions.https.HttpsError("invalid-argument", "The function must be called with a studentName and an array of anecdoteIds."); }
@@ -45,17 +112,13 @@ exports.generateJourneySummary = functions.https.onCall(async (data, context) =>
 
 /*
  * ===================================================================
- * NEW NOTIFICATION FUNCTIONS
+ * NOTIFICATION FUNCTIONS (Existing)
  * ===================================================================
  */
-
-// Function to send an email when a NEW ANECDOTE is created
 exports.sendAnecdoteNotification = functions.firestore
   .document("anecdotes/{anecdoteId}")
   .onCreate(async (snap, context) => {
     const anecdote = snap.data();
-
-    // 1. Get the student document to find parent emails
     const studentRef = db.collection("students").doc(anecdote.studentId);
     const studentSnap = await studentRef.get();
     if (!studentSnap.exists) {
@@ -63,38 +126,25 @@ exports.sendAnecdoteNotification = functions.firestore
       return null;
     }
     const student = studentSnap.data();
-
-    // 2. Create a list of parent emails to notify
     const parentEmails = [];
     if (student.parent1Email) parentEmails.push(student.parent1Email);
     if (student.parent2Email) parentEmails.push(student.parent2Email);
-
     if (parentEmails.length === 0) {
       console.log(`No parent emails for student ${student.name}.`);
       return null;
     }
-
-    // 3. For each parent, check their notification settings and send the email
     for (const email of parentEmails) {
       const usersRef = db.collection("users");
       const q = usersRef.where("email", "==", email);
       const userSnap = await q.get();
-
       if (!userSnap.empty) {
         const parentUser = userSnap.docs[0].data();
-        // Check if the parent wants this type of email
         if (parentUser.notificationSettings?.newAnecdote === true) {
-          // 4. Add a document to the 'mail' collection to trigger the email extension
           await db.collection("mail").add({
             to: email,
             message: {
               subject: `Infinity Education: New Anecdote for ${student.name}`,
-              html: `
-                <p>Hello,</p>
-                <p>A new learning anecdote has just been logged for <strong>${student.name}</strong> in the area of "${anecdote.coreSkill} / ${anecdote.microSkill}".</p>
-                <p>You can log in to your dashboard to view the details.</p>
-                <p>Thank you,<br>The Infinity Education Team</p>
-              `,
+              html: `<p>Hello,</p><p>A new learning anecdote has just been logged for <strong>${student.name}</strong> in the area of "${anecdote.coreSkill} / ${anecdote.microSkill}".</p><p>You can log in to your dashboard to view the details.</p><p>Thank you,<br>The Infinity Education Team</p>`,
             },
           });
           console.log(`Anecdote notification email triggered for ${email}`);
@@ -104,41 +154,26 @@ exports.sendAnecdoteNotification = functions.firestore
     return null;
   });
 
-
-// Function to send an email when a NEW CHAT MESSAGE is created
 exports.sendNewMessageNotification = functions.firestore
   .document("chats/{chatId}/messages/{messageId}")
   .onCreate(async (snap, context) => {
     const message = snap.data();
-    
-    // Don't send a notification if the user sent a message to themselves
     if (message.senderId === message.recipientId) {
         return null;
     }
-
-    // 1. Get the recipient's user document
     const recipientRef = db.collection("users").doc(message.recipientId);
     const recipientSnap = await recipientRef.get();
-
     if (!recipientSnap.exists) {
         console.log(`Recipient user ${message.recipientId} not found.`);
         return null;
     }
-
     const recipient = recipientSnap.data();
-
-    // 2. Check if the recipient wants this type of email
     if (recipient.notificationSettings?.newMessage === true) {
-        // 3. Add a document to the 'mail' collection
         await db.collection("mail").add({
             to: recipient.email,
             message: {
                 subject: "Infinity Education: New Message!",
-                html: `
-                  <p>Hello ${recipient.displayName || ''},</p>
-                  <p>You have received a new message.</p>
-                  <p>Please log in to your Infinity Education dashboard to view and reply.</p>
-                `,
+                html: `<p>Hello ${recipient.displayName || ''},</p><p>You have received a new message.</p><p>Please log in to your Infinity Education dashboard to view and reply.</p>`,
             },
         });
         console.log(`New message notification email triggered for ${recipient.email}`);
