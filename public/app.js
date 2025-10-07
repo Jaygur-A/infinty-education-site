@@ -828,7 +828,7 @@ function openChat(recipient) {
 
 function listenForAdminMessages() {
     const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+    if (currentUserRole !== 'admin' && currentUserRole !== 'superAdmin') return;
     const { start, end } = getWeekDates();
     const options = { month: 'long', day: 'numeric' };
     const formattedStartDate = start.toLocaleDateString('en-US', options);
