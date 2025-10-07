@@ -213,6 +213,7 @@ let anecdoteChart = null,
 let selectedJourneyAnecdotes = [];
 let currentUserRole = null;
 let currentUserClassroomId = null;
+let currentUserSchoolId = null;
 let teachers = []; // Cache for teacher list
 
 // Helper Functions
@@ -261,6 +262,7 @@ onAuthStateChanged(auth, async (user) => {
     // Reset state on auth change
     currentUserRole = null;
     currentUserClassroomId = null;
+	currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null;
 
     if (user) {
         document.body.classList.remove('login-background');
@@ -369,18 +371,24 @@ async function createUserProfileIfNeeded(user) {
 // Data Logic
 function listenForStudentRecords() {
     if (unsubscribeFromStudents) unsubscribeFromStudents();
-    
+
+    // We must have a schoolId to fetch school-specific data.
+    if (!currentUserSchoolId) {
+        studentGrid.innerHTML = '';
+        noStudentsMessage.classList.remove('hidden');
+        noStudentsMessage.querySelector('p').textContent = "Could not identify your school.";
+        return;
+    }
+
     let q;
     const studentsRef = collection(db, "students");
 
-    // If the user is a teacher and has a classroom, filter by their classroom ID
+    // The main change: ALL queries are now filtered by schoolId first.
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
-        q = query(studentsRef, where("classroomId", "==", currentUserClassroomId));
-    } else if (currentUserRole === 'admin') {
-        // Admin sees all students
-        q = query(studentsRef);
+        q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), where("classroomId", "==", currentUserClassroomId));
+    } else if (currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
+        q = query(studentsRef, where("schoolId", "==", currentUserSchoolId));
     } else {
-        // If not admin or a teacher with a class, show nothing.
         studentGrid.innerHTML = '';
         noStudentsMessage.classList.remove('hidden');
         return;
@@ -1623,7 +1631,8 @@ async function populateClassroomDropdown() {
 }
 
 function listenForClassrooms() {
-    const q = query(collection(db, "classrooms"));
+	if (!currentUserSchoolId) return;
+    const q = query(collection(db, "classrooms"), where("schoolId", "==", currentUserSchoolId));
     onSnapshot(q, (snapshot) => {
         classroomsList.innerHTML = '';
         if (snapshot.empty) {
