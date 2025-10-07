@@ -420,13 +420,12 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
     targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
     targetContainer.classList.remove('hidden');
 	if (buildContinuumBtn) {
-        const user = auth.currentUser;
-			if (currentUserRole === 'admin') {
-				buildContinuumBtn.classList.remove('hidden');
-			}	 else {
-				buildContinuumBtn.classList.add('hidden');
-			}
-    }
+		if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+			buildContinuumBtn.classList.remove('hidden');
+		} else {
+			buildContinuumBtn.classList.add('hidden');
+		}
+	}
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
         const microSkillsForCore = skillMap[coreSkill] || [];
@@ -586,7 +585,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
 
     rubricTableContainer.innerHTML = tableHTML;
     
-    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher';
+    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
     if (isTeacherOrAdmin) {
         setRubricMode('highlight');
         const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
