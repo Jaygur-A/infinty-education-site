@@ -1685,7 +1685,7 @@ async function deleteClassroom(classroomId) {
 
 classroomsLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if (currentUserRole === 'admin') {
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
         showClassroomsPage();
         profileDropdown.classList.add('hidden');
     }
