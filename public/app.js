@@ -201,6 +201,7 @@ const rubricTableContainer = document.getElementById('rubric-table-container');
 const editRubricBtn = document.getElementById('edit-rubric-btn');
 const saveRubricBtn = document.getElementById('save-rubric-btn');
 const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
+const subscribeBtn = document.getElementById('subscribe-btn');
 
 // App State
 let currentStudentId = null,
@@ -2059,3 +2060,20 @@ async function saveRubricChanges() {
 editRubricBtn.addEventListener('click', () => setRubricMode('edit'));
 saveRubricBtn.addEventListener('click', saveRubricChanges);
 cancelRubricBtn.addEventListener('click', () => showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill));
+
+if (subscribeBtn) {
+    subscribeBtn.addEventListener('click', () => {
+        const user = auth.currentUser;
+        if (user) {
+            // If user is already logged in (as a guest), proceed to checkout.
+            console.log('User is already signed in. Proceeding to checkout...');
+            // TODO: We will add the Stripe checkout logic here in the next step.
+            showMessage("Stripe checkout integration is the next step!", false);
+        } else {
+            // If no user, prompt Google Sign-in first.
+            // After they sign in, onAuthStateChanged will handle the rest.
+            console.log('User not signed in. Prompting Google Sign-in before subscribing.');
+            signInWithPopup(auth, new GoogleAuthProvider());
+        }
+    });
+}
