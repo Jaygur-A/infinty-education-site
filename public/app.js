@@ -1597,7 +1597,8 @@ usersListBody.addEventListener('change', (e) => {
 
 // --- CLASSROOM MANAGEMENT ---
 async function populateTeacherDropdown(dropdownElement) {
-    dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
+    dropdownElement.innerHTML = '';
+	dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
     
     // Fetch all users with the 'teacher' role
     const usersRef = collection(db, "users");
