@@ -202,7 +202,6 @@ const editRubricBtn = document.getElementById('edit-rubric-btn');
 const saveRubricBtn = document.getElementById('save-rubric-btn');
 const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
 const subscribeBtn = document.getElementById('subscribe-btn');
-const subscribeBtn = document.getElementById('subscribe-btn');
 const subscriptionModal = document.getElementById('subscription-modal');
 const closeSubscriptionModalBtn = document.getElementById('close-subscription-modal-btn');
 const selectMonthlyPlanBtn = document.getElementById('select-monthly-plan-btn');
