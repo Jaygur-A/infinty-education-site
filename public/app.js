@@ -360,13 +360,13 @@ async function createUserProfileIfNeeded(user) {
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
             role: 'guest',
-            // ADD THIS NEW OBJECT
             notificationSettings: {
                 newAnecdote: true,
                 newMessage: true
             }
         });
     }
+    return docSnap;
 }
 
 // Data Logic
