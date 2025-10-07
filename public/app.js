@@ -992,7 +992,7 @@ dashboardBtn.addEventListener('click', () => {
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
-    if (auth.currentUser.uid === ADMIN_UID) {
+    if (currentUserRole === 'superAdmin') { 
         listenForAdminMessages();
     }
 });
