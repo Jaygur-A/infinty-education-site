@@ -69,3 +69,5 @@ node_modules/
 .dataconnect
 
 sendgrid api.txt
+
+.env

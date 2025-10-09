@@ -2104,7 +2104,7 @@ function goToCheckout(priceId) {
 
     createCheckoutSession({ priceId: priceId })
         .then(result => {
-            const stripe = Stripe('pk_test_YOUR_STRIPE_PUBLISHABLE_KEY'); // ⚠️ Add your publishable key
+            const stripe = Stripe('pk_test_YOUR_STRIPE_PUBLISHABLE_KEY'); 
             return stripe.redirectToCheckout({ sessionId: result.data.id });
         })
         .catch(error => {
@@ -2123,14 +2123,14 @@ if (closeSubscriptionModalBtn) {
 
 if (selectMonthlyPlanBtn) {
     selectMonthlyPlanBtn.addEventListener('click', () => {
-        const monthlyPriceId = 'price_...'; // ⚠️ Paste your Monthly Price ID from Stripe
+        const monthlyPriceId = 'price_1SGBtjKlr4wm1W93Qg9WgPMM'; 
         goToCheckout(monthlyPriceId);
     });
 }
 
 if (selectYearlyPlanBtn) {
     selectYearlyPlanBtn.addEventListener('click', () => {
-        const yearlyPriceId = 'price_...'; // ⚠️ Paste your Yearly Price ID from Stripe
+        const yearlyPriceId = 'price_1SGBtjKlr4wm1W932JbFzzwx'; 
         goToCheckout(yearlyPriceId);
     });
 }
