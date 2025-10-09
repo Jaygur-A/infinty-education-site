@@ -2123,7 +2123,7 @@ if (closeSubscriptionModalBtn) {
 
 if (selectMonthlyPlanBtn) {
     selectMonthlyPlanBtn.addEventListener('click', () => {
-        const monthlyPriceId = 'price_1SGBtjKlr4wm1W93Qg9WgPMM'; 
+        const monthlyPriceId = 'price_1SGKkvKlr4wm1W93e1TWXgPH'; 
         goToCheckout(monthlyPriceId);
     });
 }
