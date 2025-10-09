@@ -2104,7 +2104,7 @@ function goToCheckout(priceId) {
 
     createCheckoutSession({ priceId: priceId })
         .then(result => {
-            const stripe = Stripe('pk_test_YOUR_STRIPE_PUBLISHABLE_KEY'); 
+            const stripe = Stripe('pk_test_51NBdbQKlr4wm1W93LWadLvepbsPkXhRsEp9KauHIu3oZC9eDJHZOJrGxQPnoY9m9M9lUo9u2m4dc3h2YSNG9JIEp00IzlBS0pT'); 
             return stripe.redirectToCheckout({ sessionId: result.data.id });
         })
         .catch(error => {
