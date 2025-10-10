@@ -81,6 +81,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                 name: "New School",
                 subscriptionStatus: 'active',
                 stripeCustomerId: session.customer,
+				subscriptionId: session.subscription,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
             const newSchoolId = schoolRef.id;
@@ -223,6 +224,59 @@ exports.sendAnecdoteNotification = functions.firestore.document("anecdotes/{anec
         }
     }
     return null;
+});
+
+/*
+ * ===================================================================
+ * STRIPE SUBSCRIPTION STATUS SYNC
+ * ===================================================================
+ */
+exports.handleSubscriptionChange = functions.https.onRequest(async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; 
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+    } catch (err) {
+        console.error('Webhook signature verification failed.', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    const subscription = event.data.object;
+    const relevantEvents = new Set([
+        'customer.subscription.updated',
+        'customer.subscription.deleted',
+    ]);
+
+    if (relevantEvents.has(event.type)) {
+        try {
+            // Find the school document that corresponds to this subscription
+            const schoolsRef = db.collection('schools');
+            const q = schoolsRef.where('subscriptionId', '==', subscription.id).limit(1);
+            const snapshot = await q.get();
+
+            if (snapshot.empty) {
+                console.log(`No school found for subscription ID: ${subscription.id}`);
+                return res.status(200).send();
+            }
+
+            const schoolDoc = snapshot.docs[0];
+            const newStatus = subscription.status === 'active' ? 'active' : 'inactive';
+
+            await schoolDoc.ref.update({
+                subscriptionStatus: newStatus
+            });
+
+            console.log(`Updated school ${schoolDoc.id} to status: ${newStatus}`);
+
+        } catch (error) {
+            console.error('Error updating subscription status:', error);
+            return res.status(500).send('Internal Server Error');
+        }
+    }
+
+    res.status(200).send();
 });
 
 exports.sendNewMessageNotification = functions.firestore.document("chats/{chatId}/messages/{messageId}").onCreate(async (snap, context) => {

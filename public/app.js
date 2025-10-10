@@ -206,6 +206,8 @@ const subscriptionModal = document.getElementById('subscription-modal');
 const closeSubscriptionModalBtn = document.getElementById('close-subscription-modal-btn');
 const selectMonthlyPlanBtn = document.getElementById('select-monthly-plan-btn');
 const selectYearlyPlanBtn = document.getElementById('select-yearly-plan-btn');
+const subscriptionInactiveView = document.getElementById('subscription-inactive-view');
+const resubscribeBtn = document.getElementById('resubscribe-btn');
 
 // App State
 let currentStudentId = null,
