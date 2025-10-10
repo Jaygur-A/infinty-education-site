@@ -2146,7 +2146,7 @@ if (selectMonthlyPlanBtn) {
 
 if (selectYearlyPlanBtn) {
     selectYearlyPlanBtn.addEventListener('click', () => {
-        const yearlyPriceId = 'price_1SGBtjKlr4wm1W932JbFzzwx'; 
+        const yearlyPriceId = 'price_1SGkBFKlr4wm1W939grYlueR'; 
         goToCheckout(yearlyPriceId);
     });
 }
