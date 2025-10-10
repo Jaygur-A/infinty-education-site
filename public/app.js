@@ -281,7 +281,18 @@ onAuthStateChanged(auth, async (user) => {
         currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
         
         console.log(`User logged in. Final role for routing: ${currentUserRole}`);
-
+		
+		if (currentUserSchoolId) {
+            const schoolRef = doc(db, "schools", currentUserSchoolId);
+            const schoolSnap = await getDoc(schoolRef);
+            if (schoolSnap.exists() && schoolSnap.data().subscriptionStatus !== 'active') {
+                console.log("Subscription is inactive. Showing inactive view.");
+                showView(subscriptionInactiveView);
+                loadingOverlay.classList.add('hidden');
+                return; // Stop further execution
+            }
+        }
+		
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
@@ -2134,5 +2145,11 @@ if (selectYearlyPlanBtn) {
     selectYearlyPlanBtn.addEventListener('click', () => {
         const yearlyPriceId = 'price_1SGBtjKlr4wm1W932JbFzzwx'; 
         goToCheckout(yearlyPriceId);
+    });
+}
+
+if (resubscribeBtn) {
+    resubscribeBtn.addEventListener('click', () => {
+        subscriptionModal.classList.remove('hidden');
     });
 }
