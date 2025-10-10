@@ -1049,7 +1049,10 @@ classroomsLink.addEventListener('click', (e) => {
 
 logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
-    signOut(auth);
+    sessionStorage.removeItem('isSubscribing');
+    signOut(auth).then(() => {
+        window.location.reload();
+    });
     profileDropdown.classList.add('hidden');
 });
 
