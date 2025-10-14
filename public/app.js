@@ -720,7 +720,7 @@ async function saveContinuumHighlights(coreSkill) {
 
 function listenForAllAnecdotes() {
     if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
-    const q = query(collection(db, "anecdotes"));
+    const q = query(collection(db, "anecdotes"), where("schoolId", "==", currentUserSchoolId));
     unsubscribeFromAllAnecdotes = onSnapshot(q, (snapshot) => {
         const coreSkillCounts = { 'Vitality': 0, 'Integrity': 0, 'Curiosity': 0, 'Critical Thinking': 0, 'Fields of Knowledge': 0 };
         snapshot.forEach(doc => {
