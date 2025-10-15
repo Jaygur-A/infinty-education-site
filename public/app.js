@@ -21,6 +21,22 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
+// Check for Stripe redirect and show school name modal if needed
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('session_id')) {
+        // This means the user is coming back from a successful checkout.
+        // We wait for authentication to complete before showing the modal.
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                schoolNameModal.classList.remove('hidden');
+                // Clean up the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    }
+});
+
 // ===================================================================
 // DATA STRUCTURES
 // ===================================================================
@@ -208,6 +224,9 @@ const selectMonthlyPlanBtn = document.getElementById('select-monthly-plan-btn');
 const selectYearlyPlanBtn = document.getElementById('select-yearly-plan-btn');
 const subscriptionInactiveView = document.getElementById('subscription-inactive-view');
 const resubscribeBtn = document.getElementById('resubscribe-btn');
+const schoolNameModal = document.getElementById('school-name-modal');
+const schoolNameForm = document.getElementById('school-name-form');
+const schoolNameInput = document.getElementById('schoolNameInput');
 
 // App State
 let currentStudentId = null,
@@ -2154,5 +2173,33 @@ if (selectYearlyPlanBtn) {
 if (resubscribeBtn) {
     resubscribeBtn.addEventListener('click', () => {
         subscriptionModal.classList.remove('hidden');
+    });
+}
+
+// --- SCHOOL ONBOARDING ---
+if (schoolNameForm) {
+    schoolNameForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newName = schoolNameInput.value;
+        if (!newName.trim()) {
+            showMessage("Please enter a name for your school.");
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        const updateSchoolName = httpsCallable(functions, 'updateSchoolName');
+
+        try {
+            await updateSchoolName({ schoolName: newName });
+            showMessage("School created successfully!", false);
+            schoolNameModal.classList.add('hidden');
+            // Reload to see the fully set up dashboard
+            window.location.reload(); 
+        } catch (error) {
+            console.error("Error setting school name:", error);
+            showMessage("Could not save school name. Please try again.");
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
     });
 }

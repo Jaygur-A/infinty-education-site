@@ -151,6 +151,34 @@ exports.deleteUserData = functions.https.onCall(async (data, context) => {
   }
 });
 
+// Updates a newly created school's name during onboarding
+exports.updateSchoolName = functions.https.onCall(async (data, context) => {
+  // 1. Check for authentication and correct role
+  if (!context.auth || context.auth.token.role !== 'schoolAdmin') {
+    throw new functions.https.HttpsError("unauthenticated", "You must be a school administrator to perform this action.");
+  }
+
+  const { schoolName } = data;
+  const schoolId = context.auth.token.schoolId;
+
+  // 2. Validate the input
+  if (!schoolName || schoolName.trim().length === 0) {
+    throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty.");
+  }
+  if (!schoolId) {
+    throw new functions.https.HttpsError("failed-precondition", "User does not have a school ID.");
+  }
+
+  // 3. Update the school document
+  try {
+    const schoolRef = db.collection('schools').doc(schoolId);
+    await schoolRef.update({ name: schoolName.trim() });
+    return { status: 'success', message: 'School name updated successfully.' };
+  } catch (error) {
+    console.error("Error updating school name:", error);
+    throw new functions.https.HttpsError("internal", "An error occurred while updating the school name.");
+  }
+});
 
 /*
  * ===================================================================
