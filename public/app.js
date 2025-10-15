@@ -2206,10 +2206,15 @@ if (schoolNameForm) {
         const updateSchoolName = httpsCallable(functions, 'updateSchoolName');
 
         try {
-            await updateSchoolName({ schoolName: newName });
-            showMessage("School created successfully!", false);
-            schoolNameModal.classList.add('hidden');
-            // Reload to see the fully set up dashboard
+			await updateSchoolName({ schoolName: newName });
+			showMessage("School created successfully! Reloading dashboard...", false);
+			schoolNameModal.classList.add('hidden');
+
+			// Force a refresh of the user's authentication token
+			const user = auth.currentUser;
+			if (user) {
+				await user.getIdToken(true);
+			}
             window.location.reload(); 
         } catch (error) {
             console.error("Error setting school name:", error);
