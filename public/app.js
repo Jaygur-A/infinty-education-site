@@ -1776,7 +1776,7 @@ createClassroomForm.addEventListener('submit', async (e) => {
             className: newClassroomName.value,
             teacherId: selectedTeacher.id,
             teacherName: selectedTeacher.displayName || selectedTeacher.email,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
 			schoolId: currentUserSchoolId
         });
         showMessage("Classroom created successfully!", false);
