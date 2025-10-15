@@ -271,7 +271,6 @@ const showView = (viewToShow) => {
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
-    // Reset state on auth change
     currentUserRole = null;
     currentUserClassroomId = null;
     currentUserSchoolId = null;
