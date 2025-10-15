@@ -299,7 +299,13 @@ onAuthStateChanged(auth, async (user) => {
         document.body.classList.remove('bg-overlay');
 
         const docSnap = await createUserProfileIfNeeded(user);
-        
+		
+		if (!docSnap.exists()) {
+		// This was a new user. We need to get the fresh token with the 'guest' claim.
+		await user.getIdToken(true); 
+		console.log("Forced token refresh for new user.");
+	}
+			
         let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
         currentUserRole = role;
         currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
