@@ -1,7 +1,7 @@
 // --- Handle Stripe Redirect Immediately ---
 const urlParamsOnLoad = new URLSearchParams(window.location.search);
 if (urlParamsOnLoad.has('session_id')) {
-    // If the user is returning from checkout, set a flag in session storage.
+    console.log("Stripe session ID found in URL. Setting postCheckout flag.");
     sessionStorage.setItem('postCheckout', 'true');
     // Clean the URL so this doesn't run again on a refresh.
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -284,7 +284,9 @@ onAuthStateChanged(auth, async (user) => {
     currentUserSchoolId = null;
 
      if (user) {
-        // --- NEW: Check for the post-checkout flag ---
+        console.log("onAuthStateChanged fired for a logged-in user.");
+		const postCheckoutFlag = sessionStorage.getItem('postCheckout');
+        console.log("Value of postCheckout flag:", postCheckoutFlag);
         if (sessionStorage.getItem('postCheckout') === 'true') {
             sessionStorage.removeItem('postCheckout'); // Clear the flag
             schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
@@ -1595,8 +1597,21 @@ downloadJourneyPdfBtn.addEventListener('click', () => {
 async function showUsersPage() {
     showView(usersView);
     usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Loading users...</td></tr>';
-    
+
+    if (!currentUserSchoolId && currentUserRole !== 'superAdmin') {
+        usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Cannot determine your school.</td></tr>';
+        return;
+    }
+
     const usersRef = collection(db, "users");
+    let q;
+
+    // A superAdmin sees ALL users. A schoolAdmin only sees users from their school.
+    if (currentUserRole === 'superAdmin') {
+        q = query(usersRef);
+    } else {
+        q = query(usersRef, where("schoolId", "==", currentUserSchoolId));
+    }
     const snapshot = await getDocs(usersRef);
 
     usersListBody.innerHTML = '';
@@ -1762,6 +1777,7 @@ createClassroomForm.addEventListener('submit', async (e) => {
             teacherId: selectedTeacher.id,
             teacherName: selectedTeacher.displayName || selectedTeacher.email,
             createdAt: serverTimestamp()
+			schoolId: currentUserSchoolId
         });
         showMessage("Classroom created successfully!", false);
         createClassroomForm.reset();
