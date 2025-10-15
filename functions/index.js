@@ -42,8 +42,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: userId,
-      success_url: `https://infinity-education-site-bdu19.kinsta.page/?session_id={CHECKOUT_SESSION_ID}`,
-	  cancel_url: `https://infinity-education-site-bdu19.kinsta.page/`,
+      success_url: `infinty-education-site-bdul9.kinsta.page/?session_id={CHECKOUT_SESSION_ID}`,
+	  cancel_url: `infinty-education-site-bdul9.kinsta.page,
     });
 
     console.log("Stripe session created successfully:", session.id); // New log
