@@ -1,3 +1,11 @@
+// --- Handle Stripe Redirect Immediately ---
+const urlParamsOnLoad = new URLSearchParams(window.location.search);
+if (urlParamsOnLoad.has('session_id')) {
+    // If the user is returning from checkout, set a flag in session storage.
+    sessionStorage.setItem('postCheckout', 'true');
+    // Clean the URL so this doesn't run again on a refresh.
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -275,16 +283,13 @@ onAuthStateChanged(auth, async (user) => {
     currentUserClassroomId = null;
     currentUserSchoolId = null;
 
-    if (user) {
-        // --- Handle Post-Checkout Redirect ---
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('session_id')) {
-            // The user just paid. Show the "Name Your School" modal.
-            schoolNameModal.classList.remove('hidden');
-            // Clean up the URL so this doesn't run again on a page refresh.
-            window.history.replaceState({}, document.title, window.location.pathname);
+     if (user) {
+        // --- NEW: Check for the post-checkout flag ---
+        if (sessionStorage.getItem('postCheckout') === 'true') {
+            sessionStorage.removeItem('postCheckout'); // Clear the flag
+            schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
             loadingOverlay.classList.add('hidden');
-            return; // IMPORTANT: Stop here and wait for the user to name their school.
+            return; // IMPORTANT: Stop here and wait for user input.
         }
 
         // --- Standard Login Logic ---
