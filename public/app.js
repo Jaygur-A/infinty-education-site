@@ -21,21 +21,7 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
-// Check for Stripe redirect and show school name modal if needed
-document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('session_id')) {
-        // This means the user is coming back from a successful checkout.
-        // We wait for authentication to complete before showing the modal.
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                schoolNameModal.classList.remove('hidden');
-                // Clean up the URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-    }
-});
+
 
 // ===================================================================
 // DATA STRUCTURES
@@ -288,8 +274,21 @@ onAuthStateChanged(auth, async (user) => {
     // Reset state on auth change
     currentUserRole = null;
     currentUserClassroomId = null;
+    currentUserSchoolId = null;
 
     if (user) {
+        // --- Handle Post-Checkout Redirect ---
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('session_id')) {
+            // The user just paid. Show the "Name Your School" modal.
+            schoolNameModal.classList.remove('hidden');
+            // Clean up the URL so this doesn't run again on a page refresh.
+            window.history.replaceState({}, document.title, window.location.pathname);
+            loadingOverlay.classList.add('hidden');
+            return; // IMPORTANT: Stop here and wait for the user to name their school.
+        }
+
+        // --- Standard Login Logic ---
         document.body.classList.remove('login-background');
         document.body.classList.remove('bg-overlay');
 
@@ -300,8 +299,8 @@ onAuthStateChanged(auth, async (user) => {
         currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
         
         console.log(`User logged in. Final role for routing: ${currentUserRole}`);
-		
-		if (currentUserSchoolId) {
+        
+        if (currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists() && schoolSnap.data().subscriptionStatus !== 'active') {
@@ -311,13 +310,13 @@ onAuthStateChanged(auth, async (user) => {
                 return; // Stop further execution
             }
         }
-		
+        
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
         classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
-        const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
+        const isTeacherOrAdmin = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
         
@@ -348,30 +347,27 @@ onAuthStateChanged(auth, async (user) => {
                 parentStudentView.classList.add('hidden');
             }
         } else { // This is a Guest
-			// Check if the user intended to subscribe
-			if (sessionStorage.getItem('isSubscribing') === 'true') {
-				sessionStorage.removeItem('isSubscribing'); // Clear the flag
-				subscriptionModal.classList.remove('hidden'); // Immediately show the subscription modal
-			} else {
-				// Otherwise, show the normal guest welcome screen
-				showView(parentDashboardView);
-				parentStudentView.classList.add('hidden');
-				parentWelcomeMessage.classList.remove('hidden');
-				parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
-				parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
-				
-				// This part seems to be missing from your code, so we'll add it back.
-				const subscribeButtonInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
-				if (subscribeButtonInWelcome) {
-					subscribeButtonInWelcome.classList.remove('hidden');
-				}
-			}
-		}
+            if (sessionStorage.getItem('isSubscribing') === 'true') {
+                sessionStorage.removeItem('isSubscribing');
+                subscriptionModal.classList.remove('hidden');
+            } else {
+                showView(parentDashboardView);
+                parentStudentView.classList.add('hidden');
+                parentWelcomeMessage.classList.remove('hidden');
+                parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
+                parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
+                
+                const subscribeButtonInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+                if (subscribeButtonInWelcome) {
+                    subscribeButtonInWelcome.classList.remove('hidden');
+                }
+            }
+        }
         userEmailDisplay.textContent = user.email;
     } else {
-        // This 'else' block for logging out is correct
+        // --- Logout Logic ---
         currentUserRole = null;
-        currentUserSchoolId = null; // Also reset schoolId on logout
+        currentUserSchoolId = null;
         document.body.classList.add('login-background');
         document.body.classList.add('bg-overlay');
         appContainer.classList.add('hidden');
