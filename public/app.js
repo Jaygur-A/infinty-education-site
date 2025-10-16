@@ -735,7 +735,7 @@ async function showContinuumPage(coreSkill) {
 }
 
 async function saveContinuumHighlights(coreSkill) {
-    const activeContainer = document.querySelector('.continuum-rubric-container:not(.hidden)');
+    const activeContainer = document.querySelector('#continuum-table-container');
     if (!activeContainer) return;
     const highlightedCells = [];
     activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
