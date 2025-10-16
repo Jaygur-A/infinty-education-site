@@ -607,20 +607,23 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
 
-    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
-    const rubricRef = doc(db, "rubrics", rubricId);
-    const rubricSnap = await getDoc(rubricRef);
+    // NEW LOGIC: Query for the rubric by name AND schoolId
+    const rubricsRef = collection(db, "rubrics");
+    const q = query(rubricsRef, where("name", "==", microSkill), where("schoolId", "==", currentUserSchoolId));
+    const querySnapshot = await getDocs(q);
 
-    if (!rubricSnap.exists()) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" has not been created in the database yet.</p>`;
+    if (querySnapshot.empty) {
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" could not be found for your school.</p>`;
         return;
     }
 
-    const rubricData = rubricSnap.data();
+    const rubricDoc = querySnapshot.docs[0]; // Get the first matching rubric
+    const rubricId = rubricDoc.id;
+    const rubricData = rubricDoc.data();
+
+    // The rest of the function remains the same, building the table from rubricData...
     const tableClass = rubricData.headers.length > 7 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
     let tableHTML = `<table class="${tableClass}">`;
-
-
     tableHTML += '<thead><tr><th>Behavior</th>';
     rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
     tableHTML += '</tr></thead>';
@@ -634,9 +637,8 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
         tableHTML += '</tr>';
     });
     tableHTML += '</tbody></table>';
-
     rubricTableContainer.innerHTML = tableHTML;
-    
+
     const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
     if (isTeacherOrAdmin) {
         setRubricMode('highlight');
@@ -666,34 +668,22 @@ async function saveRubricHighlights(microSkill) {
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
-
-    const backBtnContainer = document.getElementById('download-continuum-btn').parentNode;
-    const oldBackBtn = backBtnContainer.querySelector('#back-from-continuum-btn');
-    if (oldBackBtn) oldBackBtn.remove();
-    
-    const backBtn = document.createElement('button');
-    backBtn.id = 'back-from-continuum-btn';
-    backBtn.className = 'text-sm font-semibold text-green-600 hover:underline';
-    backBtn.textContent = 'Back to Student Page';
-    backBtn.addEventListener('click', () => {
-        showStudentDetailPage(currentStudentId);
-    });
-    
-    backBtnContainer.insertBefore(backBtn, document.getElementById('edit-continuum-btn'));
-
     continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
 
-    const continuumId = coreSkill.toLowerCase().replace(/\s+/g, '-');
-    const continuumRef = doc(db, "continuums", continuumId);
-    const continuumSnap = await getDoc(continuumRef);
+    // NEW LOGIC: Query for the continuum by name AND schoolId
+    const continuumsRef = collection(db, "continuums");
+    const q = query(continuumsRef, where("name", "==", coreSkill), where("schoolId", "==", currentUserSchoolId));
+    const querySnapshot = await getDocs(q);
 
-    if (!continuumSnap.exists()) {
-        continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" has not been created in the database yet.</p>`;
+    if (querySnapshot.empty) {
+        continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" could not be found for your school.</p>`;
         if(editContinuumBtn) editContinuumBtn.classList.add('hidden');
         return;
     }
 
-    originalContinuumData = continuumSnap.data();
+    const continuumDoc = querySnapshot.docs[0];
+    const continuumId = continuumDoc.id;
+    originalContinuumData = continuumDoc.data();
     
     let tableHTML = '<table class="rubric-table text-sm">';
     tableHTML += '<thead><tr>';

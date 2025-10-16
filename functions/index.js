@@ -58,7 +58,6 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 // Listens for successful payments and provisions a new school
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    // ⚠️ ADD YOUR STRIPE WEBHOOK SECRET to your .env file (e.g., STRIPE_WEBHOOK_SECRET=whsec_...)
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; 
     let event;
 
@@ -73,43 +72,58 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
         const session = event.data.object;
         const userId = session.client_reference_id;
 
-        if (!userId) { return res.status(400).send('No userId found in session.'); }
+        if (!userId) { 
+            console.error('No userId found in session.');
+            return res.status(400).send('No userId found in session.'); 
+        }
 
         try {
+            // 1. Create the new school document
             const schoolRef = await db.collection('schools').add({
                 ownerUid: userId,
-                name: "New School",
+                name: "New School", // User will name this in the next step
                 subscriptionStatus: 'active',
                 stripeCustomerId: session.customer,
-				subscriptionId: session.subscription,
+                subscriptionId: session.subscription,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
             const newSchoolId = schoolRef.id;
+            console.log(`Created new school with ID: ${newSchoolId}`);
 
+            // 2. Update the user's role and schoolId in Firestore
             const userRef = db.collection('users').doc(userId);
             await userRef.update({ role: 'schoolAdmin', schoolId: newSchoolId });
+            console.log(`Updated user ${userId} to schoolAdmin for school ${newSchoolId}`);
 
+            // 3. Find all master templates (documents without a schoolId)
             const templates = {
                 rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
                 continuums: await db.collection('continuums').where('schoolId', '==', null).get()
             };
+            console.log(`Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates to clone.`);
 
+            // 4. Create a batch write to clone all templates efficiently
             const batch = db.batch();
+
             templates.rubrics.forEach(doc => {
-                const newDocRef = db.collection('rubrics').doc();
+                const newDocRef = db.collection('rubrics').doc(); // Create a new doc with a unique ID
                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
             });
+
             templates.continuums.forEach(doc => {
-                const newDocRef = db.collection('continuums').doc();
+                const newDocRef = db.collection('continuums').doc(); // Create a new doc with a unique ID
                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
             });
+
             await batch.commit();
-            console.log(`Successfully provisioned new school ${newSchoolId} for user ${userId}`);
+            console.log(`Successfully cloned templates for new school ${newSchoolId}`);
+
         } catch (error) {
             console.error('Error provisioning new school:', error);
             return res.status(500).send('Internal Server Error');
         }
     }
+
     res.status(200).send();
 });
 
