@@ -1317,7 +1317,7 @@ buildContinuumBtn.addEventListener('click', () => {
 rubricView.addEventListener('click', (e) => {
     if (isRubricEditMode) return; 
 
-    if ((currentUserRole === 'admin' || currentUserRole === 'teacher') && e.target.tagName === 'TD' && e.target.id) {
+    if ((currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin') && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveRubricHighlights(currentMicroSkill);
     }
