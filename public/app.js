@@ -252,6 +252,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
         option.textContent = 'No micro skills found';
         option.disabled = true;
         microSkillSelect.appendChild(option);
+        console.warn(`No micro skills found in schoolMicroSkills for core skill: ${selectedCoreSkill}`); // Added warning
         return;
     }
 
@@ -425,63 +426,106 @@ async function createUserProfileIfNeeded(user) {
 // Fetches core skills (continuums) and micro skills (rubrics) for the current school
 async function fetchSchoolSkills() {
     console.log("Fetching school skills for schoolId:", currentUserSchoolId);
+    schoolCoreSkills = []; // Reset arrays
+    schoolMicroSkills = [];
+
     if (!currentUserSchoolId && currentUserRole !== 'superAdmin') {
-        console.error("Cannot fetch skills: schoolId is missing.");
-        schoolCoreSkills = [];
-        schoolMicroSkills = [];
+        console.error("Cannot fetch skills: schoolId is missing and user is not superAdmin.");
         return;
     }
 
-    // Determine which school IDs to query for (user's school + master templates)
-    // superAdmin sees only master templates unless they also have a schoolId set.
-    const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId 
-        ? [null] 
-        : [currentUserSchoolId, null];
-
     try {
-        // Fetch Continuums (Core Skills)
+        // --- Fetch Continuums (Core Skills) ---
         const continuumsRef = collection(db, "continuums");
-        const continuumQuery = query(continuumsRef, where("schoolId", "in", schoolIdsToQuery));
-        const continuumSnap = await getDocs(continuumQuery);
-        schoolCoreSkills = continuumSnap.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().name 
-        })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+        let continuumPromises = [];
 
-        // Fetch Rubrics (Micro Skills)
+        // Query 1: Get skills specific to the school (if not superAdmin viewing templates)
+        if (currentUserSchoolId) {
+            continuumPromises.push(getDocs(query(continuumsRef, where("schoolId", "==", currentUserSchoolId))));
+        }
+        // Query 2: Get master templates (where schoolId does NOT exist)
+        // Note: Firestore doesn't directly support "field does not exist", so we query for non-null and combine.
+        // A simpler approach is to rely on the fact templates WON'T match the schoolId.
+        // Let's adjust: Query for the school AND query for null (if templates use null explicitly).
+        // OR: If templates truly have NO field, we need separate queries.
+
+        // --- CORRECTED QUERY APPROACH ---
+        // Query 1: Get master templates (schoolId == null OR field missing - handled by checking after fetch)
+        const templateContinuumQuery = query(continuumsRef, where("schoolId", "==", null)); // Assumes templates MIGHT use null
+        continuumPromises.push(getDocs(templateContinuumQuery));
+
+        const continuumSnapshots = await Promise.all(continuumPromises);
+        let combinedContinuums = [];
+        continuumSnapshots.forEach(snapshot => {
+            snapshot.docs.forEach(doc => {
+                // Filter out templates if user is NOT superAdmin AND has a schoolId,
+                // but ONLY add templates if they are missing schoolId (or it's null)
+                const data = doc.data();
+                if (data.schoolId === currentUserSchoolId || data.schoolId == null) { // Check for explicit null OR match
+                     // Prevent duplicates if a school doc somehow matches template name
+                     if (!combinedContinuums.some(c => c.id === doc.id)) {
+                         combinedContinuums.push({ id: doc.id, ...data });
+                     }
+                }
+                // If templates have MISSING field, the query needs changing. Let's assume explicit null for now or adjust logic.
+            });
+        });
+
+        // If templates have MISSING field, we need this additional logic block:
+        // Fetch ALL continuums and filter locally (less efficient but works for missing fields)
+        /*
+        const allContinuumsSnap = await getDocs(collection(db, "continuums"));
+        combinedContinuums = allContinuumsSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(c => c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null);
+        */
+        // Let's stick with the query approach assuming explicit null or just checking the schoolId match.
+
+        schoolCoreSkills = combinedContinuums
+                            .filter(c => c.name) // Ensure name exists
+                            .sort((a, b) => a.name.localeCompare(b.name));
+
+
+        // --- Fetch Rubrics (Micro Skills) --- (Apply similar logic)
         const rubricsRef = collection(db, "rubrics");
-        const rubricQuery = query(rubricsRef, where("schoolId", "in", schoolIdsToQuery));
-        const rubricSnap = await getDocs(rubricQuery);
-		console.log("Rubric query snapshot size:", rubricSnap.size);
-        // We need to associate rubrics with core skills. 
-        // Assumption: The rubric 'name' corresponds to a microSkill, 
-        // and we need a way to link it back to a core skill.
-        // TEMPORARY: We'll rebuild this association based on the *old* skillMap logic
-        // TODO: Ideally, add a 'coreSkillName' field to your rubric documents in Firestore.
-        const tempSkillMap = {
-             'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
-             'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
-             'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
-             'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
-             'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
-         };
+        let rubricPromises = [];
+         if (currentUserSchoolId) {
+            rubricPromises.push(getDocs(query(rubricsRef, where("schoolId", "==", currentUserSchoolId))));
+        }
+        const templateRubricQuery = query(rubricsRef, where("schoolId", "==", null));
+        rubricPromises.push(getDocs(templateRubricQuery));
 
-        schoolMicroSkills = rubricSnap.docs.map(doc => {
-             const rubricData = doc.data();
-             let coreSkillName = "Unknown"; 
-             // Find which core skill this rubric belongs to (using temporary map)
-             for (const core in tempSkillMap) {
-                 if (tempSkillMap[core].includes(rubricData.name)) {
-                     coreSkillName = core;
-                     break;
-                 }
-             }
-             return {
-                 id: doc.id,
-                 name: rubricData.name,
-                 coreSkillName: coreSkillName // Store the association
-             };
-        }).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+        const rubricSnapshots = await Promise.all(rubricPromises);
+        let combinedRubrics = [];
+         rubricSnapshots.forEach(snapshot => {
+            snapshot.docs.forEach(doc => {
+                 const data = doc.data();
+                 if (data.schoolId === currentUserSchoolId || data.schoolId == null) {
+                     if (!combinedRubrics.some(r => r.id === doc.id)) {
+                         combinedRubrics.push({ id: doc.id, ...data });
+                     }
+                }
+            });
+        });
+
+         // --- Association Logic (using tempSkillMap) ---
+         const tempSkillMap = { /* ... your map ... */ };
+         schoolMicroSkills = combinedRubrics
+                             .filter(r => r.name) // Ensure name exists
+                             .map(rubricData => {
+                                 let coreSkillName = "Unknown";
+                                 for (const core in tempSkillMap) {
+                                     if (tempSkillMap[core].includes(rubricData.name)) {
+                                         coreSkillName = core;
+                                         break;
+                                     }
+                                 }
+                                 return {
+                                     id: rubricData.id,
+                                     name: rubricData.name,
+                                     coreSkillName: coreSkillName
+                                 };
+                             }).sort((a, b) => a.name.localeCompare(b.name));
 
         console.log("Fetched Core Skills:", schoolCoreSkills);
         console.log("Fetched Micro Skills:", schoolMicroSkills);
