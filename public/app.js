@@ -29,44 +29,6 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
-
-
-// ===================================================================
-// DATA STRUCTURES
-// ===================================================================
-const skillMap = {
-    'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
-    'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
-    'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
-    'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
-    'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
-};
-
-const skillDescriptions = {
-    'Mindset': 'Confidence, Risk Taking, Resilience, Open Mindedness',
-    'Emotional Energy Regulation': 'Self-Awareness of Emotions, Regulation Strategies, Social Awareness & Energy',
-    'Physical Conditioning': 'Locomotor Skills, Non-locomotor Skills, Manipulation, Cognitive & Strategy Skills',
-    'Health': 'Nutrition, Body Systems, Lifestyle Inputs',
-    'Connection': 'Connection with Others, Connections with Self, Connection with Community, Connection with Nature',
-    'Honesty & Accountability': 'Owning Actions, Following Through, Making it Right',
-    'Discipline': 'Self-Control & Focus, Consistency, Goal Setting, Responsibility',
-    'Courage': 'Embracing discomfort, Speaking up, Being true to myself',
-    'Respect': 'Listening, Kindness & Compassion, Caring for the environment, Manners',
-    'Questioning': 'Formulating Clear Questions, Asking Deeper Questions',
-    'Reflecting': 'Asking questions, Adjusting, Connecting Ideas, Metacognition',
-    'Researching': 'Finding Sources, Research Methods, Organizing Information',
-    'Creating': 'Generating Ideas, Organizing Ideas, Using Tools & Techniques, Problem-Solving & Iterating',
-    'Communicating': 'Writing - Choosing Format, Organizing Content, Using Language and Visuals. Speaking - Voice Control, Body Language, Clarity & Structure, Audience Awareness',
-    'Analyzing Information': 'Identifying Key Details, Recognizing Patterns and Relationships, Breaking Down Complex Ideas, Differentiating Fact from Opinion',
-    'Evaluating Evidence': 'Checking the Source, Identifying Bias or Agenda, Judging Relevance, Comparing Multiple Sources & Perspectives & Weighing Evidence',
-    'Making Informed Judgments': 'Problem Solving, Cause & Effect, Justifying a Decision',
-    'Literacy': 'Oral & Non Verbal Communication, Reading & Writing, Foundations, Comprehension, Composition',
-    'Math': 'Number Sense, Patterns, Coding, Data & Probability, Spatial Sense, Financial Literacy & Entrepreneurship',
-    'Science': 'Life Systems, Structures',
-    'Social Studies': 'Place, Past, People, Culture',
-    'Arts': 'Visual Art, Drama, Music'
-};
-
 // ===================================================================
 // AUTHORIZATION CONFIGURATION
 // ===================================================================
@@ -251,6 +213,9 @@ let currentUserRole = null;
 let currentUserClassroomId = null;
 let currentUserSchoolId = null;
 let teachers = []; // Cache for teacher list
+let schoolCoreSkills = [];
+let schoolMicroSkills = [];
+
 
 // Helper Functions
 const showMessage = (message, isError = true) => {
@@ -357,7 +322,8 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // --- Standard Routing (Only runs if onboarding/inactive checks pass) ---
-        const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        await fetchSchoolSkills();
+		const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         usersLink.classList.toggle('hidden', !isAdminType);
         classroomsLink.classList.toggle('hidden', !isAdminType);
         skillsLink.classList.toggle('hidden', !isAdminType);
@@ -441,6 +407,77 @@ async function createUserProfileIfNeeded(user) {
         });
     }
     return docSnap;
+}
+
+// Fetches core skills (continuums) and micro skills (rubrics) for the current school
+async function fetchSchoolSkills() {
+    console.log("Fetching school skills for schoolId:", currentUserSchoolId);
+    if (!currentUserSchoolId && currentUserRole !== 'superAdmin') {
+        console.error("Cannot fetch skills: schoolId is missing.");
+        schoolCoreSkills = [];
+        schoolMicroSkills = [];
+        return;
+    }
+
+    // Determine which school IDs to query for (user's school + master templates)
+    // superAdmin sees only master templates unless they also have a schoolId set.
+    const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId 
+        ? [null] 
+        : [currentUserSchoolId, null];
+
+    try {
+        // Fetch Continuums (Core Skills)
+        const continuumsRef = collection(db, "continuums");
+        const continuumQuery = query(continuumsRef, where("schoolId", "in", schoolIdsToQuery));
+        const continuumSnap = await getDocs(continuumQuery);
+        schoolCoreSkills = continuumSnap.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name 
+        })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+
+        // Fetch Rubrics (Micro Skills)
+        const rubricsRef = collection(db, "rubrics");
+        const rubricQuery = query(rubricsRef, where("schoolId", "in", schoolIdsToQuery));
+        const rubricSnap = await getDocs(rubricQuery);
+        // We need to associate rubrics with core skills. 
+        // Assumption: The rubric 'name' corresponds to a microSkill, 
+        // and we need a way to link it back to a core skill.
+        // TEMPORARY: We'll rebuild this association based on the *old* skillMap logic
+        // TODO: Ideally, add a 'coreSkillName' field to your rubric documents in Firestore.
+        const tempSkillMap = {
+             'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
+             'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
+             'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
+             'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
+             'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
+         };
+
+        schoolMicroSkills = rubricSnap.docs.map(doc => {
+             const rubricData = doc.data();
+             let coreSkillName = "Unknown"; 
+             // Find which core skill this rubric belongs to (using temporary map)
+             for (const core in tempSkillMap) {
+                 if (tempSkillMap[core].includes(rubricData.name)) {
+                     coreSkillName = core;
+                     break;
+                 }
+             }
+             return {
+                 id: doc.id,
+                 name: rubricData.name,
+                 coreSkillName: coreSkillName // Store the association
+             };
+        }).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+
+        console.log("Fetched Core Skills:", schoolCoreSkills);
+        console.log("Fetched Micro Skills:", schoolMicroSkills);
+
+    } catch (error) {
+        console.error("Error fetching school skills:", error);
+        showMessage("Could not load the skills framework. Please check the console.");
+        schoolCoreSkills = [];
+        schoolMicroSkills = [];
+    }
 }
 
 // Data Logic
