@@ -1787,8 +1787,9 @@ async function renderSkillsList() {
     skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
 
     const skillsRef = collection(db, "skills");
-    // Query for skills that belong to the current school OR are master templates
-    const q = query(skillsRef, where("schoolId", "in", [currentUserSchoolId, null]));
+    // Query for skills that belong to the current school OR are master templates (null schoolId)
+    // Order by name for consistency
+    const q = query(skillsRef, where("schoolId", "in", [currentUserSchoolId, null]), orderBy("name"));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
@@ -1796,31 +1797,50 @@ async function renderSkillsList() {
         return;
     }
 
+    // --- NEW: Use grid layout similar to student page ---
     skillsListContainer.innerHTML = ''; // Clear loading message
+    skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6'; // Apply grid layout
+
     snapshot.forEach(doc => {
         const skill = doc.data();
         const skillId = doc.id;
+        const isMasterTemplate = skill.schoolId === null; // Check if it's a template
 
         const skillCard = document.createElement('div');
-        skillCard.className = 'p-4 border rounded-lg';
+        // Add skill-card class for styling and dataset for potential future click actions
+        skillCard.className = 'skill-card relative p-4 border rounded-lg text-center'; 
+        skillCard.dataset.skill = skill.name; 
 
-        let microSkillsHTML = '<p class="text-sm text-gray-500">No micro-skills defined.</p>';
-        if (skill.microSkills && skill.microSkills.length > 0) {
-            microSkillsHTML = skill.microSkills.map(ms => `<span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">${ms.name}</span>`).join('');
+        // Add Edit/Delete buttons (slightly smaller and positioned)
+        // Only allow editing/deleting non-master templates OR if user is superAdmin
+        let adminButtons = '';
+        if (!isMasterTemplate || currentUserRole === 'superAdmin') {
+            adminButtons = `
+                <div class="absolute top-2 right-2 flex space-x-1">
+                    <button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+            `;
         }
 
+        // Add the Core Skill name
         skillCard.innerHTML = `
-            <div class="flex justify-between items-center">
-                <h3 class="font-bold text-xl text-gray-800">${skill.name}</h3>
-                <div class="space-x-2">
-                    <button class="edit-skill-btn text-sm text-blue-600 hover:underline" data-id="${skillId}">Edit</button>
-                    <button class="delete-skill-btn text-sm text-red-600 hover:underline" data-id="${skillId}">Delete</button>
-                </div>
-            </div>
-            <div class="mt-4">
-                ${microSkillsHTML}
-            </div>
+            ${adminButtons}
+            <h3 class="font-bold text-center mt-4">${skill.name}</h3> 
         `;
+
+        // If you want to show micro-skills below (optional):
+         if (skill.microSkills && skill.microSkills.length > 0) {
+             const microSkillsDiv = document.createElement('div');
+             microSkillsDiv.className = 'mt-2 text-xs text-gray-500';
+             microSkillsDiv.textContent = skill.microSkills.map(ms => ms.name).join(', ');
+             skillCard.appendChild(microSkillsDiv);
+         }
+
         skillsListContainer.appendChild(skillCard);
     });
 }
