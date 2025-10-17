@@ -3,7 +3,7 @@ const urlParamsOnLoad = new URLSearchParams(window.location.search);
 if (urlParamsOnLoad.has('session_id')) {
     console.log("Stripe session ID found in URL. Setting postCheckout flag.");
     sessionStorage.setItem('postCheckout', 'true');
-    // Clean the URL so this doesn't run again on a refresh.
+    console.log("postCheckout flag SET to:", sessionStorage.getItem('postCheckout'));
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -357,9 +357,9 @@ onAuthStateChanged(auth, async (user) => {
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         
-        usersLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
-        classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
-		skillsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
+        usersLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
+		classroomsLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
+		skillsLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
 		
         const isTeacherOrAdmin = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
