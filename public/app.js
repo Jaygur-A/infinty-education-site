@@ -1693,27 +1693,46 @@ usersListBody.addEventListener('change', (e) => {
 
 // --- CLASSROOM MANAGEMENT ---
 async function populateTeacherDropdown(dropdownElement) {
-    dropdownElement.innerHTML = '';
-	dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
-    
-    // Fetch all users with the 'teacher' role
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("schoolId", "==", currentUserSchoolId), where("role", "in", ["teacher", "admin", "superAdmin", "schoolAdmin"]));
-    const snapshot = await getDocs(q);
-    
-    teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log("populateTeacherDropdown started."); // New Log
+    dropdownElement.innerHTML = ''; // Clear existing options first
+    dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
 
-    if (teachers.length === 0) {
-        dropdownElement.innerHTML = '<option value="">No teachers found</option>';
+    // Log the school ID being used for the query
+    console.log("Querying teachers for schoolId:", currentUserSchoolId); // New Log
+    if (!currentUserSchoolId) {
+        console.error("Cannot populate teachers: currentUserSchoolId is missing."); // New Log
+        dropdownElement.innerHTML = '<option value="">Could not find school ID</option>';
         return;
     }
 
-    teachers.forEach(teacher => {
-        const option = document.createElement('option');
-        option.value = teacher.id;
-        option.textContent = teacher.displayName || teacher.email;
-        dropdownElement.appendChild(option);
-    });
+    const usersRef = collection(db, "users");
+    // Ensure this query includes 'schoolAdmin'
+    const q = query(usersRef, where("schoolId", "==", currentUserSchoolId), where("role", "in", ["teacher", "admin", "superAdmin", "schoolAdmin"]));
+
+    try {
+        const snapshot = await getDocs(q);
+        console.log(`Found ${snapshot.size} potential teachers.`); // New Log
+
+        teachers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (teachers.length === 0) {
+            console.log("No users matched the teacher query."); // New Log
+            dropdownElement.innerHTML = '<option value="">No teachers found</option>';
+            return;
+        }
+
+        teachers.forEach(teacher => {
+            const option = document.createElement('option');
+            option.value = teacher.id;
+            option.textContent = teacher.displayName || teacher.email;
+            dropdownElement.appendChild(option);
+        });
+        console.log("Teacher dropdown populated."); // New Log
+    } catch (error) {
+        console.error("Error fetching teachers:", error); // New Log
+        showMessage("Error loading teachers list. Check console.");
+        dropdownElement.innerHTML = '<option value="">Error loading teachers</option>';
+    }
 }
 
 async function populateClassroomDropdown() {
