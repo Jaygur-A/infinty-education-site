@@ -309,72 +309,85 @@ function renderMicroSkillInputs(microSkills = []) {
 
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
+    console.log("onAuthStateChanged fired. User:", user ? user.email : "none"); 
     loadingOverlay.classList.remove('hidden');
     currentUserRole = null;
     currentUserClassroomId = null;
     currentUserSchoolId = null;
 
-     if (user) {
-        console.log("onAuthStateChanged fired for a logged-in user.");
-		const postCheckoutFlag = sessionStorage.getItem('postCheckout');
-        console.log("Value of postCheckout flag:", postCheckoutFlag);
-        if (sessionStorage.getItem('postCheckout') === 'true') {
-            sessionStorage.removeItem('postCheckout'); // Clear the flag
-            schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
-			console.log("School name modal SHOULD be visible now.");
-            loadingOverlay.classList.add('hidden');
-            return; // IMPORTANT: Stop here and wait for user input.
+    if (user) {
+        document.body.classList.remove('login-background', 'bg-overlay');
+        const docSnap = await createUserProfileIfNeeded(user);
+
+        if (!docSnap.exists() && user) { // Check user again, might have logged out during async
+            await user.getIdToken(true); 
+            console.log("Forced token refresh for new user.");
         }
 
-        // --- Standard Login Logic ---
-        document.body.classList.remove('login-background');
-        document.body.classList.remove('bg-overlay');
+        // Get user data AFTER potential profile creation/token refresh
+        const userRef = doc(db, "users", user.uid);
+        const freshUserSnap = await getDoc(userRef); // Get potentially updated doc
+        const userData = freshUserSnap.exists() ? freshUserSnap.data() : {};
 
-        const docSnap = await createUserProfileIfNeeded(user);
-		
-		if (!docSnap.exists()) {
-		// This was a new user. We need to get the fresh token with the 'guest' claim.
-		await user.getIdToken(true); 
-		console.log("Forced token refresh for new user.");
-	}
-			
-        let role = docSnap.exists() && docSnap.data().role ? docSnap.data().role : 'guest';
-        currentUserRole = role;
-        currentUserSchoolId = docSnap.exists() ? docSnap.data().schoolId : null; 
-        
-        console.log(`User logged in. Final role for routing: ${currentUserRole}`);
-        
-        if (currentUserSchoolId) {
+        currentUserRole = userData.role || 'guest';
+        currentUserSchoolId = userData.schoolId || null; 
+
+        console.log(`User logged in. Role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
+
+        // --- MANDATORY ONBOARDING CHECK ---
+        // If user is a schoolAdmin AND their school needs naming...
+        if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
+
+            // Check if school exists and still has the default name
+            if (schoolSnap.exists() && schoolSnap.data().name === "New School") {
+                console.log("School needs naming. Showing modal.");
+                // Ensure app container is visible BEFORE showing modal
+                appContainer.classList.remove('hidden'); 
+                authContainer.classList.add('hidden');
+                schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
+                loadingOverlay.classList.add('hidden');
+                // Add logout option to modal if needed, otherwise user is stuck here
+                return; // Stop further routing until school is named
+            }
+
+            // Also check for inactive subscription (existing check)
             if (schoolSnap.exists() && schoolSnap.data().subscriptionStatus !== 'active') {
                 console.log("Subscription is inactive. Showing inactive view.");
+                appContainer.classList.remove('hidden'); 
+                authContainer.classList.add('hidden');
                 showView(subscriptionInactiveView);
                 loadingOverlay.classList.add('hidden');
-                return; // Stop further execution
+                return; 
             }
         }
-        
+
+        // --- Standard App Setup and Routing ---
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
-        
-        usersLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
-		classroomsLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
-		skillsLink.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole));
-		
-        const isTeacherOrAdmin = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
-        addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
+        userEmailDisplay.textContent = user.email;
+
+        // Toggle Admin Links (Ensuring schoolAdmin is included)
+        const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        usersLink.classList.toggle('hidden', !isAdminType);
+        classroomsLink.classList.toggle('hidden', !isAdminType);
+        skillsLink.classList.toggle('hidden', !isAdminType);
+
+        // Toggle Add Record Button
+        const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        addRecordBtn.classList.toggle('hidden', !canAddRecord);
+
+        // Toggle Admin Chart
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
-        
-        if (isTeacherOrAdmin) {
+
+        // Route to correct view
+        if (canAddRecord) { // Use broader check for dashboard access
             showView(dashboardView);
             if (currentUserRole === 'teacher') {
-                const classroomsRef = collection(db, "classrooms");
-                const q = query(classroomsRef, where("teacherId", "==", user.uid));
+                const q = query(collection(db, "classrooms"), where("teacherId", "==", user.uid));
                 const classroomSnap = await getDocs(q);
-                if (!classroomSnap.empty) {
-                    currentUserClassroomId = classroomSnap.docs[0].id;
-                }
+                if (!classroomSnap.empty) currentUserClassroomId = classroomSnap.docs[0].id;
             }
             listenForStudentRecords();
             listenForAllAnecdotes();
@@ -1047,11 +1060,12 @@ function updateJourneyCounter() {
 
 // Event Listeners
 dashboardBtn.addEventListener('click', () => {
-    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
-    if (isTeacherOrAdmin) {
+    // Use the broader check that includes schoolAdmin
+    const canAccessDashboard = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+    if (canAccessDashboard) {
         showView(dashboardView);
     } else {
-        showView(parentDashboardView);
+        showView(parentDashboardView); // Default for parent/guest
     }
 });
 
