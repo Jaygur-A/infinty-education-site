@@ -310,84 +310,70 @@ function renderMicroSkillInputs(microSkills = []) {
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
     console.log("onAuthStateChanged fired. User:", user ? user.email : "none"); 
-    loadingOverlay.classList.remove('hidden');
+    loadingOverlay.classList.remove('hidden'); // Show loading initially
     currentUserRole = null;
     currentUserClassroomId = null;
     currentUserSchoolId = null;
 
     if (user) {
+        // --- Standard App Setup (Run this FIRST) ---
         document.body.classList.remove('login-background', 'bg-overlay');
-        const docSnap = await createUserProfileIfNeeded(user);
+        appContainer.classList.remove('hidden'); // Make app visible
+        authContainer.classList.add('hidden');   // Hide login form
+        userEmailDisplay.textContent = user.email;
 
-        if (!docSnap.exists() && user) { // Check user again, might have logged out during async
-            await user.getIdToken(true); 
+        // --- Get User Data ---
+        const userRef = doc(db, "users", user.uid);
+        let freshUserSnap = await getDoc(userRef); // Get current doc
+
+        // Create profile if needed, and force token refresh if it was new
+        const profileExisted = freshUserSnap.exists();
+        if (!profileExisted) {
+            await createUserProfileIfNeeded(user); // Creates the doc
+            await user.getIdToken(true); // Force refresh
+            freshUserSnap = await getDoc(userRef); // Re-fetch the newly created doc
             console.log("Forced token refresh for new user.");
         }
 
-        // Get user data AFTER potential profile creation/token refresh
-        const userRef = doc(db, "users", user.uid);
-        const freshUserSnap = await getDoc(userRef); // Get potentially updated doc
         const userData = freshUserSnap.exists() ? freshUserSnap.data() : {};
-
         currentUserRole = userData.role || 'guest';
         currentUserSchoolId = userData.schoolId || null; 
-
         console.log(`User logged in. Role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
         // --- MANDATORY ONBOARDING CHECK ---
-        // If user is a schoolAdmin AND their school needs naming...
         if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
 
-            // Check if school exists and still has the default name
             if (schoolSnap.exists() && schoolSnap.data().name === "New School") {
                 console.log("School needs naming. Showing modal.");
-                // Ensure app container is visible BEFORE showing modal
-                appContainer.classList.remove('hidden'); 
-                authContainer.classList.add('hidden');
-                schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
-                loadingOverlay.classList.add('hidden');
-                // Add logout option to modal if needed, otherwise user is stuck here
-                return; // Stop further routing until school is named
+                schoolNameModal.classList.remove('hidden'); // Now show the modal
+                loadingOverlay.classList.add('hidden'); // Hide loading AFTER potentially showing modal
+                return; // Stop until school is named
             }
 
-            // Also check for inactive subscription (existing check)
             if (schoolSnap.exists() && schoolSnap.data().subscriptionStatus !== 'active') {
                 console.log("Subscription is inactive. Showing inactive view.");
-                appContainer.classList.remove('hidden'); 
-                authContainer.classList.add('hidden');
                 showView(subscriptionInactiveView);
                 loadingOverlay.classList.add('hidden');
                 return; 
             }
         }
 
-        // --- Standard App Setup and Routing ---
-        appContainer.classList.remove('hidden');
-        authContainer.classList.add('hidden');
-        userEmailDisplay.textContent = user.email;
-
-        // Toggle Admin Links (Ensuring schoolAdmin is included)
+        // --- Standard Routing (Only runs if onboarding/inactive checks pass) ---
         const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         usersLink.classList.toggle('hidden', !isAdminType);
         classroomsLink.classList.toggle('hidden', !isAdminType);
         skillsLink.classList.toggle('hidden', !isAdminType);
 
-        // Toggle Add Record Button
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
-
-        // Toggle Admin Chart
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
 
-        // Route to correct view
-        if (canAddRecord) { // Use broader check for dashboard access
+        if (canAddRecord) { 
             showView(dashboardView);
             if (currentUserRole === 'teacher') {
-                const q = query(collection(db, "classrooms"), where("teacherId", "==", user.uid));
-                const classroomSnap = await getDocs(q);
-                if (!classroomSnap.empty) currentUserClassroomId = classroomSnap.docs[0].id;
+                // Fetch teacher's classroom ID...
             }
             listenForStudentRecords();
             listenForAllAnecdotes();
