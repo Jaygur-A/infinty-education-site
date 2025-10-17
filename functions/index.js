@@ -61,7 +61,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Listens for successful payments and provisions a new school
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; 
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // Uses key from .env
     let event;
 
     try {
@@ -75,13 +75,13 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
         const session = event.data.object;
         const userId = session.client_reference_id;
 
-        if (!userId) { 
+        if (!userId) {
             console.error('No userId found in session.');
-            return res.status(400).send('No userId found in session.'); 
+            return res.status(400).send('No userId found in session.');
         }
 
         try {
-            // --- NEW: Retry logic for fetching Auth user ---
+            // --- Retry logic for fetching Auth user ---
             let authUser = null;
             let attempts = 0;
             const maxAttempts = 5; // Try up to 5 times
@@ -110,36 +110,37 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             // --- END of Retry logic ---
 
 
-            // 1. Create the new school document (same as before)
+            // 1. Create the new school document
             const schoolRef = await db.collection('schools').add({
                 ownerUid: userId,
-                name: "New School", 
+                name: "New School", // User will name this in the next step
                 subscriptionStatus: 'active',
                 stripeCustomerId: session.customer,
-                subscriptionId: session.subscription,
+                subscriptionId: session.subscription, // Important for managing cancellations
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
             const newSchoolId = schoolRef.id;
             console.log(`Created new school with ID: ${newSchoolId}`);
 
-            // 2. Update or Create the user's Firestore document (Now uses fetched authUser)
+            // 2. Update or Create the user's Firestore document
             const userRef = db.collection('users').doc(userId);
-            const userSnap = await userRef.get(); 
+            const userSnap = await userRef.get(); // Attempt to get the document first
 
             if (userSnap.exists()) {
+                // Document exists, update it
                 await userRef.update({ role: 'schoolAdmin', schoolId: newSchoolId });
                 console.log(`Updated existing user ${userId} to schoolAdmin for school ${newSchoolId}`);
             } else {
-                // Use the authUser we fetched earlier
+                // Document doesn't exist, create it with basic info + new role/schoolId
                 await userRef.set({
                     uid: userId,
-                    email: authUser.email, 
+                    email: authUser.email, // Get email from Auth record
                     displayName: authUser.displayName || authUser.email.split('@')[0],
                     photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(), 
-                    role: 'schoolAdmin', 
-                    schoolId: newSchoolId, 
-                    notificationSettings: { 
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(), // Set creation time
+                    role: 'schoolAdmin', // Set the correct role
+                    schoolId: newSchoolId, // Set the correct school ID
+                    notificationSettings: { // Add default settings
                         newAnecdote: true,
                         newMessage: true
                     }
@@ -147,16 +148,23 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                 console.log(`Created new user document for ${userId} as schoolAdmin for school ${newSchoolId}`);
             }
 
-            // 3. Clone templates (same as before)
+            // 3. Clone templates
             const templates = {
                 rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
                 continuums: await db.collection('continuums').where('schoolId', '==', null).get()
+                // Add skills cloning here if you use a separate skills collection
             };
-            console.log(`Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates.`);
+            console.log(`Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates to clone.`);
 
             const batch = db.batch();
-            templates.rubrics.forEach(doc => { /* ... */ });
-            templates.continuums.forEach(doc => { /* ... */ });
+            templates.rubrics.forEach(doc => {
+                 const newDocRef = db.collection('rubrics').doc(); // Generate new ID
+                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId }); // Set data + schoolId
+            });
+            templates.continuums.forEach(doc => {
+                 const newDocRef = db.collection('continuums').doc(); // Generate new ID
+                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId }); // Set data + schoolId
+            });
             await batch.commit();
             console.log(`Successfully cloned templates for new school ${newSchoolId}`);
 

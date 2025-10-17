@@ -240,8 +240,21 @@ const getWeekDates = () => {
 };
 
 const updateMicroSkillsDropdown = (selectedCoreSkill) => {
-    microSkillSelect.innerHTML = '';
-    const microSkills = skillMap[selectedCoreSkill] || [];
+    microSkillSelect.innerHTML = ''; // Clear existing options
+
+    // Filter the fetched micro skills based on the selected core skill
+    const microSkills = schoolMicroSkills
+        .filter(ms => ms.coreSkillName === selectedCoreSkill)
+        .map(ms => ms.name); // Get only the names
+
+    if (microSkills.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'No micro skills found';
+        option.disabled = true;
+        microSkillSelect.appendChild(option);
+        return;
+    }
+
     microSkills.forEach(skill => {
         const option = document.createElement('option');
         option.value = skill;
@@ -439,6 +452,7 @@ async function fetchSchoolSkills() {
         const rubricsRef = collection(db, "rubrics");
         const rubricQuery = query(rubricsRef, where("schoolId", "in", schoolIdsToQuery));
         const rubricSnap = await getDocs(rubricQuery);
+		console.log("Rubric query snapshot size:", rubricSnap.size);
         // We need to associate rubrics with core skills. 
         // Assumption: The rubric 'name' corresponds to a microSkill, 
         // and we need a way to link it back to a core skill.
@@ -524,12 +538,35 @@ function listenForStudentRecords() {
 async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
     showView(studentDetailView);
-    anecdoteDisplayContainer.classList.add('hidden');
-	document.querySelectorAll('.rubric-container').forEach(container => container.classList.add('hidden'));
-    
+    anecdoteDisplayContainer.classList.add('hidden'); // Hide anecdote chart initially
+
+    // Fetch student name
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
+
+    // --- NEW: Dynamically render Core Skill buttons ---
+    alignedSkillsGrid.innerHTML = ''; // Clear existing static buttons
+
+    if (schoolCoreSkills.length === 0) {
+        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework found for this school.</p>';
+    } else {
+        schoolCoreSkills.forEach(coreSkill => {
+            const skillCard = document.createElement('div');
+            skillCard.className = 'skill-card p-4 border rounded-lg text-center cursor-pointer'; 
+            skillCard.dataset.skill = coreSkill.name; 
+            skillCard.innerHTML = `<h3 class="font-bold">${coreSkill.name}</h3>`;
+            // Add the event listener directly here
+            skillCard.addEventListener('click', () => {
+                 listenForAnecdotes(currentStudentId, coreSkill.name, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
+                 // Optional: Scroll to the chart after clicking
+                 setTimeout(() => {
+                    anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            alignedSkillsGrid.appendChild(skillCard);
+        });
+    }
 }
 
 function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, targetContainer) {
@@ -624,7 +661,6 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     currentMicroSkill = microSkill;
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
-    microSkillDescription.textContent = skillDescriptions[microSkill] || '';
     const rubricsAvailable = [
     'Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 
     'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 
@@ -748,7 +784,7 @@ async function showContinuumPage(coreSkill) {
 
     // NEW LOGIC: Query for the continuum by name AND schoolId
     const continuumsRef = collection(db, "continuums");
-    const q = query(continuumsRef, where("name", "==", coreSkill), where("schoolId", "==", currentUserSchoolId));
+    const q = query(continuumsRef, where("name", "==", coreSkill), where("schoolId", "in", [currentUserSchoolId, null]));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
@@ -1402,7 +1438,8 @@ continuumView.addEventListener('click', (e) => {
     if (isContinuumEditMode) return;
 
     const user = auth.currentUser;
-    if (user && user.uid === ADMIN_UID && e.target.tagName === 'TD' && e.target.id) {
+    const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+	if (isAdmin && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveContinuumHighlights(currentCoreSkill);
     }
@@ -1693,7 +1730,7 @@ async function showUsersPage() {
     } else {
         q = query(usersRef, where("schoolId", "==", currentUserSchoolId));
     }
-    const snapshot = await getDocs(usersRef);
+    const snapshot = await getDocs(q);
 
     usersListBody.innerHTML = '';
     snapshot.forEach(doc => {
@@ -1848,64 +1885,60 @@ function showSkillsPage() {
 // Function to fetch skills from Firestore and render them to the page
 async function renderSkillsList() {
     skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
+    const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole); // Check if user can edit
 
-    const skillsRef = collection(db, "skills");
-    // Query for skills that belong to the current school OR are master templates (null schoolId)
-    // Order by name for consistency
-    const q = query(skillsRef, where("schoolId", "in", [currentUserSchoolId, null]), orderBy("name"));
+    // Fetch CONTINUUMS (Core Skills) for the school OR master templates
+    const skillsRef = collection(db, "continuums"); 
+    const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId ? [null] : [currentUserSchoolId, null];
+    const q = query(skillsRef, where("schoolId", "in", schoolIdsToQuery), orderBy("name"));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        skillsListContainer.innerHTML = '<p class="text-gray-500">No skills framework found. Click "Add New Core Skill" to get started.</p>';
+        skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found. Click "Add New Core Skill" (if available).</p>';
+        addCoreSkillBtn.classList.toggle('hidden', !isAdmin); // Only show Add button if admin
         return;
     }
 
-    // --- NEW: Use grid layout similar to student page ---
-    skillsListContainer.innerHTML = ''; // Clear loading message
-    skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6'; // Apply grid layout
+    skillsListContainer.innerHTML = ''; 
+    skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6'; 
 
     snapshot.forEach(doc => {
-        const skill = doc.data();
-        const skillId = doc.id;
-        const isMasterTemplate = skill.schoolId === null; // Check if it's a template
+        const skill = doc.data(); // This is now continuum data
+        const skillId = doc.id;   // This is the continuum document ID
+        const isMasterTemplate = skill.schoolId === null;
 
         const skillCard = document.createElement('div');
-        // Add skill-card class for styling and dataset for potential future click actions
         skillCard.className = 'skill-card relative p-4 border rounded-lg text-center'; 
         skillCard.dataset.skill = skill.name; 
 
-        // Add Edit/Delete buttons (slightly smaller and positioned)
-        // Only allow editing/deleting non-master templates OR if user is superAdmin
         let adminButtons = '';
-        if (!isMasterTemplate || currentUserRole === 'superAdmin') {
-            adminButtons = `
-                <div class="absolute top-2 right-2 flex space-x-1">
-                    <button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                    </button>
-                    <button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
-                    </button>
-                </div>
-            `;
-        }
+        // Only SuperAdmin can edit/delete master templates
+        // SchoolAdmin can edit/delete their own school's skills
+        // Inside renderSkillsList...
+		if (isAdmin && (!isMasterTemplate || currentUserRole === 'superAdmin')) {
+			 adminButtons = `
+				<div class="absolute top-2 right-2 flex space-x-1">
+					<button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill Name">
+					   {/* --- ADD SVG CODE --- */}
+					   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+					</button>
+					<button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
+						{/* --- ADD SVG CODE --- */}
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+					</button>
+				</div>
+			`;
+		}
 
-        // Add the Core Skill name
         skillCard.innerHTML = `
             ${adminButtons}
             <h3 class="font-bold text-center mt-4">${skill.name}</h3> 
         `;
-
-        // If you want to show micro-skills below (optional):
-         if (skill.microSkills && skill.microSkills.length > 0) {
-             const microSkillsDiv = document.createElement('div');
-             microSkillsDiv.className = 'mt-2 text-xs text-gray-500';
-             microSkillsDiv.textContent = skill.microSkills.map(ms => ms.name).join(', ');
-             skillCard.appendChild(microSkillsDiv);
-         }
-
         skillsListContainer.appendChild(skillCard);
     });
+
+    // Show Add button only for admins managing their own school's skills (or superAdmin)
+     addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
 }
 
 async function deleteClassroom(classroomId) {
@@ -2432,45 +2465,46 @@ microSkillsContainer.addEventListener('click', (e) => {
 editSkillForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const coreSkillName = coreSkillNameInput.value.trim();
-    const skillDocumentId = editSkillId.value; // Will be empty if adding new
+    const continuumDocumentId = editSkillId.value; // ID of the continuum being edited/added
 
     if (!coreSkillName) {
         showMessage("Core Skill Name cannot be empty.");
         return;
     }
 
-    const microSkillsData = [];
-    microSkillsContainer.querySelectorAll('.flex').forEach(div => {
-        const name = div.querySelector('.micro-skill-name').value.trim();
-        const description = div.querySelector('.micro-skill-desc').value.trim();
-        if (name) { // Only save micro-skills that have a name
-            microSkillsData.push({ name, description });
-        }
-    });
+    // --- MICROSKILL EDITING REMOVED FOR SIMPLICITY ---
+    // We are only editing the Core Skill (Continuum) name here.
+    // Micro-skill (Rubric) names would need separate logic if desired.
 
     loadingOverlay.classList.remove('hidden');
     try {
         const skillData = {
             name: coreSkillName,
-            microSkills: microSkillsData,
-            schoolId: currentUserSchoolId // Tag with school ID
+            // We keep existing headers/rows, only changing the name
         };
 
-        if (skillDocumentId) {
-            // Update existing skill
-            const skillRef = doc(db, "skills", skillDocumentId);
-            await updateDoc(skillRef, skillData);
-            showMessage("Skill updated successfully!", false);
+        if (continuumDocumentId) {
+            // Update existing continuum name
+            const skillRef = doc(db, "continuums", continuumDocumentId);
+            await updateDoc(skillRef, { name: coreSkillName }); // Only update the name field
+            showMessage("Core Skill name updated successfully!", false);
         } else {
-            // Add new skill
-            await addDoc(collection(db, "skills"), skillData);
-            showMessage("Core skill added successfully!", false);
+             // --- ADDING NEW CORE SKILL (Continuum) ---
+             // Needs default structure (headers/rows) - define a default template
+             const defaultContinuumStructure = {
+                 name: coreSkillName,
+                 schoolId: currentUserSchoolId, // Tag with school ID
+                 headers: ["Micro Skill", "Level 1", "Level 2", "Level 3"], // Example structure
+                 rows: [ { skillLabel: "Default Micro Skill", levels: ["Desc 1", "Desc 2", "Desc 3"] } ] // Example structure
+             };
+            await addDoc(collection(db, "continuums"), defaultContinuumStructure);
+            showMessage("New Core Skill added successfully!", false);
         }
         editSkillModal.classList.add('hidden');
-        renderSkillsList(); // Refresh the list on the main page
+        renderSkillsList(); // Refresh the list
     } catch (error) {
-        console.error("Error saving skill:", error);
-        showMessage("Failed to save skill.");
+        console.error("Error saving core skill:", error);
+        showMessage("Failed to save core skill.");
     } finally {
         loadingOverlay.classList.add('hidden');
     }
@@ -2478,23 +2512,28 @@ editSkillForm.addEventListener('submit', async (e) => {
 
 // Handle opening the Edit/Delete modals from the main skills list
 skillsListContainer.addEventListener('click', async (e) => {
-    const skillId = e.target.dataset.id;
+    const skillId = e.target.closest('button')?.dataset.id; // Get ID from button
     if (!skillId) return;
 
-    if (e.target.classList.contains('edit-skill-btn')) {
+    const editButton = e.target.closest('.edit-skill-btn');
+    const deleteButton = e.target.closest('.delete-skill-btn');
+
+    if (editButton) {
         loadingOverlay.classList.remove('hidden');
         try {
-            const skillRef = doc(db, "skills", skillId);
+            const skillRef = doc(db, "continuums", skillId); // Fetch from CONTINUUMS
             const skillSnap = await getDoc(skillRef);
             if (skillSnap.exists()) {
                 const skillData = skillSnap.data();
-                editSkillModalTitle.textContent = 'Edit Core Skill';
+                editSkillModalTitle.textContent = 'Edit Core Skill Name';
                 editSkillId.value = skillId;
                 coreSkillNameInput.value = skillData.name;
-                renderMicroSkillInputs(skillData.microSkills || []);
+                // --- REMOVED MICROSKILL RENDERING ---
+                microSkillsContainer.innerHTML = '<p class="text-sm text-gray-500">Micro-skill editing is handled separately within rubrics.</p>'; 
+                addMicroSkillBtn.classList.add('hidden'); // Hide add micro skill button
                 editSkillModal.classList.remove('hidden');
             } else {
-                showMessage("Skill not found.");
+                showMessage("Core Skill not found.");
             }
         } catch (error) {
             console.error("Error fetching skill for edit:", error);
@@ -2518,7 +2557,7 @@ confirmDeleteSkillBtn.addEventListener('click', async (e) => {
     loadingOverlay.classList.remove('hidden');
     deleteSkillConfirmModal.classList.add('hidden');
     try {
-        const skillRef = doc(db, "skills", skillIdToDelete);
+        const skillRef = doc(db, "continuums", skillIdToDelete);
         await deleteDoc(skillRef);
         showMessage("Core skill deleted successfully.", false);
         renderSkillsList(); // Refresh the list
