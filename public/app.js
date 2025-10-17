@@ -15,7 +15,15 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstati
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
 // Firebase Config
-const firebaseConfig = { /* Your Config */ };
+const firebaseConfig = {
+    apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
+    authDomain: "infinity-education-c170b.firebaseapp.com",
+    projectId: "infinity-education-c170b",
+    storageBucket: "infinity-education-c170b.firebasestorage.app",
+    messagingSenderId: "312781945568",
+    appId: "1:312781945568:web:04104d51e968dff9fa2e85",
+    measurementId: "G-FSGELW7P1Z"
+};
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 window.auth = auth;
