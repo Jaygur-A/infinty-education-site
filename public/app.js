@@ -68,7 +68,6 @@ const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
 const addAnecdoteForm = document.getElementById('addAnecdoteForm');
 const coreSkillSelect = document.getElementById('coreSkill');
 const microSkillSelect = document.getElementById('microSkill');
-const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
 const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
 const anecdoteListTitle = document.getElementById('anecdote-list-title');
 const anecdoteChartCanvas = document.getElementById('anecdote-chart');
@@ -588,6 +587,7 @@ async function showStudentDetailPage(studentId) {
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
+	const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
 
     // --- NEW: Dynamically render Core Skill buttons ---
     alignedSkillsGrid.innerHTML = ''; // Clear existing static buttons
@@ -1274,16 +1274,6 @@ closeAnecdoteDisplayBtn.addEventListener('click', () => {
     if (anecdoteChart) {
         anecdoteChart.destroy();
         anecdoteChart = null;
-    }
-});
-
-alignedSkillsGrid.addEventListener('click', (e) => {
-    const skillCard = e.target.closest('.skill-card');
-    if (skillCard) {
-        listenForAnecdotes(currentStudentId, skillCard.dataset.skill, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
-        setTimeout(() => {
-            anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
     }
 });
 
