@@ -322,18 +322,14 @@ onAuthStateChanged(auth, async (user) => {
         authContainer.classList.add('hidden');   // Hide login form
         userEmailDisplay.textContent = user.email;
 
-        // --- Get User Data ---
-        const userRef = doc(db, "users", user.uid);
-        let freshUserSnap = await getDoc(userRef); // Get current doc
+		// Force token refresh on EVERY login to get latest claims
+		console.log("Forcing token refresh...");
+		await user.getIdToken(true);
+		console.log("Token refreshed.");
 
-        // Create profile if needed, and force token refresh if it was new
-        const profileExisted = freshUserSnap.exists();
-        if (!profileExisted) {
-            await createUserProfileIfNeeded(user); // Creates the doc
-            await user.getIdToken(true); // Force refresh
-            freshUserSnap = await getDoc(userRef); // Re-fetch the newly created doc
-            console.log("Forced token refresh for new user.");
-        }
+		// Now, fetch user profile data (including potentially just created one)
+		const userRef = doc(db, "users", user.uid);
+		const freshUserSnap = await getDoc(userRef);
 
         const userData = freshUserSnap.exists() ? freshUserSnap.data() : {};
         currentUserRole = userData.role || 'guest';
