@@ -6,33 +6,22 @@ if (urlParamsOnLoad.has('session_id')) {
     console.log("postCheckout flag SET to:", sessionStorage.getItem('postCheckout'));
     window.history.replaceState({}, document.title, window.location.pathname);
 }
+
+// Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
-    authDomain: "infinity-education-c170b.firebaseapp.com",
-    projectId: "infinity-education-c170b",
-    storageBucket: "infinity-education-c170b.firebasestorage.app",
-    messagingSenderId: "312781945568",
-    appId: "1:312781945568:web:04104d51e968dff9fa2e85",
-    measurementId: "G-FSGELW7P1Z"
-};
-
+// Firebase Config
+const firebaseConfig = { /* Your Config */ };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-window.auth = auth; // Expose auth for debugging
+window.auth = auth;
 const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
-
-// ===================================================================
-// AUTHORIZATION CONFIGURATION
-// ===================================================================
-const ADMIN_UID = "qogikivAnTej3fWMPHhBrjsfbQu2";
 
 // DOM Elements
 const loadingOverlay = document.getElementById('loading-overlay');
@@ -425,113 +414,54 @@ async function createUserProfileIfNeeded(user) {
 // Fetches core skills (continuums) and micro skills (rubrics) for the current school
 async function fetchSchoolSkills() {
     console.log("Fetching school skills for schoolId:", currentUserSchoolId);
-    schoolCoreSkills = []; // Reset arrays
+    schoolCoreSkills = [];
     schoolMicroSkills = [];
 
-    if (!currentUserSchoolId && currentUserRole !== 'superAdmin') {
-        console.error("Cannot fetch skills: schoolId is missing and user is not superAdmin.");
-        return;
-    }
-
     try {
-        // --- Fetch Continuums (Core Skills) ---
         const continuumsRef = collection(db, "continuums");
-        let continuumPromises = [];
-
-        // Query 1: Get skills specific to the school (if not superAdmin viewing templates)
-        if (currentUserSchoolId) {
-            continuumPromises.push(getDocs(query(continuumsRef, where("schoolId", "==", currentUserSchoolId))));
-        }
-        // Query 2: Get master templates (where schoolId does NOT exist)
-        // Note: Firestore doesn't directly support "field does not exist", so we query for non-null and combine.
-        // A simpler approach is to rely on the fact templates WON'T match the schoolId.
-        // Let's adjust: Query for the school AND query for null (if templates use null explicitly).
-        // OR: If templates truly have NO field, we need separate queries.
-
-        // --- CORRECTED QUERY APPROACH ---
-        // Query 1: Get master templates (schoolId == null OR field missing - handled by checking after fetch)
-        const templateContinuumQuery = query(continuumsRef, where("schoolId", "==", null)); // Assumes templates MIGHT use null
-        continuumPromises.push(getDocs(templateContinuumQuery));
-
-        const continuumSnapshots = await Promise.all(continuumPromises);
-        let combinedContinuums = [];
-        continuumSnapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => {
-                // Filter out templates if user is NOT superAdmin AND has a schoolId,
-                // but ONLY add templates if they are missing schoolId (or it's null)
-                const data = doc.data();
-                if (data.schoolId === currentUserSchoolId || data.schoolId == null) { // Check for explicit null OR match
-                     // Prevent duplicates if a school doc somehow matches template name
-                     if (!combinedContinuums.some(c => c.id === doc.id)) {
-                         combinedContinuums.push({ id: doc.id, ...data });
-                     }
-                }
-                // If templates have MISSING field, the query needs changing. Let's assume explicit null for now or adjust logic.
-            });
-        });
-
-        // If templates have MISSING field, we need this additional logic block:
-        // Fetch ALL continuums and filter locally (less efficient but works for missing fields)
-        /*
-        const allContinuumsSnap = await getDocs(collection(db, "continuums"));
-        combinedContinuums = allContinuumsSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(c => c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null);
-        */
-        // Let's stick with the query approach assuming explicit null or just checking the schoolId match.
-
-        schoolCoreSkills = combinedContinuums
-                            .filter(c => c.name) // Ensure name exists
-                            .sort((a, b) => a.name.localeCompare(b.name));
-
-
-        // --- Fetch Rubrics (Micro Skills) --- (Apply similar logic)
+        const allContinuumsSnap = await getDocs(continuumsRef);
         const rubricsRef = collection(db, "rubrics");
-        let rubricPromises = [];
-         if (currentUserSchoolId) {
-            rubricPromises.push(getDocs(query(rubricsRef, where("schoolId", "==", currentUserSchoolId))));
-        }
-        const templateRubricQuery = query(rubricsRef, where("schoolId", "==", null));
-        rubricPromises.push(getDocs(templateRubricQuery));
+        const allRubricsSnap = await getDocs(rubricsRef);
 
-        const rubricSnapshots = await Promise.all(rubricPromises);
-        let combinedRubrics = [];
-         rubricSnapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => {
-                 const data = doc.data();
-                 if (data.schoolId === currentUserSchoolId || data.schoolId == null) {
-                     if (!combinedRubrics.some(r => r.id === doc.id)) {
-                         combinedRubrics.push({ id: doc.id, ...data });
-                     }
+        const allContinuums = allContinuumsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allRubrics = allRubricsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        schoolCoreSkills = allContinuums
+            .filter(c => c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null)
+            .filter(c => c.name)
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        const combinedRubrics = allRubrics
+            .filter(r => r.schoolId === currentUserSchoolId || r.schoolId === undefined || r.schoolId === null);
+        
+        const tempSkillMap = {
+             'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
+             'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
+             'Curiosity': ['Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating'],
+             'Critical Thinking': ['Analyzing Information', 'Evaluating Evidence', 'Problem Solving'],
+             'Fields of Knowledge': ['Literacy', 'Math', 'Science', 'Social Studies', 'Arts']
+         };
+         
+        schoolMicroSkills = combinedRubrics
+            .filter(r => r.name)
+            .map(rubricData => {
+                let coreSkillName = "Unknown";
+                for (const core in tempSkillMap) {
+                    if (tempSkillMap[core].includes(rubricData.name)) {
+                        coreSkillName = core;
+                        break;
+                    }
                 }
-            });
-        });
-
-         // --- Association Logic (using tempSkillMap) ---
-         const tempSkillMap = { /* ... your map ... */ };
-         schoolMicroSkills = combinedRubrics
-                             .filter(r => r.name) // Ensure name exists
-                             .map(rubricData => {
-                                 let coreSkillName = "Unknown";
-                                 for (const core in tempSkillMap) {
-                                     if (tempSkillMap[core].includes(rubricData.name)) {
-                                         coreSkillName = core;
-                                         break;
-                                     }
-                                 }
-                                 return {
-                                     id: rubricData.id,
-                                     name: rubricData.name,
-                                     coreSkillName: coreSkillName
-                                 };
-                             }).sort((a, b) => a.name.localeCompare(b.name));
+                return { id: rubricData.id, name: rubricData.name, coreSkillName: coreSkillName };
+            })
+            .sort((a, b) => a.name.localeCompare(b.name));
 
         console.log("Fetched Core Skills:", schoolCoreSkills);
         console.log("Fetched Micro Skills:", schoolMicroSkills);
 
     } catch (error) {
         console.error("Error fetching school skills:", error);
-        showMessage("Could not load the skills framework. Please check the console.");
+        showMessage("Could not load the skills framework.");
         schoolCoreSkills = [];
         schoolMicroSkills = [];
     }
@@ -581,32 +511,30 @@ function listenForStudentRecords() {
 async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
     showView(studentDetailView);
-    anecdoteDisplayContainer.classList.add('hidden'); // Hide anecdote chart initially
-
-    // Fetch student name
+    anecdoteDisplayContainer.classList.add('hidden');
+    
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
-	const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
 
-    // --- NEW: Dynamically render Core Skill buttons ---
-    alignedSkillsGrid.innerHTML = ''; // Clear existing static buttons
-
+    const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
+    if (!alignedSkillsGrid) {
+        console.error("CRITICAL: aligned-skills-grid element not found!");
+        return;
+    }
+    
+    alignedSkillsGrid.innerHTML = '';
+    
     if (schoolCoreSkills.length === 0) {
-        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework found for this school.</p>';
+        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework has been set up for this school yet.</p>';
     } else {
         schoolCoreSkills.forEach(coreSkill => {
             const skillCard = document.createElement('div');
             skillCard.className = 'skill-card p-4 border rounded-lg text-center cursor-pointer'; 
             skillCard.dataset.skill = coreSkill.name; 
             skillCard.innerHTML = `<h3 class="font-bold">${coreSkill.name}</h3>`;
-            // Add the event listener directly here
             skillCard.addEventListener('click', () => {
                  listenForAnecdotes(currentStudentId, coreSkill.name, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
-                 // Optional: Scroll to the chart after clicking
-                 setTimeout(() => {
-                    anecdoteDisplayContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
             });
             alignedSkillsGrid.appendChild(skillCard);
         });
@@ -625,42 +553,42 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 			buildContinuumBtn.classList.add('hidden');
 		}
 	}
-    const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
-    unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
-        const microSkillsForCore = schoolMicroSkills
-		.filter(ms => ms.coreSkillName === coreSkill)
+	
+	const microSkillsForCore = schoolMicroSkills
+		filter(ms => ms.coreSkillName === coreSkill)
 		.map(ms => ms.name); // Get only the names
-		console.log(`Micro skills for ${coreSkill}:`, microSkillsForCore); // Debug log
-
-		if (microSkillsForCore.length === 0) {
-			console.warn(`No micro skills found for core skill "${coreSkill}". Check Firestore data or temporary map.`);
-			// Optionally render an empty chart or message
-			renderAnecdoteChart({}, targetCanvas, studentId); // Render empty chart
-			return;
-		}
+		
+	if (microSkillsForCore.length === 0) {
+		console.warn(`No micro skills found for core skill "${coreSkill}". Check Firestore data or temporary map.`);
+		// Optionally render an empty chart or message
+		renderAnecdoteChart({}, targetCanvas, studentId); // Render empty chart
+		return;
+		}	
+	
+    const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
+	
+    unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
         const microSkillCounts = {};
-        microSkillsForCore.forEach(skill => {
-            microSkillCounts[skill] = 0;
-        });
+        microSkillsForCore.forEach(skill => { microSkillCounts[skill] = 0; });
         snapshot.forEach(doc => {
             const anecdote = doc.data();
             if (microSkillCounts.hasOwnProperty(anecdote.microSkill)) {
                 microSkillCounts[anecdote.microSkill]++;
             }
         });
-        renderAnecdoteChart(microSkillCounts, targetCanvas, studentId);
-    }, (error) => {
-        console.error("Error fetching anecdotes: ", error);
-    });
+        renderAnecdoteChart(microSkillCounts, targetCanvas, studentId, microSkillsForCore); // Pass labels
+    }, (error) => { /* Handle error */ });
 }
 
-function renderAnecdoteChart(data, canvasElement, studentId) {
+function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
     if (anecdoteChart) anecdoteChart.destroy();
+	const chartLabels = labels.length > 0 ? labels : Object.keys(data);
+    const chartData = chartLabels.map(label => data[label] || 0);
     const ctx = canvasElement.getContext('2d');
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: Object.keys(data),
+            labels: labels.length > 0 ? labels : Object.keys(data), // Use passed labels if available
             datasets: [{
                 label: 'Anecdote Count',
                 data: Object.values(data),
@@ -705,13 +633,8 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     currentMicroSkill = microSkill;
     showView(microSkillDetailView);
     microSkillTitle.textContent = `Anecdotes for ${microSkill}`;
-    const rubricsAvailable = [
-    'Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection', 
-    'Honesty & Accountability', 'Discipline', 'Courage', 'Respect', 
-    'Questioning', 'Reflecting', 'Researching', 'Creating', 'Communicating', 
-    'Analyzing Information', 'Evaluating Evidence', 'Problem Solving',
-    'Literacy', 'Math', 'Science', 'Social Studies', 'Arts' 
-];
+	const rubricsAvailable = schoolMicroSkills.map(ms => ms.name);
+    viewRubricBtn.classList.toggle('hidden', !rubricsAvailable.includes(microSkill));
 
 if (rubricsAvailable.includes(microSkill)) {
     viewRubricBtn.classList.remove('hidden');
@@ -1079,14 +1002,13 @@ function renderParentStudentView(studentId, studentName) {
     parentStudentView.classList.remove('hidden');
     parentViewStudentName.textContent = studentName;
     parentViewSkillsGrid.innerHTML = '';
-    const coreSkills = ['Vitality', 'Integrity', 'Curiosity', 'Critical Thinking', 'Fields of Knowledge'];
-    coreSkills.forEach(skill => {
+    schoolCoreSkills.forEach(skill => {
         const skillCard = document.createElement('div');
         skillCard.className = 'skill-card p-4 border rounded-lg cursor-pointer';
-        skillCard.dataset.skill = skill;
-        skillCard.innerHTML = `<h3 class="font-bold text-center">${skill}</h3>`;
+        skillCard.dataset.skill = skill.name;
+        skillCard.innerHTML = `<h3 class="font-bold text-center">${skill.name}</h3>`;
         skillCard.addEventListener('click', () => {
-            listenForAnecdotes(studentId, skill, parentAnecdoteChartCanvas, parentAnecdoteListTitle, parentAnecdoteContainer);
+            listenForAnecdotes(studentId, skill.name, parentAnecdoteChartCanvas, parentAnecdoteListTitle, parentAnecdoteContainer);
         });
         parentViewSkillsGrid.appendChild(skillCard);
     });
