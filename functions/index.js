@@ -91,10 +91,33 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             console.log(`Created new school with ID: ${newSchoolId}`);
 
             // 2. Update the user's role and schoolId in Firestore
-            const userRef = db.collection('users').doc(userId);
-            await userRef.set({ role: 'schoolAdmin', schoolId: newSchoolId }, { merge: true });
-            console.log(`Updated user ${userId} to schoolAdmin for school ${newSchoolId}`);
+			// 2. Update or Create the user's role and schoolId in Firestore
+			const userRef = db.collection('users').doc(userId);
+			const userSnap = await userRef.get(); // Attempt to get the document first
 
+			if (userSnap.exists()) {
+				// Document exists, update it
+				await userRef.update({ role: 'schoolAdmin', schoolId: newSchoolId });
+				console.log(`Updated existing user ${userId} to schoolAdmin for school ${newSchoolId}`);
+			} else {
+				// Document doesn't exist, create it with basic info + new role/schoolId
+				// Fetch user info from Auth to populate basic fields
+				const authUser = await admin.auth().getUser(userId); 
+				await userRef.set({
+					uid: userId,
+					email: authUser.email, // Get email from Auth record
+					displayName: authUser.displayName || authUser.email.split('@')[0],
+					photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
+					createdAt: admin.firestore.FieldValue.serverTimestamp(), // Set creation time
+					role: 'schoolAdmin', // Set the correct role
+					schoolId: newSchoolId, // Set the correct school ID
+					notificationSettings: { // Add default settings
+						newAnecdote: true,
+						newMessage: true
+					}
+				});
+				console.log(`Created new user document for ${userId} as schoolAdmin for school ${newSchoolId}`);
+			}
             // 3. Find all master templates (documents without a schoolId)
             const templates = {
                 rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
