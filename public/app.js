@@ -321,6 +321,7 @@ onAuthStateChanged(auth, async (user) => {
         if (sessionStorage.getItem('postCheckout') === 'true') {
             sessionStorage.removeItem('postCheckout'); // Clear the flag
             schoolNameModal.classList.remove('hidden'); // Show the "Name Your School" modal
+			console.log("School name modal SHOULD be visible now.");
             loadingOverlay.classList.add('hidden');
             return; // IMPORTANT: Stop here and wait for user input.
         }
