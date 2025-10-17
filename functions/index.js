@@ -92,7 +92,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
 
             // 2. Update the user's role and schoolId in Firestore
             const userRef = db.collection('users').doc(userId);
-            await userRef.update({ role: 'schoolAdmin', schoolId: newSchoolId });
+            await userRef.set({ role: 'schoolAdmin', schoolId: newSchoolId }, { merge: true });
             console.log(`Updated user ${userId} to schoolAdmin for school ${newSchoolId}`);
 
             // 3. Find all master templates (documents without a schoolId)
