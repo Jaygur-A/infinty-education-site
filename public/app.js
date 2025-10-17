@@ -221,6 +221,22 @@ const resubscribeBtn = document.getElementById('resubscribe-btn');
 const schoolNameModal = document.getElementById('school-name-modal');
 const schoolNameForm = document.getElementById('school-name-form');
 const schoolNameInput = document.getElementById('schoolNameInput');
+const skillsView = document.getElementById('skills-view');
+const skillsLink = document.getElementById('skills-link');
+const skillsListContainer = document.getElementById('skills-list-container');
+const addCoreSkillBtn = document.getElementById('add-core-skill-btn');
+const editSkillModal = document.getElementById('edit-skill-modal');
+const closeEditSkillModalBtn = document.getElementById('close-edit-skill-modal-btn');
+const cancelEditSkillBtn = document.getElementById('cancel-edit-skill-btn');
+const editSkillForm = document.getElementById('edit-skill-form');
+const editSkillModalTitle = document.getElementById('edit-skill-modal-title');
+const editSkillId = document.getElementById('editSkillId');
+const coreSkillNameInput = document.getElementById('coreSkillNameInput');
+const microSkillsContainer = document.getElementById('micro-skills-container');
+const addMicroSkillBtn = document.getElementById('add-micro-skill-btn');
+const deleteSkillConfirmModal = document.getElementById('delete-skill-confirm-modal');
+const cancelDeleteSkillBtn = document.getElementById('cancel-delete-skill-btn');
+const confirmDeleteSkillBtn = document.getElementById('confirm-delete-skill-btn');
 
 // App State
 let currentStudentId = null,
@@ -276,6 +292,21 @@ const showView = (viewToShow) => {
     if (viewToShow) viewToShow.classList.remove('hidden');
 };
 
+// Renders input fields for micro-skills in the edit modal
+function renderMicroSkillInputs(microSkills = []) {
+    microSkillsContainer.innerHTML = ''; // Clear existing inputs
+    microSkills.forEach((ms, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center space-x-2';
+        div.innerHTML = `
+            <input type="text" value="${ms.name}" placeholder="Micro Skill Name" class="micro-skill-name flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+            <input type="text" value="${ms.description}" placeholder="Description (Optional)" class="micro-skill-desc flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+            <button type="button" class="remove-micro-skill-btn text-red-500 hover:text-red-700">&times;</button>
+        `;
+        microSkillsContainer.appendChild(div);
+    });
+}
+
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.remove('hidden');
@@ -328,6 +359,8 @@ onAuthStateChanged(auth, async (user) => {
         
         usersLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
         classroomsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
+		skillsLink.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
+		
         const isTeacherOrAdmin = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !isTeacherOrAdmin);
         messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
@@ -1064,6 +1097,14 @@ classroomsLink.addEventListener('click', (e) => {
     }
 });
 
+skillsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+        showSkillsPage();
+        profileDropdown.classList.add('hidden');
+    }
+});
+
 logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
     sessionStorage.removeItem('isSubscribing');
@@ -1735,6 +1776,55 @@ async function showClassroomsPage() {
     listenForClassrooms();
 }
 
+// Main function to show the skills management page
+function showSkillsPage() {
+    showView(skillsView);
+    renderSkillsList();
+}
+
+// Function to fetch skills from Firestore and render them to the page
+async function renderSkillsList() {
+    skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
+
+    const skillsRef = collection(db, "skills");
+    // Query for skills that belong to the current school OR are master templates
+    const q = query(skillsRef, where("schoolId", "in", [currentUserSchoolId, null]));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        skillsListContainer.innerHTML = '<p class="text-gray-500">No skills framework found. Click "Add New Core Skill" to get started.</p>';
+        return;
+    }
+
+    skillsListContainer.innerHTML = ''; // Clear loading message
+    snapshot.forEach(doc => {
+        const skill = doc.data();
+        const skillId = doc.id;
+
+        const skillCard = document.createElement('div');
+        skillCard.className = 'p-4 border rounded-lg';
+
+        let microSkillsHTML = '<p class="text-sm text-gray-500">No micro-skills defined.</p>';
+        if (skill.microSkills && skill.microSkills.length > 0) {
+            microSkillsHTML = skill.microSkills.map(ms => `<span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">${ms.name}</span>`).join('');
+        }
+
+        skillCard.innerHTML = `
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-xl text-gray-800">${skill.name}</h3>
+                <div class="space-x-2">
+                    <button class="edit-skill-btn text-sm text-blue-600 hover:underline" data-id="${skillId}">Edit</button>
+                    <button class="delete-skill-btn text-sm text-red-600 hover:underline" data-id="${skillId}">Delete</button>
+                </div>
+            </div>
+            <div class="mt-4">
+                ${microSkillsHTML}
+            </div>
+        `;
+        skillsListContainer.appendChild(skillCard);
+    });
+}
+
 async function deleteClassroom(classroomId) {
     if (confirm('Are you sure you want to delete this classroom? This cannot be undone.')) {
         try {
@@ -2220,3 +2310,139 @@ if (schoolNameForm) {
         }
     });
 }
+
+// --- SKILLS MANAGEMENT MODAL LOGIC ---
+
+// Open "Add Core Skill" modal
+addCoreSkillBtn.addEventListener('click', () => {
+    editSkillModalTitle.textContent = 'Add New Core Skill';
+    editSkillId.value = ''; // Clear ID for adding new
+    coreSkillNameInput.value = '';
+    renderMicroSkillInputs([{ name: '', description: '' }]); // Start with one blank micro-skill
+    editSkillModal.classList.remove('hidden');
+});
+
+// Close/Cancel Edit Skill Modal
+closeEditSkillModalBtn.addEventListener('click', () => editSkillModal.classList.add('hidden'));
+cancelEditSkillBtn.addEventListener('click', () => editSkillModal.classList.add('hidden'));
+
+// Add a new blank micro-skill input row
+addMicroSkillBtn.addEventListener('click', () => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center space-x-2';
+    div.innerHTML = `
+        <input type="text" placeholder="Micro Skill Name" class="micro-skill-name flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+        <input type="text" placeholder="Description (Optional)" class="micro-skill-desc flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+        <button type="button" class="remove-micro-skill-btn text-red-500 hover:text-red-700">&times;</button>
+    `;
+    microSkillsContainer.appendChild(div);
+});
+
+// Remove a micro-skill input row
+microSkillsContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-micro-skill-btn')) {
+        e.target.closest('.flex').remove();
+    }
+});
+
+// Handle saving new or edited skill data
+editSkillForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const coreSkillName = coreSkillNameInput.value.trim();
+    const skillDocumentId = editSkillId.value; // Will be empty if adding new
+
+    if (!coreSkillName) {
+        showMessage("Core Skill Name cannot be empty.");
+        return;
+    }
+
+    const microSkillsData = [];
+    microSkillsContainer.querySelectorAll('.flex').forEach(div => {
+        const name = div.querySelector('.micro-skill-name').value.trim();
+        const description = div.querySelector('.micro-skill-desc').value.trim();
+        if (name) { // Only save micro-skills that have a name
+            microSkillsData.push({ name, description });
+        }
+    });
+
+    loadingOverlay.classList.remove('hidden');
+    try {
+        const skillData = {
+            name: coreSkillName,
+            microSkills: microSkillsData,
+            schoolId: currentUserSchoolId // Tag with school ID
+        };
+
+        if (skillDocumentId) {
+            // Update existing skill
+            const skillRef = doc(db, "skills", skillDocumentId);
+            await updateDoc(skillRef, skillData);
+            showMessage("Skill updated successfully!", false);
+        } else {
+            // Add new skill
+            await addDoc(collection(db, "skills"), skillData);
+            showMessage("Core skill added successfully!", false);
+        }
+        editSkillModal.classList.add('hidden');
+        renderSkillsList(); // Refresh the list on the main page
+    } catch (error) {
+        console.error("Error saving skill:", error);
+        showMessage("Failed to save skill.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+// Handle opening the Edit/Delete modals from the main skills list
+skillsListContainer.addEventListener('click', async (e) => {
+    const skillId = e.target.dataset.id;
+    if (!skillId) return;
+
+    if (e.target.classList.contains('edit-skill-btn')) {
+        loadingOverlay.classList.remove('hidden');
+        try {
+            const skillRef = doc(db, "skills", skillId);
+            const skillSnap = await getDoc(skillRef);
+            if (skillSnap.exists()) {
+                const skillData = skillSnap.data();
+                editSkillModalTitle.textContent = 'Edit Core Skill';
+                editSkillId.value = skillId;
+                coreSkillNameInput.value = skillData.name;
+                renderMicroSkillInputs(skillData.microSkills || []);
+                editSkillModal.classList.remove('hidden');
+            } else {
+                showMessage("Skill not found.");
+            }
+        } catch (error) {
+            console.error("Error fetching skill for edit:", error);
+            showMessage("Could not load skill details.");
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    } else if (e.target.classList.contains('delete-skill-btn')) {
+        confirmDeleteSkillBtn.dataset.id = skillId; // Store ID on delete button
+        deleteSkillConfirmModal.classList.remove('hidden');
+    }
+});
+
+// Handle Delete Confirmation Modal
+cancelDeleteSkillBtn.addEventListener('click', () => deleteSkillConfirmModal.classList.add('hidden'));
+
+confirmDeleteSkillBtn.addEventListener('click', async (e) => {
+    const skillIdToDelete = e.target.dataset.id;
+    if (!skillIdToDelete) return;
+
+    loadingOverlay.classList.remove('hidden');
+    deleteSkillConfirmModal.classList.add('hidden');
+    try {
+        const skillRef = doc(db, "skills", skillIdToDelete);
+        await deleteDoc(skillRef);
+        showMessage("Core skill deleted successfully.", false);
+        renderSkillsList(); // Refresh the list
+    } catch (error) {
+        console.error("Error deleting skill:", error);
+        showMessage("Failed to delete skill.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
