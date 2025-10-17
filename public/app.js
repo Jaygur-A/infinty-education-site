@@ -546,7 +546,17 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 	}
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
     unsubscribeFromAnecdotes = onSnapshot(q, (snapshot) => {
-        const microSkillsForCore = skillMap[coreSkill] || [];
+        const microSkillsForCore = schoolMicroSkills
+		.filter(ms => ms.coreSkillName === coreSkill)
+		.map(ms => ms.name); // Get only the names
+		console.log(`Micro skills for ${coreSkill}:`, microSkillsForCore); // Debug log
+
+		if (microSkillsForCore.length === 0) {
+			console.warn(`No micro skills found for core skill "${coreSkill}". Check Firestore data or temporary map.`);
+			// Optionally render an empty chart or message
+			renderAnecdoteChart({}, targetCanvas, studentId); // Render empty chart
+			return;
+		}
         const microSkillCounts = {};
         microSkillsForCore.forEach(skill => {
             microSkillCounts[skill] = 0;
