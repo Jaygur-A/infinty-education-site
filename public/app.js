@@ -1080,7 +1080,7 @@ profileLink.addEventListener('click', (e) => {
 
 usersLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
         showUsersPage();
         profileDropdown.classList.add('hidden');
     }
@@ -1088,7 +1088,7 @@ usersLink.addEventListener('click', (e) => {
 
 classroomsLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
         showClassroomsPage();
         profileDropdown.classList.add('hidden');
     }
@@ -1096,7 +1096,7 @@ classroomsLink.addEventListener('click', (e) => {
 
 skillsLink.addEventListener('click', (e) => {
     e.preventDefault();
-    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
         showSkillsPage();
         profileDropdown.classList.add('hidden');
     }
