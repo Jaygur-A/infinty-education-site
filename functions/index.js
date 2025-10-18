@@ -121,8 +121,6 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
 
             // --- Step 3: Ensure Firestore User Document Exists and Set Role/School ---
 
-
-
             // --- Step 4: Clone Templates ---
             const templates = {
                 rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),

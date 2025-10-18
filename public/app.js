@@ -284,64 +284,69 @@ function renderMicroSkillInputs(microSkills = []) {
 
 // Auth Logic
 onAuthStateChanged(auth, async (user) => {
-    console.log("onAuthStateChanged fired. User:", user ? user.email : "none"); 
-    loadingOverlay.classList.remove('hidden'); // Show loading initially
+    console.log("onAuthStateChanged fired. User:", user ? user.email : "none");
+    loadingOverlay.classList.remove('hidden');
     currentUserRole = null;
     currentUserClassroomId = null;
     currentUserSchoolId = null;
 
     if (user) {
-        // --- Standard App Setup (Run this FIRST) ---
-        document.body.classList.remove('login-background', 'bg-overlay');
-        appContainer.classList.remove('hidden'); // Make app visible
-        authContainer.classList.add('hidden');   // Hide login form
-        userEmailDisplay.textContent = user.email;
+        // --- Step 1: Force Token Refresh ---
+        // This ensures we always have the latest permissions from the backend.
+        console.log("Forcing token refresh...");
+        await user.getIdToken(true);
+        console.log("Token refreshed.");
 
-		// Force token refresh on EVERY login to get latest claims
-		console.log("Forcing token refresh...");
-		await user.getIdToken(true);
-		console.log("Token refreshed.");
+        // --- Step 2: Create User Profile if it Doesn't Exist ---
+        // This is the critical missing step. This function now reliably creates the 'guest' doc.
+        const userSnap = await createUserProfileIfNeeded(user);
 
-		// Now, fetch user profile data (including potentially just created one)
-		const userRef = doc(db, "users", user.uid);
-		const freshUserSnap = await getDoc(userRef);
-
-        const userData = freshUserSnap.exists() ? freshUserSnap.data() : {};
+        // --- Step 3: Get the definitive user data ---
+        // If the profile was just created, we re-fetch to get the new data.
+        const userData = userSnap.exists() ? userSnap.data() : (await getDoc(doc(db, "users", user.uid))).data();
+        
         currentUserRole = userData.role || 'guest';
-        currentUserSchoolId = userData.schoolId || null; 
+        currentUserSchoolId = userData.schoolId || null;
         console.log(`User logged in. Role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
-        // --- MANDATORY ONBOARDING CHECK ---
+        // --- Standard App Setup (Show app, hide login) ---
+        document.body.classList.remove('login-background', 'bg-overlay');
+        appContainer.classList.remove('hidden');
+        authContainer.classList.add('hidden');
+        userEmailDisplay.textContent = user.email;
+
+        // --- Step 4: Mandatory Onboarding / Inactive Subscription Check ---
         if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
-
-            if (schoolSnap.exists() && schoolSnap.data().name === "New School") {
-                console.log("School needs naming. Showing modal.");
-                schoolNameModal.classList.remove('hidden'); // Now show the modal
-                loadingOverlay.classList.add('hidden'); // Hide loading AFTER potentially showing modal
-                return; // Stop until school is named
-            }
-
-            if (schoolSnap.exists() && schoolSnap.data().subscriptionStatus !== 'active') {
-                console.log("Subscription is inactive. Showing inactive view.");
-                showView(subscriptionInactiveView);
-                loadingOverlay.classList.add('hidden');
-                return; 
+            if (schoolSnap.exists()) {
+                if (schoolSnap.data().name === "New School") {
+                    console.log("School needs naming. Showing modal.");
+                    schoolNameModal.classList.remove('hidden');
+                    loadingOverlay.classList.add('hidden');
+                    return; // Stop until school is named
+                }
+                if (schoolSnap.data().subscriptionStatus !== 'active') {
+                    console.log("Subscription is inactive. Showing inactive view.");
+                    showView(subscriptionInactiveView);
+                    loadingOverlay.classList.add('hidden');
+                    return;
+                }
             }
         }
 
-        // --- Standard Routing (Only runs if onboarding/inactive checks pass) ---
+        // --- Step 5: Fetch Skills & Route User ---
         await fetchSchoolSkills();
-		const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+
+        const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         usersLink.classList.toggle('hidden', !isAdminType);
         classroomsLink.classList.toggle('hidden', !isAdminType);
         skillsLink.classList.toggle('hidden', !isAdminType);
 
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
-        messagesChartContainer.classList.toggle('hidden', currentUserRole !== 'admin' && currentUserRole !== 'superAdmin');
-
+        messagesChartContainer.classList.toggle('hidden', !['admin', 'superAdmin'].includes(currentUserRole));
+		
         if (canAddRecord) { 
             showView(dashboardView);
             if (currentUserRole === 'teacher') {
