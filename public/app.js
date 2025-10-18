@@ -1127,10 +1127,12 @@ messagesBtn.addEventListener('click', () => {
 });
 
 backToDashboardBtn.addEventListener('click', () => {
-    if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+    // New check for any admin/teacher role
+    const canAccessDashboard = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+    if (canAccessDashboard) {
         showView(dashboardView);
     } else {
-        showView(parentDashboardView);
+        showView(parentDashboardView); // Default for parent/guest
     }
 });
 
@@ -1260,7 +1262,8 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
         imageUrl: null
     };
     const imageFile = document.getElementById('anecdoteImage').files[0];
-    try {
+    console.log("Attempting to add anecdote with data:", anecdoteData);
+	try {
         if (imageFile) {
             const storageRef = ref(storage, `anecdotes/${currentStudentId}/${Date.now()}-${imageFile.name}`);
             const uploadResult = await uploadBytes(storageRef, imageFile);
