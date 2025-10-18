@@ -1623,11 +1623,13 @@ messageForm.addEventListener('submit', async (e) => {
 
 backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
 
-backToStudentFromContinuumBtn.addEventListener('click', () => {
-    if (currentStudentId) {
-        showStudentDetailPage(currentStudentId);
-    }
-});
+if (backToStudentFromContinuumBtn) {
+	backToStudentFromContinuumBtn.addEventListener('click', () => {
+		if (currentStudentId) {
+			showStudentDetailPage(currentStudentId);
+		}
+	});
+}
 
 deleteAccountBtn.addEventListener('click', () => {
     deleteConfirmModal.classList.remove('hidden');
