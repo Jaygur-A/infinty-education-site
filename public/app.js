@@ -319,7 +319,15 @@ onAuthStateChanged(auth, async (user) => {
         if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
-            if (schoolSnap.exists()) {
+            
+			console.log("Checking school document snapshot exists:", schoolSnap.exists());
+			if (schoolSnap.exists()) {
+				console.log("School document data:", schoolSnap.data());
+				console.log("School name found in DB:", schoolSnap.data().name);
+				console.log("Is school name === 'New School'?", schoolSnap.data().name === "New School");
+			}
+			
+			if (schoolSnap.exists()) {
                 if (schoolSnap.data().name === "New School") {
                     console.log("School needs naming. Showing modal.");
                     schoolNameModal.classList.remove('hidden');
