@@ -105,30 +105,13 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
 		console.log(`Created new school with ID: ${newSchoolId}`);
 
 		// 2. Update or Create the user's Firestore document (Uses fetched authUser)
+		// 2. Set (Merge) the user's role and schoolId in Firestore
 		const userRef = db.collection('users').doc(userId);
-		const userSnap = await userRef.get(); // Check if Firestore doc exists
-
-		if (userSnap.exists()) {
-			// Document exists, just update role and schoolId
-			await userRef.update({ role: 'schoolAdmin', schoolId: newSchoolId });
-			console.log(`Updated existing user ${userId} to schoolAdmin for school ${newSchoolId}`);
-		} else {
-			// Document doesn't exist, create it using Auth info
-			await userRef.set({
-				uid: userId,
-				email: authUser.email,
-				displayName: authUser.displayName || authUser.email.split('@')[0],
-				photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
-				createdAt: admin.firestore.FieldValue.serverTimestamp(),
-				role: 'schoolAdmin', // Set correct role
-				schoolId: newSchoolId, // Set correct school ID
-				notificationSettings: {
-					newAnecdote: true,
-					newMessage: true
-				}
-			});
-			console.log(`Created new user document for ${userId} as schoolAdmin for school ${newSchoolId}`);
-		}
+		await userRef.set({ 
+			role: 'schoolAdmin', 
+			schoolId: newSchoolId 
+		}, { merge: true }); // Use set with merge: true
+		console.log(`Set user ${userId} to schoolAdmin for school ${newSchoolId} (merged)`);
 
 		// 3. Clone templates (Your existing code is correct)
 		const templates = {
