@@ -1037,7 +1037,6 @@ function listenForAdminMessages() {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
     const messagesCollectionGroup = collectionGroup(db, 'messages');
-    const currentUser = auth.currentUser; // Get the currently logged-in user
 	if (!currentUser) return; // Add safety check
 
 	const q = query(messagesCollectionGroup, where("senderId", "==", currentUser.uid), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
