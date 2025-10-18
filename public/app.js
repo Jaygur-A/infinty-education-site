@@ -120,6 +120,7 @@ const buildContinuumBtn = document.getElementById('build-continuum-btn');
 const continuumTitle = document.getElementById('continuum-title');
 const downloadContinuumBtn = document.getElementById('download-continuum-btn');
 const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+const backToStudentFromContinuumBtn = document.getElementById('back-to-student-from-continuum-btn');
 const buildJourneyBtn = document.getElementById('build-journey-btn');
 const journeyBuilderView = document.getElementById('journey-builder-view');
 const journeyStudentName = document.getElementById('journey-student-name');
@@ -1552,6 +1553,12 @@ messageForm.addEventListener('submit', async (e) => {
 
 backToStudentDetailBtn.addEventListener('click', () => showStudentDetailPage(currentStudentId));
 
+backToStudentFromContinuumBtn.addEventListener('click', () => {
+    if (currentStudentId) {
+        showStudentDetailPage(currentStudentId);
+    }
+});
+
 deleteAccountBtn.addEventListener('click', () => {
     deleteConfirmModal.classList.remove('hidden');
 });
@@ -2324,7 +2331,9 @@ function setContinuumMode(mode) {
     saveContinuumBtn.classList.toggle('hidden', mode !== 'edit');
     cancelContinuumBtn.classList.toggle('hidden', mode !== 'edit');
     downloadContinuumBtn.classList.toggle('hidden', mode === 'edit');
-    backToDashboardBtn.classList.toggle('hidden', mode === 'edit'); // Hide back button in edit mode
+	if (backToStudentFromContinuumBtn) {
+		backToStudentFromContinuumBtn.classList.toggle('hidden', mode === 'edit'); // Hide back button in edit mode
+	}
 
     // Make table cells editable OR just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
