@@ -699,7 +699,8 @@ if (rubricsAvailable.includes(microSkill)) {
 }
 
 async function showRubricPage(studentId, coreSkill, microSkill) {
-    showView(rubricView);
+    console.log(`Querying rubrics for name: "${microSkill}" and schoolId in [${currentUserSchoolId}, null]`);
+	showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
     rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
 
