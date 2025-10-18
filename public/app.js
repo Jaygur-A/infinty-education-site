@@ -705,7 +705,7 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
 
     // NEW LOGIC: Query for the rubric by name AND schoolId
     const rubricsRef = collection(db, "rubrics");
-    const q = query(rubricsRef, where("name", "==", microSkill), where("schoolId", "==", currentUserSchoolId));
+	const q = query(rubricsRef, where("name", "==", microSkill), where("schoolId", "in", [currentUserSchoolId, null]));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
