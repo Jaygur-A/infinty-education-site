@@ -1855,58 +1855,72 @@ async function renderSkillsList() {
     skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
     const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole); // Check if user can edit
 
-    // Fetch CONTINUUMS (Core Skills) for the school OR master templates
-    const skillsRef = collection(db, "continuums"); 
-    const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId ? [null] : [currentUserSchoolId, null];
-    const q = query(skillsRef, where("schoolId", "in", schoolIdsToQuery), orderBy("name"));
-    const snapshot = await getDocs(q);
+    try { // Added try...catch for better error handling during fetch
+        // Fetch CONTINUUMS (Core Skills)
+        const skillsRef = collection(db, "continuums");
+        const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId ? [null] : [currentUserSchoolId, null];
+        // Fetching all and filtering locally is safer for templates without the field.
+        const allSkillsSnap = await getDocs(query(skillsRef, orderBy("name"))); // Fetch all, order by name
 
-    if (snapshot.empty) {
-        skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found. Click "Add New Core Skill" (if available).</p>';
-        addCoreSkillBtn.classList.toggle('hidden', !isAdmin); // Only show Add button if admin
-        return;
+        console.log("Raw snapshot size:", allSkillsSnap.size);
+
+        const filteredSkills = allSkillsSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() })) // Map to objects
+            .filter(c => {
+                // Keep if it belongs to the school OR if it's a template (no schoolId or schoolId is null)
+                return c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null;
+            })
+            .filter(c => c.name); // Ensure name exists before sorting/displaying
+
+        console.log("Filtered skills count:", filteredSkills.length);
+        console.log("Filtered skills data:", filteredSkills);
+
+        if (filteredSkills.length === 0) {
+            skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found after filtering. Check Firestore templates or add a new skill.</p>';
+            skillsListContainer.className = 'space-y-6'; // Reset class if empty
+            addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
+            return;
+        }
+
+        skillsListContainer.innerHTML = '';
+        skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6';
+
+        filteredSkills.forEach(skill => { // Loop through filteredSkills
+            const skillId = skill.id; // Get ID from the mapped object
+            const isMasterTemplate = skill.schoolId === null || skill.schoolId === undefined;
+
+            const skillCard = document.createElement('div');
+            skillCard.className = 'skill-card relative p-4 border rounded-lg text-center';
+            skillCard.dataset.skill = skill.name;
+
+            let adminButtons = '';
+            if (isAdmin && (!isMasterTemplate || currentUserRole === 'superAdmin')) {
+                 adminButtons = `
+                    <div class="absolute top-2 right-2 flex space-x-1">
+                        <button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill Name">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                `;
+            }
+
+            skillCard.innerHTML = `
+                ${adminButtons}
+                <h3 class="font-bold text-center mt-4">${skill.name}</h3>
+            `;
+            skillsListContainer.appendChild(skillCard);
+        });
+
+        addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
+
+    } catch (error) { // Added try...catch
+        console.error("Error rendering skills list:", error);
+        skillsListContainer.innerHTML = '<p class="text-red-500">Error loading skills. Please check the console.</p>';
+        skillsListContainer.className = 'space-y-6'; // Reset class on error
     }
-
-    skillsListContainer.innerHTML = ''; 
-    skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6'; 
-
-    snapshot.forEach(doc => {
-        const skill = doc.data(); // This is now continuum data
-        const skillId = doc.id;   // This is the continuum document ID
-        const isMasterTemplate = skill.schoolId === null;
-
-        const skillCard = document.createElement('div');
-        skillCard.className = 'skill-card relative p-4 border rounded-lg text-center'; 
-        skillCard.dataset.skill = skill.name; 
-
-        let adminButtons = '';
-        // Only SuperAdmin can edit/delete master templates
-        // SchoolAdmin can edit/delete their own school's skills
-        // Inside renderSkillsList...
-		if (isAdmin && (!isMasterTemplate || currentUserRole === 'superAdmin')) {
-			 adminButtons = `
-				<div class="absolute top-2 right-2 flex space-x-1">
-					<button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill Name">
-					   {/* --- ADD SVG CODE --- */}
-					   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-					</button>
-					<button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
-						{/* --- ADD SVG CODE --- */}
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
-					</button>
-				</div>
-			`;
-		}
-
-        skillCard.innerHTML = `
-            ${adminButtons}
-            <h3 class="font-bold text-center mt-4">${skill.name}</h3> 
-        `;
-        skillsListContainer.appendChild(skillCard);
-    });
-
-    // Show Add button only for admins managing their own school's skills (or superAdmin)
-     addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
 }
 
 async function deleteClassroom(classroomId) {
