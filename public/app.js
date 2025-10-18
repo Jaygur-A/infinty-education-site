@@ -890,48 +890,110 @@ function renderAllSkillsChart(data) {
 
 // CHAT LOGIC
 async function listenForUsers() {
+    console.log("listenForUsers started. Role:", currentUserRole, "SchoolID:", currentUserSchoolId); // Debug log
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
+    if (!currentUser) return; // Should not happen if view is accessible, but safety check
     if (unsubscribeFromUsers) unsubscribeFromUsers();
-    userList.innerHTML = '';
-    if (currentUser.uid === ADMIN_UID) {
-        const usersRef = collection(db, "users");
-        unsubscribeFromUsers = onSnapshot(usersRef, (snapshot) => {
-            userList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const userData = doc.data();
-                if (userData.uid === currentUser.uid) return;
-                const userCard = document.createElement('div');
-                userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
-                userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
-                userCard.addEventListener('click', () => openChat(userData));
-                userList.appendChild(userCard);
-            });
-        });
-    } else {
+    userList.innerHTML = '<p class="text-gray-500 p-3">Loading users...</p>'; // Loading message
+
+    const usersRef = collection(db, "users");
+    let queryPromise;
+
+    if (currentUserRole === 'superAdmin') {
+        // SuperAdmin sees all users (excluding self)
+        queryPromise = getDocs(query(usersRef, where("uid", "!=", currentUser.uid)));
+        console.log("Fetching all users for superAdmin");
+    } else if (currentUserRole === 'schoolAdmin' || currentUserRole === 'teacher') {
+        // SchoolAdmin/Teacher sees users within their school (excluding self)
+        if (!currentUserSchoolId) {
+             console.error("SchoolAdmin/Teacher has no schoolId!");
+             userList.innerHTML = '<p class="text-red-500 p-3">Error: Cannot determine your school.</p>';
+             return;
+        }
+        queryPromise = getDocs(query(usersRef, where("schoolId", "==", currentUserSchoolId), where("uid", "!=", currentUser.uid)));
+        console.log("Fetching users for school:", currentUserSchoolId);
+    } else if (currentUserRole === 'parent') {
+        // Parent sees users they have existing chats with
+        console.log("Fetching chat partners for parent:", currentUser.uid);
         const chatsRef = collection(db, "chats");
         const q = query(chatsRef, where("participants", "array-contains", currentUser.uid));
+        
+        // Use onSnapshot for real-time updates of chat partners
         unsubscribeFromUsers = onSnapshot(q, async (snapshot) => {
-            userList.innerHTML = '';
-            noUsersMessage.classList.toggle('hidden', snapshot.empty);
-            for (const chatDoc of snapshot.docs) {
+            console.log(`Found ${snapshot.size} chats for parent.`);
+            userList.innerHTML = ''; // Clear previous list
+            if (snapshot.empty) {
+                 noUsersMessage.classList.remove('hidden');
+                 noUsersMessage.textContent = "No conversations started yet.";
+                 return;
+            }
+             noUsersMessage.classList.add('hidden');
+
+            let uniqueUserIds = new Set();
+            snapshot.forEach(chatDoc => {
                 const participants = chatDoc.data().participants;
                 const otherUserId = participants.find(uid => uid !== currentUser.uid);
-                if (otherUserId) {
-                    const userRef = doc(db, "users", otherUserId);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        const userData = userSnap.data();
-                        const userCard = document.createElement('div');
-                        userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
-                        userCard.innerHTML = `<span>${userData.displayName || userData.email}</span><button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>`;
-                        userCard.addEventListener('click', () => openChat(userData));
-                        userList.appendChild(userCard);
-                    }
+                if (otherUserId) uniqueUserIds.add(otherUserId);
+            });
+
+             if (uniqueUserIds.size === 0) {
+                 noUsersMessage.classList.remove('hidden');
+                 noUsersMessage.textContent = "No conversations found.";
+                 return;
+             }
+
+            // Fetch profiles for the unique chat partners
+            const userPromises = Array.from(uniqueUserIds).map(uid => getDoc(doc(db, "users", uid)));
+            const userSnaps = await Promise.all(userPromises);
+
+            userSnaps.forEach(userSnap => {
+                if (userSnap.exists()) {
+                    renderUserCard(userSnap.data());
                 }
-            }
+            });
+        }, (error) => {
+             console.error("Error fetching parent chats:", error);
+             userList.innerHTML = '<p class="text-red-500 p-3">Error loading conversations.</p>';
         });
+        return; // onSnapshot handles updates, so we exit here for parents
+
+    } else { // Guest or unexpected role
+        console.log("User role not permitted to view user list:", currentUserRole);
+        userList.innerHTML = '<p class="text-gray-500 p-3">You do not have permission to view messages.</p>';
+        return;
     }
+
+    // --- Logic for Admin/Teacher (uses queryPromise) ---
+    try {
+        const snapshot = await queryPromise;
+        userList.innerHTML = ''; // Clear loading
+        noUsersMessage.classList.toggle('hidden', !snapshot.empty);
+        if (snapshot.empty) {
+             noUsersMessage.textContent = "No other users found.";
+        }
+        snapshot.forEach(docSnap => {
+            renderUserCard(docSnap.data());
+        });
+    } catch (error) {
+         console.error("Error fetching users:", error);
+         userList.innerHTML = '<p class="text-red-500 p-3">Error loading user list.</p>';
+    }
+}
+
+// Helper function to render a user card (to avoid duplication)
+function renderUserCard(userData) {
+    const userCard = document.createElement('div');
+    userCard.className = 'p-3 border rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+    userCard.innerHTML = `
+        <div class="flex items-center space-x-3">
+             <img src="${userData.photoURL || 'https://placehold.co/40x40?text=?'}" alt="User photo" class="w-8 h-8 rounded-full">
+             <span>${userData.displayName || userData.email}</span>
+             ${userData.role ? `<span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">${userData.role}</span>` : ''}
+        </div>
+        <button class="text-sm bg-green-500 text-white px-3 py-1 rounded">Message</button>
+    `;
+    userCard.addEventListener('click', () => openChat(userData));
+    userList.appendChild(userCard);
 }
 
 function openChat(recipient) {
