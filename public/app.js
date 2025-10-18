@@ -518,19 +518,22 @@ function listenForStudentRecords() {
 
 async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
-    showView(studentDetailView);
-    anecdoteDisplayContainer.classList.add('hidden');
-    
+    showView(studentDetailView); 
+
+    // Fetch student name (keep this)
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
 
+    // --- Get alignedSkillsGrid AFTER showing the view ---
     const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
+
     if (!alignedSkillsGrid) {
         console.error("CRITICAL: aligned-skills-grid element not found!");
-        return;
+        return; // Stop if the element isn't found
     }
-    
+
+    // Now it's safe to clear and populate
     alignedSkillsGrid.innerHTML = '';
     
     if (schoolCoreSkills.length === 0) {
@@ -661,7 +664,8 @@ if (rubricsAvailable.includes(microSkill)) {
             const anecdoteCard = document.createElement('div');
             anecdoteCard.className = 'anecdote-card relative p-4 border rounded-lg bg-gray-50';
             let adminButtons = '';
-            if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
+            const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+			if (isAdmin) {
                 adminButtons = `
                     <div class="absolute top-2 right-2 flex space-x-2">
                         <button class="edit-anecdote-btn text-gray-500 hover:text-blue-600" data-id="${anecdoteId}" title="Edit">
