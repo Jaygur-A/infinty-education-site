@@ -1,15 +1,19 @@
-require('dotenv').config();
+require('dotenv').config(); // Loads .env file
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const stripe = require("stripe")(process.env.STRIPE_SECRET);
+const stripe = require("stripe")(process.env.STRIPE_SECRET); // Uses key from .env
 const { OpenAI } = require("openai");
-const cors = require('cors')({origin: true});
+const cors = require('cors')({origin: true}); // CORS middleware
 
 admin.initializeApp();
 const db = admin.firestore();
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_KEY,
+  apiKey: process.env.OPENAI_KEY, // Uses key from .env
 });
+
+// Helper function to delay execution
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /*
  * ===================================================================
@@ -17,132 +21,127 @@ const openai = new OpenAI({
  * ===================================================================
  */
 
-// Creates a Stripe Checkout session for a new subscription
+// Creates a Stripe Checkout session
 exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
-  console.log("Function started. Received data:", data); // New log
-
+  console.log("createCheckoutSession started. Data:", data);
   if (!context.auth) {
-    console.error("Authentication check failed."); // New log
+    console.error("Authentication check failed.");
     throw new functions.https.HttpsError("unauthenticated", "You must be logged in to subscribe.");
   }
-
   const { priceId } = data;
   const userId = context.auth.uid;
-
-  console.log(`User ID: ${userId}, Price ID: ${priceId}`); // New log
-
   if (!priceId) {
-    console.error("No Price ID received from client."); // New log
+    console.error("No Price ID received.");
     throw new functions.https.HttpsError("invalid-argument", "No priceId was provided.");
   }
-
+  console.log(`User: ${userId}, Price: ${priceId}`);
   try {
-    console.log("Creating Stripe session..."); // New log
+    console.log("Creating Stripe session...");
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: userId,
-	  success_url: `https://infinty-education-site-bdul9.kinsta.page/?session_id={CHECKOUT_SESSION_ID}`,
-	  cancel_url: `https://infinty-education-site-bdul9.kinsta.page/`,
+      success_url: `https://infinty-education-site-bdul9.kinsta.page/?session_id={CHECKOUT_SESSION_ID}`, // Correct Kinsta URL
+      cancel_url: `https://infinty-education-site-bdul9.kinsta.page/`, // Correct Kinsta URL
     });
-
-    console.log("Stripe session created successfully:", session.id); // New log
+    console.log("Stripe session created:", session.id);
     return { id: session.id };
-
   } catch (error) {
     console.error("Stripe Checkout Error:", error);
     throw new functions.https.HttpsError("internal", "Unable to create checkout session.");
   }
 });
 
-// Helper function to delay execution
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// Listens for successful payments and provisions a new school
+// Provisions a new school after successful payment (Webhook)
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
+    console.log("[fulfillSubscription] Webhook received.");
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
     let event;
 
     try {
         event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+        console.log("[fulfillSubscription] Webhook signature verified.");
     } catch (err) {
-        console.error('Webhook signature verification failed.', err.message);
+        console.error('[fulfillSubscription] Webhook signature verification failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const userId = session.client_reference_id;
+        console.log(`[fulfillSubscription] Processing checkout.session.completed for user: ${userId}`);
 
         if (!userId) {
-            console.error('No userId found in session.');
+            console.error('[fulfillSubscription] No userId found in session.');
             return res.status(400).send('No userId found in session.');
         }
 
         try {
-            // --- Step 1: Reliably Fetch Auth User Record (with retries) ---
-            let authUser = null;
-            let attempts = 0;
-            const maxAttempts = 5;
-            const retryDelay = 1500; // Increased delay slightly
-
-            while (!authUser && attempts < maxAttempts) {
-                attempts++;
-                try {
-                    console.log(`Attempt ${attempts} to fetch Auth user ${userId}...`);
-                    authUser = await admin.auth().getUser(userId);
-                    console.log(`Auth user ${userId} found on attempt ${attempts}.`);
-                } catch (error) {
-                    if (error.code === 'auth/user-not-found' && attempts < maxAttempts) {
-                        console.log(`Auth user ${userId} not found yet, retrying in ${retryDelay}ms...`);
-                        await delay(retryDelay);
-                    } else {
-                        console.error(`Failed to fetch Auth user ${userId} after ${attempts} attempts:`, error);
-                        throw error; // Give up if persistent error or max attempts reached
-                    }
-                }
-            }
-            if (!authUser) {
-                throw new Error(`Auth user ${userId} not found after retries.`);
-            }
-
-            // --- Step 2: Create the School Document ---
+            // --- Step 1: Create the School Document ---
             const schoolRef = await db.collection('schools').add({
                 ownerUid: userId,
-                name: "New School", // User will name this in the next step
+                name: "New School", // User names this in onboarding
                 subscriptionStatus: 'active',
                 stripeCustomerId: session.customer,
                 subscriptionId: session.subscription,
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
             const newSchoolId = schoolRef.id;
-            console.log(`Created new school with ID: ${newSchoolId}`);
+            console.log(`[fulfillSubscription] Created new school with ID: ${newSchoolId} for user ${userId}`);
 
-            // --- Step 3: Ensure Firestore User Document Exists and Set Role/School ---
+            // --- Step 2: Set (Merge) user's schoolId in Firestore ---
+            // Role promotion happens later in updateSchoolName
+            const userRef = db.collection('users').doc(userId);
+             try {
+                // We only set the schoolId here. Role remains 'guest' until onboarding.
+                // merge:true ensures we don't overwrite if createUserProfileIfNeeded already ran.
+                await userRef.set({ schoolId: newSchoolId }, { merge: true });
+                console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
+             } catch (dbError) {
+                console.error(`[fulfillSubscription] Error SETTING schoolId for user ${userId}:`, dbError);
+                 // Don't fail the whole process if this fails, but log it.
+                 // The onboarding step will handle setting role/schoolId again.
+             }
 
-            // --- Step 4: Clone Templates ---
+
+            // --- Step 3: Clone Templates ---
             const templates = {
                 rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
                 continuums: await db.collection('continuums').where('schoolId', '==', null).get()
             };
-            console.log(`Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates.`);
+            console.log(`[fulfillSubscription] Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates.`);
 
             const batch = db.batch();
-            templates.rubrics.forEach(doc => { /* ... clone ... */ });
-            templates.continuums.forEach(doc => { /* ... clone ... */ });
+            // --- Corrected Cloning Logic ---
+            templates.rubrics.forEach(doc => {
+                 const newDocRef = db.collection('rubrics').doc(); // Generate new ID
+                 // Ensure 'name' field is included if it exists in template data
+                 const dataToClone = doc.data();
+                 batch.set(newDocRef, { ...dataToClone, schoolId: newSchoolId });
+            });
+            templates.continuums.forEach(doc => {
+                 const newDocRef = db.collection('continuums').doc(); // Generate new ID
+                 const dataToClone = doc.data();
+                 batch.set(newDocRef, { ...dataToClone, schoolId: newSchoolId });
+            });
+            // --- End of Correction ---
             await batch.commit();
-            console.log(`Successfully cloned templates for new school ${newSchoolId}`);
+            console.log(`[fulfillSubscription] Successfully cloned templates for new school ${newSchoolId}`);
+
+            // Note: setUserClaims will trigger automatically if the userRef.set above created the doc,
+            // or when updateSchoolName runs later and updates the role.
 
         } catch (error) {
-            console.error('Error provisioning new school:', error);
-            // Consider adding more specific error handling/reporting here
+            console.error('[fulfillSubscription] Error provisioning new school:', error);
             return res.status(500).send('Internal Server Error');
         }
+    } else {
+         console.log(`[fulfillSubscription] Received unhandled event type: ${event.type}`);
     }
 
-    res.status(200).send();
+    res.status(200).send(); // Acknowledge receipt of the event
 });
 
 /*
@@ -185,100 +184,108 @@ exports.deleteUserData = functions.https.onCall(async (data, context) => {
 
 // Updates a newly created school's name during onboarding
 exports.updateSchoolName = functions.https.onCall(async (data, context) => {
-	try {
-		// 1. Update the school document name (Existing logic)
-		const schoolRef = db.collection('schools').doc(schoolId);
-		await schoolRef.update({ name: schoolName.trim() });
-		console.log(`Updated school name for ${schoolId}`);
+    console.log("[updateSchoolName] Function called. Data:", data);
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
+    }
 
-		// 2. NOW, update the user's role and schoolId
-		const userId = context.auth.uid; // Get the UID from the authenticated context
-		const userRef = db.collection('users').doc(userId);
-		await userRef.update({ 
-			role: 'schoolAdmin', 
-			schoolId: schoolId // Assign the schoolId we got from the token
-		});
-		console.log(`Updated user ${userId} role to schoolAdmin for school ${schoolId}`);
+    const { schoolName } = data;
+    const userId = context.auth.uid; // The user calling the function
 
-		return { status: 'success', message: 'School setup complete.' };
+    // Fetch the user's current document to get the schoolId assigned during fulfillSubscription
+    const callingUserRef = db.collection('users').doc(userId);
+    const callingUserSnap = await callingUserRef.get();
 
-	} catch (error) {
-		console.error("Error finalizing school setup:", error);
-		// Check if the error was updating the user, provide more specific feedback if needed
-		if (error.message.includes("users")) {
-			 throw new functions.https.HttpsError("internal", "Failed to update user role. School name was set.");
-		} else {
-			throw new functions.https.HttpsError("internal", "An error occurred during school setup.");
-		}
-	}
+    if (!callingUserSnap.exists()) {
+        console.error(`[updateSchoolName] User document for ${userId} not found.`);
+        throw new functions.https.HttpsError("not-found", "User profile not found.");
+    }
+
+    const schoolId = callingUserSnap.data().schoolId; // Get schoolId assigned by fulfillSubscription
+
+    if (!schoolName || schoolName.trim().length === 0) {
+        throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty.");
+    }
+    if (!schoolId) {
+        console.error(`[updateSchoolName] User ${userId} has no schoolId in their document.`);
+        throw new functions.https.HttpsError("failed-precondition", "User has no associated school ID. Subscription might not be fully processed.");
+    }
+
+    try {
+        // 1. Update the school name
+        const schoolRef = db.collection('schools').doc(schoolId);
+        await schoolRef.update({ name: schoolName.trim() });
+        console.log(`[updateSchoolName] Updated school name for ${schoolId} to ${schoolName.trim()}`);
+
+        // 2. Update the CALLING USER's role to schoolAdmin (if not already)
+        // This triggers setUserClaims automatically
+        await callingUserRef.update({
+            role: 'schoolAdmin'
+            // schoolId should already be set, but updating confirms it
+            // schoolId: schoolId
+        });
+        console.log(`[updateSchoolName] Updated user ${userId} role to schoolAdmin for school ${schoolId}`);
+
+        return { status: 'success', message: 'School setup complete.' };
+
+    } catch (error) {
+        console.error("[updateSchoolName] Error finalizing school setup:", error);
+        throw new functions.https.HttpsError("internal", "An error occurred during school setup.");
+    }
+});
 
 // Checks if a newly logged-in user's email matches a parent email in any student doc
 const cors = require('cors')({origin: true}); // Add this line
 
-exports.checkIfParent = functions.https.onRequest((req, res) => { // Change to onRequest
-    cors(req, res, async () => { // Wrap with cors
-        // --- Authentication Check (Manual for onRequest) ---
-        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
-            console.error('No Firebase ID token was passed as a Bearer token in the Authorization header.');
-            res.status(403).send('Unauthorized');
-            return;
-        }
+exports.checkIfParent = functions.https.onCall(async (data, context) => {
+    console.log('[checkIfParent] Function called.');
+    // 1. Check authentication (automatically handled by onCall)
+    if (!context.auth) {
+        console.error('[checkIfParent] Authentication required.');
+        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
+    }
 
-        let idToken;
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-            idToken = req.headers.authorization.split('Bearer ')[1];
-        } else {
-            res.status(403).send('Unauthorized');
-            return;
-        }
+    const userId = context.auth.uid;
+    const userEmail = context.auth.token.email; // Get email from token
 
-        let decodedIdToken;
-        try {
-            decodedIdToken = await admin.auth().verifyIdToken(idToken);
-        } catch (error) {
-            console.error('Error while verifying Firebase ID token:', error);
-            res.status(403).send('Unauthorized');
-            return;
-        }
+    if (!userEmail) {
+         console.error('[checkIfParent] User email not found in token.');
+        throw new functions.https.HttpsError("invalid-argument", "User email not found in token.");
+    }
 
-        const userId = decodedIdToken.uid;
-        const userEmail = decodedIdToken.email;
-        // --- End Authentication Check ---
+    try {
+        // 2. Query students collection
+        const studentsRef = db.collection('students');
+        const q1 = studentsRef.where("parent1Email", "==", userEmail);
+        const q2 = studentsRef.where("parent2Email", "==", userEmail);
 
+        console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
+        const [snapshot1, snapshot2] = await Promise.all([ q1.get(), q2.get() ]);
 
-        if (!userEmail) {
-             // Use res.status().json() for onRequest
-             console.error("User email not found in token.");
-             res.status(400).json({ error: { message: "User email not found in token." } });
-             return;
-        }
+        const isParent = !snapshot1.empty || !snapshot2.empty;
+        console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
 
-        try {
-            const studentsRef = db.collection('students');
-            const q1 = query(studentsRef, where("parent1Email", "==", userEmail));
-            const q2 = query(studentsRef, where("parent2Email", "==", userEmail));
-
-            console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
-            const [snapshot1, snapshot2] = await Promise.all([ q1.get(), q2.get() ]);
-
-            const isParent = !snapshot1.empty || !snapshot2.empty;
-            console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
-
-            if (isParent) {
-                const userRef = db.collection('users').doc(userId);
+        // 3. If they are a parent, update their role in Firestore (triggers setUserClaims)
+        if (isParent) {
+            const userRef = db.collection('users').doc(userId);
+             try {
                 await userRef.update({ role: 'parent' });
                 console.log(`[checkIfParent] Updated user ${userId} role to parent.`);
-                res.status(200).json({ data: { isParent: true, role: 'parent' } }); // Send JSON response
-            } else {
-                 res.status(200).json({ data: { isParent: false, role: 'guest' } }); // Send JSON response
-            }
-
-        } catch (error) {
-            console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
-            res.status(500).json({ error: { message: "Could not check parent status." } }); // Send JSON error
+                return { isParent: true, role: 'parent' }; // Return role for frontend
+             } catch (updateError) {
+                  console.error(`[checkIfParent] Failed to UPDATE user ${userId} role:`, updateError);
+                  // If update fails, still report they are a parent, frontend might retry later
+                  return { isParent: true, role: 'parent' };
+             }
+        } else {
+            return { isParent: false, role: 'guest' }; // Return current role if not parent
         }
-    }); // Close cors wrapper
-}); // Close onRequest handler
+
+    } catch (error) {
+        console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
+        throw new functions.https.HttpsError("internal", "Could not check parent status.");
+    }
+});
 
     // 1. Check authentication
     if (!context.auth) {

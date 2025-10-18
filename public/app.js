@@ -237,7 +237,6 @@ const getWeekDates = () => {
 
 const updateMicroSkillsDropdown = (selectedCoreSkill) => {
     microSkillSelect.innerHTML = ''; // Clear existing options
-
     // Filter the fetched micro skills based on the selected core skill
     const microSkills = schoolMicroSkills
         .filter(ms => ms.coreSkillName === selectedCoreSkill)
@@ -1293,9 +1292,11 @@ addAnecdoteBtn.addEventListener('click', () => {
     addAnecdoteModal.classList.remove('hidden');
 });
 
-coreSkillSelect.addEventListener('change', (e) => {
-    updateMicroSkillsDropdown(e.target.value);
-});
+if (coreSkillSelect) {
+    coreSkillSelect.addEventListener('change', (e) => {
+        updateMicroSkillsDropdown(e.target.value);
+    });
+}
 
 closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList.add('hidden'));
 
