@@ -120,39 +120,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             console.log(`Created new school with ID: ${newSchoolId}`);
 
             // --- Step 3: Ensure Firestore User Document Exists and Set Role/School ---
-			const userRef = db.collection('users').doc(userId);
-			const dataToSet = {
-				// Basic fields from Auth - will only be set if doc doesn't exist due to merge:true
-				uid: userId,
-				email: authUser.email,
-				displayName: authUser.displayName || authUser.email.split('@')[0],
-				photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
-				createdAt: admin.firestore.FieldValue.serverTimestamp(), // Will only set on creation
-				// --- The crucial fields ---
-				role: 'schoolAdmin', // Set the correct role
-				schoolId: newSchoolId, // Set the correct school ID
-				// --- Default fields ---
-				notificationSettings: {
-					newAnecdote: true,
-					newMessage: true
-				}
-			};
 
-			try {
-				console.log(`[fulfillSubscription] PRE-WRITE CHECK for users/${userId}. Data to set:`, JSON.stringify(dataToSet));
-
-				// Use set with merge:true
-				await userRef.set(dataToSet, { merge: true }); 
-
-				console.log(`[fulfillSubscription] POST-WRITE SUCCESS for users/${userId}.`); // If this logs, the write worked.
-
-			} catch (dbError) {
-				 // Log the specific error during the set operation
-				 console.error(`[fulfillSubscription] Error during userRef.set({merge:true}) for users/${userId}:`, dbError);
-				 // Log additional context
-				 console.error(`[fulfillSubscription] Error details: code=${dbError.code}, message=${dbError.message}`);
-				 throw dbError; // Re-throw to ensure the function fails visibly in logs
-			}
 
 
             // --- Step 4: Clone Templates ---
@@ -218,32 +186,32 @@ exports.deleteUserData = functions.https.onCall(async (data, context) => {
 
 // Updates a newly created school's name during onboarding
 exports.updateSchoolName = functions.https.onCall(async (data, context) => {
-  // 1. Check for authentication and correct role
-  if (!context.auth || context.auth.token.role !== 'schoolAdmin') {
-    throw new functions.https.HttpsError("unauthenticated", "You must be a school administrator to perform this action.");
-  }
+	try {
+		// 1. Update the school document name (Existing logic)
+		const schoolRef = db.collection('schools').doc(schoolId);
+		await schoolRef.update({ name: schoolName.trim() });
+		console.log(`Updated school name for ${schoolId}`);
 
-  const { schoolName } = data;
-  const schoolId = context.auth.token.schoolId;
+		// 2. NOW, update the user's role and schoolId
+		const userId = context.auth.uid; // Get the UID from the authenticated context
+		const userRef = db.collection('users').doc(userId);
+		await userRef.update({ 
+			role: 'schoolAdmin', 
+			schoolId: schoolId // Assign the schoolId we got from the token
+		});
+		console.log(`Updated user ${userId} role to schoolAdmin for school ${schoolId}`);
 
-  // 2. Validate the input
-  if (!schoolName || schoolName.trim().length === 0) {
-    throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty.");
-  }
-  if (!schoolId) {
-    throw new functions.https.HttpsError("failed-precondition", "User does not have a school ID.");
-  }
+		return { status: 'success', message: 'School setup complete.' };
 
-  // 3. Update the school document
-  try {
-    const schoolRef = db.collection('schools').doc(schoolId);
-    await schoolRef.update({ name: schoolName.trim() });
-    return { status: 'success', message: 'School name updated successfully.' };
-  } catch (error) {
-    console.error("Error updating school name:", error);
-    throw new functions.https.HttpsError("internal", "An error occurred while updating the school name.");
-  }
-});
+	} catch (error) {
+		console.error("Error finalizing school setup:", error);
+		// Check if the error was updating the user, provide more specific feedback if needed
+		if (error.message.includes("users")) {
+			 throw new functions.https.HttpsError("internal", "Failed to update user role. School name was set.");
+		} else {
+			throw new functions.https.HttpsError("internal", "An error occurred during school setup.");
+		}
+	}
 
 /*
  * ===================================================================
