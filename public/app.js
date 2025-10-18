@@ -2538,6 +2538,7 @@ confirmDeleteSkillBtn.addEventListener('click', async (e) => {
         const skillRef = doc(db, "continuums", skillIdToDelete);
         await deleteDoc(skillRef);
 		confirmDeleteSkillBtn
+		await fetchSchoolSkills();
         showMessage("Core skill deleted successfully.", false);
         renderSkillsList(); // Refresh the list
     } catch (error) {
