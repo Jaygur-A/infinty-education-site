@@ -314,7 +314,7 @@ onAuthStateChanged(auth, async (user) => {
 				console.log("User is guest, checking if they are a parent...");
 				const checkIfParent = httpsCallable(functions, 'checkIfParent');
 				const result = await checkIfParent(); // Call the Cloud Function
-				currentUserRole = result.data.role; // Update role based on function result
+				currentUserRole = result.data.data.role; // Update role based on function result
 				console.log("Parent check complete. Final role:", currentUserRole);
 			} catch (error) {
 				 console.error("Error calling checkIfParent function:", error);

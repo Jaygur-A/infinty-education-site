@@ -3,6 +3,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const { OpenAI } = require("openai");
+const cors = require('cors')({origin: true});
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -212,7 +213,73 @@ exports.updateSchoolName = functions.https.onCall(async (data, context) => {
 	}
 
 // Checks if a newly logged-in user's email matches a parent email in any student doc
-exports.checkIfParent = functions.https.onCall(async (data, context) => {
+const cors = require('cors')({origin: true}); // Add this line
+
+exports.checkIfParent = functions.https.onRequest((req, res) => { // Change to onRequest
+    cors(req, res, async () => { // Wrap with cors
+        // --- Authentication Check (Manual for onRequest) ---
+        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+            console.error('No Firebase ID token was passed as a Bearer token in the Authorization header.');
+            res.status(403).send('Unauthorized');
+            return;
+        }
+
+        let idToken;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            idToken = req.headers.authorization.split('Bearer ')[1];
+        } else {
+            res.status(403).send('Unauthorized');
+            return;
+        }
+
+        let decodedIdToken;
+        try {
+            decodedIdToken = await admin.auth().verifyIdToken(idToken);
+        } catch (error) {
+            console.error('Error while verifying Firebase ID token:', error);
+            res.status(403).send('Unauthorized');
+            return;
+        }
+
+        const userId = decodedIdToken.uid;
+        const userEmail = decodedIdToken.email;
+        // --- End Authentication Check ---
+
+
+        if (!userEmail) {
+             // Use res.status().json() for onRequest
+             console.error("User email not found in token.");
+             res.status(400).json({ error: { message: "User email not found in token." } });
+             return;
+        }
+
+        try {
+            const studentsRef = db.collection('students');
+            const q1 = query(studentsRef, where("parent1Email", "==", userEmail));
+            const q2 = query(studentsRef, where("parent2Email", "==", userEmail));
+
+            console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
+            const [snapshot1, snapshot2] = await Promise.all([ q1.get(), q2.get() ]);
+
+            const isParent = !snapshot1.empty || !snapshot2.empty;
+            console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
+
+            if (isParent) {
+                const userRef = db.collection('users').doc(userId);
+                await userRef.update({ role: 'parent' });
+                console.log(`[checkIfParent] Updated user ${userId} role to parent.`);
+                res.status(200).json({ data: { isParent: true, role: 'parent' } }); // Send JSON response
+            } else {
+                 res.status(200).json({ data: { isParent: false, role: 'guest' } }); // Send JSON response
+            }
+
+        } catch (error) {
+            console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
+            res.status(500).json({ error: { message: "Could not check parent status." } }); // Send JSON error
+        }
+    }); // Close cors wrapper
+}); // Close onRequest handler
+
     // 1. Check authentication
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
