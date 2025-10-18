@@ -1037,7 +1037,10 @@ function listenForAdminMessages() {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
     const messagesCollectionGroup = collectionGroup(db, 'messages');
-    const q = query(messagesCollectionGroup, where("senderId", "==", ADMIN_UID), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
+    const currentUser = auth.currentUser; // Get the currently logged-in user
+	if (!currentUser) return; // Add safety check
+
+	const q = query(messagesCollectionGroup, where("senderId", "==", currentUser.uid), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
     onSnapshot(q, (snapshot) => {
         const dailyCounts = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
