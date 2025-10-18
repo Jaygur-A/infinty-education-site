@@ -2469,7 +2469,8 @@ editSkillForm.addEventListener('submit', async (e) => {
             // Update existing continuum name
             const skillRef = doc(db, "continuums", continuumDocumentId);
             await updateDoc(skillRef, { name: coreSkillName }); // Only update the name field
-            showMessage("Core Skill name updated successfully!", false);
+            await fetchSchoolSkills();
+			showMessage("Core Skill name updated successfully!", false);
         } else {
              // --- ADDING NEW CORE SKILL (Continuum) ---
              // Needs default structure (headers/rows) - define a default template
@@ -2541,6 +2542,7 @@ confirmDeleteSkillBtn.addEventListener('click', async (e) => {
     try {
         const skillRef = doc(db, "continuums", skillIdToDelete);
         await deleteDoc(skillRef);
+		confirmDeleteSkillBtn
         showMessage("Core skill deleted successfully.", false);
         renderSkillsList(); // Refresh the list
     } catch (error) {
