@@ -121,24 +121,6 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                console.error(`[fulfillSubscription] Error SETTING/MERGING schoolId for user ${userId}:`, dbError);
              }
 
-            // --- Step 3: Clone Templates ---
-            const templates = {
-                rubrics: await db.collection('rubrics').where('schoolId', '==', null).get(),
-                continuums: await db.collection('continuums').where('schoolId', '==', null).get()
-            };
-            console.log(`[fulfillSubscription] Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates.`);
-            const batch = db.batch();
-            templates.rubrics.forEach(doc => {
-                 const newDocRef = db.collection('rubrics').doc();
-                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
-            });
-            templates.continuums.forEach(doc => {
-                 const newDocRef = db.collection('continuums').doc();
-                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
-            });
-            await batch.commit();
-            console.log(`[fulfillSubscription] Successfully cloned templates for new school ${newSchoolId}`);
-
         } catch (error) {
             console.error('[fulfillSubscription] Error provisioning new school:', error);
             return res.status(500).send('Internal Server Error');
