@@ -305,9 +305,25 @@ onAuthStateChanged(auth, async (user) => {
         // If the profile was just created, we re-fetch to get the new data.
         const userData = userSnap.exists() ? userSnap.data() : (await getDoc(doc(db, "users", user.uid))).data();
         
-        currentUserRole = userData.role || 'guest';
-        currentUserSchoolId = userData.schoolId || null;
-        console.log(`User logged in. Role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
+		currentUserRole = userData.role || 'guest';
+		currentUserSchoolId = userData.schoolId || null; 
+
+		// --- NEW: Check if Guest is actually a Parent ---
+		if (currentUserRole === 'guest' && user.email) {
+			try {
+				console.log("User is guest, checking if they are a parent...");
+				const checkIfParent = httpsCallable(functions, 'checkIfParent');
+				const result = await checkIfParent(); // Call the Cloud Function
+				currentUserRole = result.data.role; // Update role based on function result
+				console.log("Parent check complete. Final role:", currentUserRole);
+			} catch (error) {
+				 console.error("Error calling checkIfParent function:", error);
+				 // Proceed as guest if check fails
+				 currentUserRole = 'guest'; 
+			}
+		}
+
+		console.log(`User logged in. Final role for routing: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
         // --- Standard App Setup (Show app, hide login) ---
         document.body.classList.remove('login-background', 'bg-overlay');

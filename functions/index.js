@@ -211,6 +211,51 @@ exports.updateSchoolName = functions.https.onCall(async (data, context) => {
 		}
 	}
 
+// Checks if a newly logged-in user's email matches a parent email in any student doc
+exports.checkIfParent = functions.https.onCall(async (data, context) => {
+    // 1. Check authentication
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const userId = context.auth.uid;
+    const userEmail = context.auth.token.email; // Get email from token
+
+    if (!userEmail) {
+        throw new functions.https.HttpsError("invalid-argument", "User email not found in token.");
+    }
+
+    try {
+        // 2. Query students collection for matching parent email
+        const studentsRef = db.collection('students');
+        const q1 = query(studentsRef, where("parent1Email", "==", userEmail));
+        const q2 = query(studentsRef, where("parent2Email", "==", userEmail));
+
+        console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
+        const [snapshot1, snapshot2] = await Promise.all([
+            q1.get(),
+            q2.get()
+        ]);
+
+        const isParent = !snapshot1.empty || !snapshot2.empty;
+        console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
+
+        // 3. If they are a parent, update their role in Firestore
+        if (isParent) {
+            const userRef = db.collection('users').doc(userId);
+            await userRef.update({ role: 'parent' });
+            console.log(`[checkIfParent] Updated user ${userId} role to parent.`);
+            return { isParent: true, role: 'parent' };
+        } else {
+            return { isParent: false, role: 'guest' }; // Return current role if not parent
+        }
+
+    } catch (error) {
+        console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
+        throw new functions.https.HttpsError("internal", "Could not check parent status.");
+    }
+});
+
 /*
  * ===================================================================
  * LEARNING JOURNEY AI SUMMARY FUNCTION
