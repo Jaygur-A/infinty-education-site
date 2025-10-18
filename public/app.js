@@ -566,7 +566,7 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 	}
 	
 	const microSkillsForCore = schoolMicroSkills
-		filter(ms => ms.coreSkillName === coreSkill)
+		.filter(ms => ms.coreSkillName === coreSkill)
 		.map(ms => ms.name); // Get only the names
 		
 	if (microSkillsForCore.length === 0) {
