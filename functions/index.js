@@ -3,7 +3,6 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(process.env.STRIPE_SECRET); // Uses key from .env
 const { OpenAI } = require("openai");
-const cors = require('cors')({origin: true}); // CORS middleware
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -21,7 +20,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
  * ===================================================================
  */
 
-// Creates a Stripe Checkout session
+// Creates a Stripe Checkout session (onCall)
 exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
   console.log("createCheckoutSession started. Data:", data);
   if (!context.auth) {
@@ -53,7 +52,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
   }
 });
 
-// Provisions a new school after successful payment (Webhook)
+// Provisions a new school after successful payment (Webhook - onRequest)
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     console.log("[fulfillSubscription] Webhook received.");
     const sig = req.headers['stripe-signature'];
@@ -95,16 +94,32 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             // Role promotion happens later in updateSchoolName
             const userRef = db.collection('users').doc(userId);
              try {
-                // We only set the schoolId here. Role remains 'guest' until onboarding.
-                // merge:true ensures we don't overwrite if createUserProfileIfNeeded already ran.
-                await userRef.set({ schoolId: newSchoolId }, { merge: true });
-                console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
+                const userSnap = await userRef.get();
+                if (!userSnap.exists()) {
+                   let authUser = null;
+                   let attempts = 0;
+                   while (!authUser && attempts < 3) {
+                       attempts++;
+                       try { authUser = await admin.auth().getUser(userId); }
+                       catch (e) { if (e.code === 'auth/user-not-found') await delay(1000); else throw e; }
+                   }
+                   if (!authUser) throw new Error("Auth user still not found after retries in fulfillSubscription.");
+                    await userRef.set({
+                        uid: userId, email: authUser.email,
+                        displayName: authUser.displayName || authUser.email.split('@')[0],
+                        photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                        role: 'guest', schoolId: newSchoolId,
+                        notificationSettings: { newAnecdote: true, newMessage: true }
+                    });
+                    console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
+                } else {
+                   await userRef.set({ schoolId: newSchoolId }, { merge: true });
+                   console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
+                }
              } catch (dbError) {
-                console.error(`[fulfillSubscription] Error SETTING schoolId for user ${userId}:`, dbError);
-                 // Don't fail the whole process if this fails, but log it.
-                 // The onboarding step will handle setting role/schoolId again.
+               console.error(`[fulfillSubscription] Error SETTING/MERGING schoolId for user ${userId}:`, dbError);
              }
-
 
             // --- Step 3: Clone Templates ---
             const templates = {
@@ -112,26 +127,17 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                 continuums: await db.collection('continuums').where('schoolId', '==', null).get()
             };
             console.log(`[fulfillSubscription] Found ${templates.rubrics.size} rubric templates and ${templates.continuums.size} continuum templates.`);
-
             const batch = db.batch();
-            // --- Corrected Cloning Logic ---
             templates.rubrics.forEach(doc => {
-                 const newDocRef = db.collection('rubrics').doc(); // Generate new ID
-                 // Ensure 'name' field is included if it exists in template data
-                 const dataToClone = doc.data();
-                 batch.set(newDocRef, { ...dataToClone, schoolId: newSchoolId });
+                 const newDocRef = db.collection('rubrics').doc();
+                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
             });
             templates.continuums.forEach(doc => {
-                 const newDocRef = db.collection('continuums').doc(); // Generate new ID
-                 const dataToClone = doc.data();
-                 batch.set(newDocRef, { ...dataToClone, schoolId: newSchoolId });
+                 const newDocRef = db.collection('continuums').doc();
+                 batch.set(newDocRef, { ...doc.data(), schoolId: newSchoolId });
             });
-            // --- End of Correction ---
             await batch.commit();
             console.log(`[fulfillSubscription] Successfully cloned templates for new school ${newSchoolId}`);
-
-            // Note: setUserClaims will trigger automatically if the userRef.set above created the doc,
-            // or when updateSchoolName runs later and updates the role.
 
         } catch (error) {
             console.error('[fulfillSubscription] Error provisioning new school:', error);
@@ -140,8 +146,43 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     } else {
          console.log(`[fulfillSubscription] Received unhandled event type: ${event.type}`);
     }
+    res.status(200).send();
+});
 
-    res.status(200).send(); // Acknowledge receipt of the event
+// Updates subscription status in Firestore based on Stripe events (Webhook - onRequest)
+exports.handleSubscriptionChange = functions.https.onRequest(async (req, res) => {
+    console.log("[handleSubscriptionChange] Webhook received.");
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+    } catch (err) {
+        console.error('[handleSubscriptionChange] Webhook signature verification failed.', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    const subscription = event.data.object;
+    const relevantEvents = new Set(['customer.subscription.updated', 'customer.subscription.deleted', 'invoice.payment_failed']);
+    if (relevantEvents.has(event.type)) {
+        try {
+            const schoolsRef = db.collection('schools');
+            const q = schoolsRef.where('subscriptionId', '==', subscription.id).limit(1);
+            const snapshot = await q.get();
+            if (snapshot.empty) {
+                console.log(`[handleSubscriptionChange] No school found for subscription ID: ${subscription.id}`);
+                return res.status(200).send();
+            }
+            const schoolDoc = snapshot.docs[0];
+            const isActive = ['active', 'trialing'].includes(subscription.status);
+            const newStatus = isActive ? 'active' : 'inactive';
+            await schoolDoc.ref.update({ subscriptionStatus: newStatus });
+            console.log(`[handleSubscriptionChange] Updated school ${schoolDoc.id} to status: ${newStatus}`);
+        } catch (error) {
+            console.error('[handleSubscriptionChange] Error updating subscription status:', error);
+            return res.status(500).send('Internal Server Error');
+        }
+    }
+    res.status(200).send();
 });
 
 /*
@@ -150,180 +191,92 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
  * ===================================================================
  */
 
-// Sets custom claims (role, schoolId) on a user's token when their user doc changes
+// Sets custom claims (role, schoolId) on a user's token when their user doc changes (Firestore Trigger)
 exports.setUserClaims = functions.firestore.document("users/{userId}").onWrite(async (change, context) => {
-    const userData = change.after.data();
     const userId = context.params.userId;
+    const afterData = change.after.exists ? change.after.data() : null;
+    if (!afterData) {
+        console.log(`[setUserClaims] User doc for ${userId} deleted. No claims to set.`);
+        return;
+    }
+    console.log(`[setUserClaims] Triggered for user: ${userId}. Setting claims: role=${afterData.role}, schoolId=${afterData.schoolId}`);
     try {
       await admin.auth().setCustomUserClaims(userId, {
-        role: userData.role || "guest",
-        schoolId: userData.schoolId || null,
+        role: afterData.role || "guest",
+        schoolId: afterData.schoolId || null,
       });
-      console.log(`Claims set for ${userId}: role=${userData.role}, schoolId=${userData.schoolId}`);
+      console.log(`[setUserClaims] Successfully set claims for ${userId}.`);
     } catch (error) {
-      console.error("Error setting custom claims:", error);
+      console.error(`[setUserClaims] Error setting custom claims for ${userId}:`, error);
     }
 });
 
-// Deletes a user and all their associated data
+// Deletes a user and their data (Callable)
 exports.deleteUserData = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "You must be logged in to delete your account.");
-  }
-  const uid = context.auth.token.uid;
-  try {
-    await db.collection("users").doc(uid).delete();
-    // You may need to add more cleanup logic here for other user data
-    await admin.auth().deleteUser(uid);
-    return { status: "success", message: "Account deleted successfully." };
-  } catch (error) {
-    console.error("Error deleting user data:", error);
-    throw new functions.https.HttpsError("internal", "An error occurred while deleting your account.");
-  }
+    if (!context.auth) { throw new functions.https.HttpsError("unauthenticated", "You must be logged in to delete your account."); }
+    const uid = context.auth.uid;
+    try {
+        await db.collection("users").doc(uid).delete();
+        await admin.auth().deleteUser(uid);
+        return { status: "success", message: "Account deleted successfully." };
+    } catch (error) {
+        console.error("Error deleting user data:", error);
+        throw new functions.https.HttpsError("internal", "An error occurred while deleting your account.");
+    }
 });
 
-// Updates a newly created school's name during onboarding
+// Updates school name AND promotes user role during onboarding (Callable)
 exports.updateSchoolName = functions.https.onCall(async (data, context) => {
     console.log("[updateSchoolName] Function called. Data:", data);
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
-    }
-
+    if (!context.auth) { throw new functions.https.HttpsError("unauthenticated", "Authentication required."); }
     const { schoolName } = data;
-    const userId = context.auth.uid; // The user calling the function
-
-    // Fetch the user's current document to get the schoolId assigned during fulfillSubscription
+    const userId = context.auth.uid;
     const callingUserRef = db.collection('users').doc(userId);
     const callingUserSnap = await callingUserRef.get();
-
-    if (!callingUserSnap.exists()) {
-        console.error(`[updateSchoolName] User document for ${userId} not found.`);
-        throw new functions.https.HttpsError("not-found", "User profile not found.");
-    }
-
-    const schoolId = callingUserSnap.data().schoolId; // Get schoolId assigned by fulfillSubscription
-
-    if (!schoolName || schoolName.trim().length === 0) {
-        throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty.");
-    }
-    if (!schoolId) {
-        console.error(`[updateSchoolName] User ${userId} has no schoolId in their document.`);
-        throw new functions.https.HttpsError("failed-precondition", "User has no associated school ID. Subscription might not be fully processed.");
-    }
-
+    if (!callingUserSnap.exists()) { throw new functions.https.HttpsError("not-found", "User profile not found."); }
+    const schoolId = callingUserSnap.data().schoolId;
+    if (!schoolName || schoolName.trim().length === 0) { throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty."); }
+    if (!schoolId) { throw new functions.https.HttpsError("failed-precondition", "User has no associated school ID."); }
     try {
-        // 1. Update the school name
         const schoolRef = db.collection('schools').doc(schoolId);
         await schoolRef.update({ name: schoolName.trim() });
-        console.log(`[updateSchoolName] Updated school name for ${schoolId} to ${schoolName.trim()}`);
-
-        // 2. Update the CALLING USER's role to schoolAdmin (if not already)
-        // This triggers setUserClaims automatically
-        await callingUserRef.update({
-            role: 'schoolAdmin'
-            // schoolId should already be set, but updating confirms it
-            // schoolId: schoolId
-        });
-        console.log(`[updateSchoolName] Updated user ${userId} role to schoolAdmin for school ${schoolId}`);
-
+        console.log(`[updateSchoolName] Updated school name for ${schoolId}`);
+        await callingUserRef.update({ role: 'schoolAdmin' });
+        console.log(`[updateSchoolName] Updated user ${userId} role to schoolAdmin`);
         return { status: 'success', message: 'School setup complete.' };
-
     } catch (error) {
         console.error("[updateSchoolName] Error finalizing school setup:", error);
         throw new functions.https.HttpsError("internal", "An error occurred during school setup.");
     }
 });
 
-// Checks if a newly logged-in user's email matches a parent email in any student doc
-const cors = require('cors')({origin: true}); // Add this line
-
+// Checks if a user's email matches a parent email (Callable)
 exports.checkIfParent = functions.https.onCall(async (data, context) => {
     console.log('[checkIfParent] Function called.');
-    // 1. Check authentication (automatically handled by onCall)
-    if (!context.auth) {
-        console.error('[checkIfParent] Authentication required.');
-        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
-    }
-
+    if (!context.auth) { throw new functions.https.HttpsError("unauthenticated", "Authentication required."); }
     const userId = context.auth.uid;
-    const userEmail = context.auth.token.email; // Get email from token
-
-    if (!userEmail) {
-         console.error('[checkIfParent] User email not found in token.');
-        throw new functions.https.HttpsError("invalid-argument", "User email not found in token.");
-    }
-
+    const userEmail = context.auth.token.email;
+    if (!userEmail) { throw new functions.https.HttpsError("invalid-argument", "User email not found in token."); }
     try {
-        // 2. Query students collection
         const studentsRef = db.collection('students');
         const q1 = studentsRef.where("parent1Email", "==", userEmail);
         const q2 = studentsRef.where("parent2Email", "==", userEmail);
-
-        console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
-        const [snapshot1, snapshot2] = await Promise.all([ q1.get(), q2.get() ]);
-
+        const [snapshot1, snapshot2] = await Promise.all([q1.get(), q2.get()]);
         const isParent = !snapshot1.empty || !snapshot2.empty;
         console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
-
-        // 3. If they are a parent, update their role in Firestore (triggers setUserClaims)
         if (isParent) {
             const userRef = db.collection('users').doc(userId);
-             try {
+            try {
                 await userRef.update({ role: 'parent' });
                 console.log(`[checkIfParent] Updated user ${userId} role to parent.`);
-                return { isParent: true, role: 'parent' }; // Return role for frontend
-             } catch (updateError) {
-                  console.error(`[checkIfParent] Failed to UPDATE user ${userId} role:`, updateError);
-                  // If update fails, still report they are a parent, frontend might retry later
-                  return { isParent: true, role: 'parent' };
-             }
+                return { isParent: true, role: 'parent' };
+            } catch (updateError) {
+                 console.error(`[checkIfParent] Failed to UPDATE user ${userId} role:`, updateError);
+                 return { isParent: true, role: 'parent' };
+            }
         } else {
-            return { isParent: false, role: 'guest' }; // Return current role if not parent
+            return { isParent: false, role: 'guest' };
         }
-
-    } catch (error) {
-        console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
-        throw new functions.https.HttpsError("internal", "Could not check parent status.");
-    }
-});
-
-    // 1. Check authentication
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Authentication required.");
-    }
-
-    const userId = context.auth.uid;
-    const userEmail = context.auth.token.email; // Get email from token
-
-    if (!userEmail) {
-        throw new functions.https.HttpsError("invalid-argument", "User email not found in token.");
-    }
-
-    try {
-        // 2. Query students collection for matching parent email
-        const studentsRef = db.collection('students');
-        const q1 = query(studentsRef, where("parent1Email", "==", userEmail));
-        const q2 = query(studentsRef, where("parent2Email", "==", userEmail));
-
-        console.log(`[checkIfParent] Checking students for parent email: ${userEmail}`);
-        const [snapshot1, snapshot2] = await Promise.all([
-            q1.get(),
-            q2.get()
-        ]);
-
-        const isParent = !snapshot1.empty || !snapshot2.empty;
-        console.log(`[checkIfParent] Is user ${userEmail} a parent? ${isParent}`);
-
-        // 3. If they are a parent, update their role in Firestore
-        if (isParent) {
-            const userRef = db.collection('users').doc(userId);
-            await userRef.update({ role: 'parent' });
-            console.log(`[checkIfParent] Updated user ${userId} role to parent.`);
-            return { isParent: true, role: 'parent' };
-        } else {
-            return { isParent: false, role: 'guest' }; // Return current role if not parent
-        }
-
     } catch (error) {
         console.error(`[checkIfParent] Error checking parent status for ${userEmail}:`, error);
         throw new functions.https.HttpsError("internal", "Could not check parent status.");
@@ -332,7 +285,7 @@ exports.checkIfParent = functions.https.onCall(async (data, context) => {
 
 /*
  * ===================================================================
- * LEARNING JOURNEY AI SUMMARY FUNCTION
+ * LEARNING JOURNEY AI SUMMARY FUNCTION (Callable)
  * ===================================================================
  */
 exports.generateJourneySummary = functions.https.onCall(async (data, context) => {
@@ -374,7 +327,7 @@ exports.generateJourneySummary = functions.https.onCall(async (data, context) =>
 
 /*
  * ===================================================================
- * NOTIFICATION FUNCTIONS
+ * NOTIFICATION FUNCTIONS (Firestore Triggers)
  * ===================================================================
  */
 exports.sendAnecdoteNotification = functions.firestore.document("anecdotes/{anecdoteId}").onCreate(async (snap, context) => {
@@ -402,59 +355,6 @@ exports.sendAnecdoteNotification = functions.firestore.document("anecdotes/{anec
         }
     }
     return null;
-});
-
-/*
- * ===================================================================
- * STRIPE SUBSCRIPTION STATUS SYNC
- * ===================================================================
- */
-exports.handleSubscriptionChange = functions.https.onRequest(async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; 
-    let event;
-
-    try {
-        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
-    } catch (err) {
-        console.error('Webhook signature verification failed.', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    const subscription = event.data.object;
-    const relevantEvents = new Set([
-        'customer.subscription.updated',
-        'customer.subscription.deleted',
-    ]);
-
-    if (relevantEvents.has(event.type)) {
-        try {
-            // Find the school document that corresponds to this subscription
-            const schoolsRef = db.collection('schools');
-            const q = schoolsRef.where('subscriptionId', '==', subscription.id).limit(1);
-            const snapshot = await q.get();
-
-            if (snapshot.empty) {
-                console.log(`No school found for subscription ID: ${subscription.id}`);
-                return res.status(200).send();
-            }
-
-            const schoolDoc = snapshot.docs[0];
-            const newStatus = subscription.status === 'active' ? 'active' : 'inactive';
-
-            await schoolDoc.ref.update({
-                subscriptionStatus: newStatus
-            });
-
-            console.log(`Updated school ${schoolDoc.id} to status: ${newStatus}`);
-
-        } catch (error) {
-            console.error('Error updating subscription status:', error);
-            return res.status(500).send('Internal Server Error');
-        }
-    }
-
-    res.status(200).send();
 });
 
 exports.sendNewMessageNotification = functions.firestore.document("chats/{chatId}/messages/{messageId}").onCreate(async (snap, context) => {

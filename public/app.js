@@ -19,7 +19,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
     authDomain: "infinity-education-c170b.firebaseapp.com",
     projectId: "infinity-education-c170b",
-    storageBucket: "infinity-education-c170b.firebasestorage.app",
+    storageBucket: "infinity-education-c170b.appspot.com", // Updated per your new file
     messagingSenderId: "312781945568",
     appId: "1:312781945568:web:04104d51e968dff9fa2e85",
     measurementId: "G-FSGELW7P1Z"
@@ -31,7 +31,7 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app);
 
-// DOM Elements
+// --- DOM Elements (Complete List) ---
 const loadingOverlay = document.getElementById('loading-overlay');
 const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
@@ -71,7 +71,7 @@ const anecdoteChartCanvas = document.getElementById('anecdote-chart');
 const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
 const microSkillDetailView = document.getElementById('micro-skill-detail-view');
 const microSkillTitle = document.getElementById('micro-skill-title');
-const microSkillDescription = document.getElementById('micro-skill-description');
+// microSkillDescription removed as per your new `showMicroSkillDetailPage`
 const microSkillAnecdoteList = document.getElementById('micro-skill-anecdote-list');
 const noMicroSkillAnecdotesMessage = document.getElementById('no-micro-skill-anecdotes-message');
 const backToStudentDetailBtn = document.getElementById('back-to-student-detail-btn');
@@ -211,9 +211,12 @@ let currentUserSchoolId = null;
 let teachers = []; // Cache for teacher list
 let schoolCoreSkills = [];
 let schoolMicroSkills = [];
+let isRubricEditMode = false;
+let isContinuumEditMode = false;
+let originalContinuumData = null;
 
 
-// Helper Functions
+// --- Helper Functions ---
 const showMessage = (message, isError = true) => {
     const messageBox = document.getElementById('message-box');
     const messageText = document.getElementById('message-text');
@@ -235,32 +238,9 @@ const getWeekDates = () => {
     return { start: startOfWeek, end: endOfWeek };
 };
 
-const updateMicroSkillsDropdown = (selectedCoreSkill) => {
-    microSkillSelect.innerHTML = ''; // Clear existing options
-    // Filter the fetched micro skills based on the selected core skill
-    const microSkills = schoolMicroSkills
-        .filter(ms => ms.coreSkillName === selectedCoreSkill)
-        .map(ms => ms.name); // Get only the names
-
-    if (microSkills.length === 0) {
-        const option = document.createElement('option');
-        option.textContent = 'No micro skills found';
-        option.disabled = true;
-        microSkillSelect.appendChild(option);
-        console.warn(`No micro skills found in schoolMicroSkills for core skill: ${selectedCoreSkill}`); // Added warning
-        return;
-    }
-
-    microSkills.forEach(skill => {
-        const option = document.createElement('option');
-        option.value = skill;
-        option.textContent = skill;
-        microSkillSelect.appendChild(option);
-    });
-};
-
+// --- UPDATED `showView` ---
 const showView = (viewToShow) => {
-    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView].forEach(view => {
+    [dashboardView, parentDashboardView, messagesView, chatView, studentDetailView, microSkillDetailView, profileView, rubricView, continuumView, journeyBuilderView, journeyEditorView, usersView, classroomsView, settingsView, skillsView, subscriptionInactiveView].forEach(view => {
         if (view) view.classList.add('hidden');
     });
     if (viewToShow) viewToShow.classList.remove('hidden');
@@ -281,76 +261,79 @@ function renderMicroSkillInputs(microSkills = []) {
     });
 }
 
-// Auth Logic
+// --- UPDATED `updateMicroSkillsDropdown` ---
+const updateMicroSkillsDropdown = (selectedCoreSkill) => {
+    microSkillSelect.innerHTML = '';
+    const microSkills = schoolMicroSkills.filter(ms => ms.coreSkillName === selectedCoreSkill).map(ms => ms.name);
+    if (microSkills.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'No micro skills found';
+        option.disabled = true;
+        microSkillSelect.appendChild(option);
+        return;
+    }
+    microSkills.forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill;
+        option.textContent = skill;
+        microSkillSelect.appendChild(option);
+    });
+};
+
+
+// --- UPDATED `onAuthStateChanged` ---
 onAuthStateChanged(auth, async (user) => {
     console.log("onAuthStateChanged fired. User:", user ? user.email : "none");
     loadingOverlay.classList.remove('hidden');
-    currentUserRole = null;
-    currentUserClassroomId = null;
-    currentUserSchoolId = null;
+    currentUserRole = null; currentUserClassroomId = null; currentUserSchoolId = null;
 
     if (user) {
-        // --- Step 1: Force Token Refresh ---
-        // This ensures we always have the latest permissions from the backend.
+        // Step 1: Force Token Refresh
         console.log("Forcing token refresh...");
         await user.getIdToken(true);
         console.log("Token refreshed.");
 
-        // --- Step 2: Create User Profile if it Doesn't Exist ---
-        // This is the critical missing step. This function now reliably creates the 'guest' doc.
+        // Step 2: Create/Get User Profile
         const userSnap = await createUserProfileIfNeeded(user);
+        const userData = userSnap.exists() ? userSnap.data() : {};
+        currentUserRole = userData.role || 'guest';
+        currentUserSchoolId = userData.schoolId || null;
 
-        // --- Step 3: Get the definitive user data ---
-        // If the profile was just created, we re-fetch to get the new data.
-        const userData = userSnap.exists() ? userSnap.data() : (await getDoc(doc(db, "users", user.uid))).data();
-        
-		currentUserRole = userData.role || 'guest';
-		currentUserSchoolId = userData.schoolId || null; 
+        // Step 3: Check if Guest is Parent
+        if (currentUserRole === 'guest' && user.email) {
+            try {
+                console.log("User is guest, checking if they are a parent...");
+                const checkIfParent = httpsCallable(functions, 'checkIfParent');
+                const result = await checkIfParent();
+                currentUserRole = result.data.role;
+                console.log("Parent check complete. Final role:", currentUserRole);
+            } catch (error) {
+                 console.error("Error calling checkIfParent function:", error);
+                 currentUserRole = 'guest';
+            }
+        }
+        console.log(`User logged in. Final role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
-		// --- NEW: Check if Guest is actually a Parent ---
-		if (currentUserRole === 'guest' && user.email) {
-			try {
-				console.log("User is guest, checking if they are a parent...");
-				const checkIfParent = httpsCallable(functions, 'checkIfParent');
-				const result = await checkIfParent(); // Call the Cloud Function
-				currentUserRole = result.data.data.role; // Update role based on function result
-				console.log("Parent check complete. Final role:", currentUserRole);
-			} catch (error) {
-				 console.error("Error calling checkIfParent function:", error);
-				 // Proceed as guest if check fails
-				 currentUserRole = 'guest'; 
-			}
-		}
-
-		console.log(`User logged in. Final role for routing: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
-
-        // --- Standard App Setup (Show app, hide login) ---
+        // Step 4: App Setup
         document.body.classList.remove('login-background', 'bg-overlay');
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         userEmailDisplay.textContent = user.email;
 
-        // --- Step 4: Mandatory Onboarding / Inactive Subscription Check ---
+        // Step 5: Mandatory Onboarding / Inactive Check
         if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
-            
-			console.log("Checking school document snapshot exists:", schoolSnap.exists());
-			if (schoolSnap.exists()) {
-				console.log("School document data:", schoolSnap.data());
-				console.log("School name found in DB:", schoolSnap.data().name);
-				console.log("Is school name === 'New School'?", schoolSnap.data().name === "New School");
-			}
-			
-			if (schoolSnap.exists()) {
+            if (schoolSnap.exists()) {
+                console.log("School name:", schoolSnap.data().name, "Status:", schoolSnap.data().subscriptionStatus);
                 if (schoolSnap.data().name === "New School") {
                     console.log("School needs naming. Showing modal.");
                     schoolNameModal.classList.remove('hidden');
                     loadingOverlay.classList.add('hidden');
-                    return; // Stop until school is named
+                    return;
                 }
                 if (schoolSnap.data().subscriptionStatus !== 'active') {
-                    console.log("Subscription is inactive. Showing inactive view.");
+                    console.log("Subscription is inactive.");
                     showView(subscriptionInactiveView);
                     loadingOverlay.classList.add('hidden');
                     return;
@@ -358,7 +341,7 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
 
-        // --- Step 5: Fetch Skills & Route User ---
+        // Step 6: Fetch Skills & Route
         await fetchSchoolSkills();
 
         const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
@@ -369,46 +352,43 @@ onAuthStateChanged(auth, async (user) => {
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
         messagesChartContainer.classList.toggle('hidden', !['admin', 'superAdmin'].includes(currentUserRole));
-		
-        if (canAddRecord) { 
+
+        if (canAddRecord) {
             showView(dashboardView);
             if (currentUserRole === 'teacher') {
-                // Fetch teacher's classroom ID...
+                const q = query(collection(db, "classrooms"), where("teacherId", "==", user.uid));
+                const classroomSnap = await getDocs(q);
+                if (!classroomSnap.empty) currentUserClassroomId = classroomSnap.docs[0].id;
             }
             listenForStudentRecords();
             listenForAllAnecdotes();
-        } else if (currentUserRole === 'parent') { 
+        } else if (currentUserRole === 'parent') {
             showView(parentDashboardView);
-            const studentsRef = collection(db, "students");
-            const q1 = query(studentsRef, where("parent1Email", "==", user.email));
-            const q2 = query(studentsRef, where("parent2Email", "==", user.email));
-            const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-            const allStudentDocs = [...querySnapshot1.docs, ...querySnapshot2.docs];
+            const q1 = query(collection(db, "students"), where("parent1Email", "==", user.email));
+            const q2 = query(collection(db, "students"), where("parent2Email", "==", user.email));
+            const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            const allStudentDocs = [...snap1.docs, ...snap2.docs];
             if (allStudentDocs.length > 0) {
-                const studentDoc = allStudentDocs[0];
-                renderParentStudentView(studentDoc.id, studentDoc.data().name);
+                 renderParentStudentView(allStudentDocs[0].id, allStudentDocs[0].data().name);
             } else {
-                parentWelcomeMessage.classList.remove('hidden');
-                parentStudentView.classList.add('hidden');
+                 parentWelcomeMessage.classList.remove('hidden');
+                 parentStudentView.classList.add('hidden');
+                 parentWelcomeMessage.querySelector('p').textContent = 'No students are currently associated with this parent email.';
             }
-        } else { // This is a Guest
-            if (sessionStorage.getItem('isSubscribing') === 'true') {
-                sessionStorage.removeItem('isSubscribing');
-                subscriptionModal.classList.remove('hidden');
+        } else { // Guest
+            if (sessionStorage.getItem('postCheckout') === 'true') {
+                 sessionStorage.removeItem('postCheckout');
+                 subscriptionModal.classList.remove('hidden');
             } else {
-                showView(parentDashboardView);
-                parentStudentView.classList.add('hidden');
-                parentWelcomeMessage.classList.remove('hidden');
-                parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
-                parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
-                
-                const subscribeButtonInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
-                if (subscribeButtonInWelcome) {
-                    subscribeButtonInWelcome.classList.remove('hidden');
-                }
+                 showView(parentDashboardView);
+                 parentStudentView.classList.add('hidden');
+                 parentWelcomeMessage.classList.remove('hidden');
+                 parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
+                 parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
+                 const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+                 if (subscribeBtnInWelcome) subscribeBtnInWelcome.classList.remove('hidden');
             }
         }
-        userEmailDisplay.textContent = user.email;
     } else {
         // --- Logout Logic ---
         currentUserRole = null;
@@ -427,10 +407,12 @@ onAuthStateChanged(auth, async (user) => {
     loadingOverlay.classList.add('hidden');
 });
 
+// --- UPDATED `createUserProfileIfNeeded` ---
 async function createUserProfileIfNeeded(user) {
     const userRef = doc(db, "users", user.uid);
-    const docSnap = await getDoc(userRef);
+    let docSnap = await getDoc(userRef);
     if (!docSnap.exists()) {
+        console.log(`Creating initial user profile for ${user.uid}`);
         await setDoc(userRef, {
             uid: user.uid,
             email: user.email,
@@ -438,38 +420,34 @@ async function createUserProfileIfNeeded(user) {
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
             role: 'guest',
-            notificationSettings: {
-                newAnecdote: true,
-                newMessage: true
-            }
+            notificationSettings: { newAnecdote: true, newMessage: true }
         });
+        docSnap = await getDoc(userRef); // Re-fetch
     }
     return docSnap;
 }
 
-// Fetches core skills (continuums) and micro skills (rubrics) for the current school
+// --- UPDATED `fetchSchoolSkills` ---
 async function fetchSchoolSkills() {
     console.log("Fetching school skills for schoolId:", currentUserSchoolId);
     schoolCoreSkills = [];
     schoolMicroSkills = [];
-
     try {
         const continuumsRef = collection(db, "continuums");
         const allContinuumsSnap = await getDocs(continuumsRef);
         const rubricsRef = collection(db, "rubrics");
         const allRubricsSnap = await getDocs(rubricsRef);
-
-        const allContinuums = allContinuumsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const allRubrics = allRubricsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        schoolCoreSkills = allContinuums
+        
+        schoolCoreSkills = allContinuumsSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
             .filter(c => c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null)
             .filter(c => c.name)
             .sort((a, b) => a.name.localeCompare(b.name));
-
-        const combinedRubrics = allRubrics
-            .filter(r => r.schoolId === currentUserSchoolId || r.schoolId === undefined || r.schoolId === null);
-        
+            
+        const combinedRubrics = allRubricsSnap.docs
+             .map(doc => ({ id: doc.id, ...doc.data() }))
+             .filter(r => r.schoolId === currentUserSchoolId || r.schoolId === undefined || r.schoolId === null);
+             
         const tempSkillMap = {
              'Vitality': ['Mindset', 'Emotional Energy Regulation', 'Physical Conditioning', 'Health', 'Connection'],
              'Integrity': ['Honesty & Accountability', 'Discipline', 'Courage', 'Respect'],
@@ -488,18 +466,16 @@ async function fetchSchoolSkills() {
                         break;
                     }
                 }
+                if (coreSkillName === "Unknown" && rubricData.coreSkillName) { coreSkillName = rubricData.coreSkillName; } // Fallback
                 return { id: rubricData.id, name: rubricData.name, coreSkillName: coreSkillName };
             })
             .sort((a, b) => a.name.localeCompare(b.name));
-
+            
         console.log("Fetched Core Skills:", schoolCoreSkills);
         console.log("Fetched Micro Skills:", schoolMicroSkills);
-
     } catch (error) {
         console.error("Error fetching school skills:", error);
         showMessage("Could not load the skills framework.");
-        schoolCoreSkills = [];
-        schoolMicroSkills = [];
     }
 }
 
@@ -544,33 +520,29 @@ function listenForStudentRecords() {
     });
 }
 
+// --- UPDATED `showStudentDetailPage` ---
 async function showStudentDetailPage(studentId) {
     currentStudentId = studentId;
-    showView(studentDetailView); 
-
-    // Fetch student name (keep this)
+    showView(studentDetailView);
+    anecdoteDisplayContainer.classList.add('hidden'); // Added this line
     const studentRef = doc(db, "students", studentId);
     const docSnap = await getDoc(studentRef);
     studentDetailName.textContent = docSnap.exists() ? docSnap.data().name : "Student Not Found";
 
-    // --- Get alignedSkillsGrid AFTER showing the view ---
     const alignedSkillsGrid = document.getElementById('aligned-skills-grid');
-
     if (!alignedSkillsGrid) {
         console.error("CRITICAL: aligned-skills-grid element not found!");
-        return; // Stop if the element isn't found
+        return;
     }
-
-    // Now it's safe to clear and populate
     alignedSkillsGrid.innerHTML = '';
     
     if (schoolCoreSkills.length === 0) {
-        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework has been set up for this school yet.</p>';
+        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework found.</p>';
     } else {
         schoolCoreSkills.forEach(coreSkill => {
             const skillCard = document.createElement('div');
-            skillCard.className = 'skill-card p-4 border rounded-lg text-center cursor-pointer'; 
-            skillCard.dataset.skill = coreSkill.name; 
+            skillCard.className = 'skill-card p-4 border rounded-lg text-center cursor-pointer';
+            skillCard.dataset.skill = coreSkill.name;
             skillCard.innerHTML = `<h3 class="font-bold">${coreSkill.name}</h3>`;
             skillCard.addEventListener('click', () => {
                  listenForAnecdotes(currentStudentId, coreSkill.name, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
@@ -580,17 +552,15 @@ async function showStudentDetailPage(studentId) {
     }
 }
 
+// --- UPDATED `listenForAnecdotes` ---
 function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, targetContainer) {
     currentCoreSkill = coreSkill;
     if (unsubscribeFromAnecdotes) unsubscribeFromAnecdotes();
     targetTitle.textContent = `Anecdote Counts for ${coreSkill}`;
     targetContainer.classList.remove('hidden');
 	if (buildContinuumBtn) {
-		if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
-			buildContinuumBtn.classList.remove('hidden');
-		} else {
-			buildContinuumBtn.classList.add('hidden');
-		}
+		const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+		buildContinuumBtn.classList.toggle('hidden', !isAdmin);
 	}
 	
 	const microSkillsForCore = schoolMicroSkills
@@ -599,10 +569,9 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 		
 	if (microSkillsForCore.length === 0) {
 		console.warn(`No micro skills found for core skill "${coreSkill}". Check Firestore data or temporary map.`);
-		// Optionally render an empty chart or message
-		renderAnecdoteChart({}, targetCanvas, studentId); // Render empty chart
+		renderAnecdoteChart({}, targetCanvas, studentId, []); // Render empty chart
 		return;
-		}	
+	}	
 	
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill));
 	
@@ -616,9 +585,10 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
             }
         });
         renderAnecdoteChart(microSkillCounts, targetCanvas, studentId, microSkillsForCore); // Pass labels
-    }, (error) => { /* Handle error */ });
+    }, (error) => { console.error("Error listening for anecdotes: ", error); });
 }
 
+// --- UPDATED `renderAnecdoteChart` ---
 function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
     if (anecdoteChart) anecdoteChart.destroy();
 	const chartLabels = labels.length > 0 ? labels : Object.keys(data);
@@ -627,10 +597,10 @@ function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels.length > 0 ? labels : Object.keys(data), // Use passed labels if available
+            labels: chartLabels,
             datasets: [{
                 label: 'Anecdote Count',
-                data: Object.values(data),
+                data: chartData,
                 backgroundColor: '#a7c7e7',
                 borderColor: '#6b93b9',
                 borderWidth: 1,
@@ -667,6 +637,7 @@ function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
     });
 }
 
+// --- UPDATED `showMicroSkillDetailPage` ---
 function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
     currentStudentId = studentId;
     currentMicroSkill = microSkill;
@@ -675,11 +646,6 @@ function showMicroSkillDetailPage(studentId, coreSkill, microSkill) {
 	const rubricsAvailable = schoolMicroSkills.map(ms => ms.name);
     viewRubricBtn.classList.toggle('hidden', !rubricsAvailable.includes(microSkill));
 
-if (rubricsAvailable.includes(microSkill)) {
-    viewRubricBtn.classList.remove('hidden');
-} else {
-    viewRubricBtn.classList.add('hidden');
-}
     if (unsubscribeFromMicroSkillAnecdotes) unsubscribeFromMicroSkillAnecdotes();
     const q = query(collection(db, "anecdotes"), where("studentId", "==", studentId), where("coreSkill", "==", coreSkill), where("microSkill", "==", microSkill));
     unsubscribeFromMicroSkillAnecdotes = onSnapshot(q, (snapshot) => {
@@ -721,48 +687,96 @@ if (rubricsAvailable.includes(microSkill)) {
     });
 }
 
+// --- UPDATED `showRubricPage` (with copy-on-write logic) ---
 async function showRubricPage(studentId, coreSkill, microSkill) {
-    console.log(`Querying rubrics for name: "${microSkill}" and schoolId in [${currentUserSchoolId}, null]`);
-	showView(rubricView);
+    showView(rubricView);
     rubricTitle.textContent = `${microSkill} Rubric`;
-    rubricTableContainer.innerHTML = '<p class="text-gray-500">Loading rubric...</p>';
+    rubricTableContainer.innerHTML = '<p>Loading rubric...</p>';
+    editRubricBtn.classList.add('hidden');
+    downloadRubricBtn.classList.add('hidden');
 
-    // NEW LOGIC: Query for the rubric by name AND schoolId
     const rubricsRef = collection(db, "rubrics");
-	const q = query(rubricsRef, where("name", "==", microSkill), where("schoolId", "in", [currentUserSchoolId, null]));
-    const querySnapshot = await getDocs(q);
+    let rubricDoc = null;
+    let isMasterTemplate = false;
 
-    if (querySnapshot.empty) {
-        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" could not be found for your school.</p>`;
+    try {
+        if (currentUserSchoolId) {
+            console.log(`Fetching school rubric: name="${microSkill}", schoolId="${currentUserSchoolId}"`);
+            const schoolQuery = query(rubricsRef, where("name", "==", microSkill), where("schoolId", "==", currentUserSchoolId));
+            const schoolSnap = await getDocs(schoolQuery);
+            if (!schoolSnap.empty) {
+                rubricDoc = schoolSnap.docs[0];
+                isMasterTemplate = false;
+                console.log("Found school rubric:", rubricDoc.id);
+            }
+        }
+        if (!rubricDoc) {
+             console.log(`Fetching master template rubric: name="${microSkill}"`);
+             const allNameQuery = query(rubricsRef, where("name", "==", microSkill));
+             const allNameSnap = await getDocs(allNameQuery);
+             const templateDoc = allNameSnap.docs.find(doc => doc.data().schoolId == null || doc.data().schoolId === undefined);
+             if (templateDoc) {
+                 rubricDoc = templateDoc;
+                 isMasterTemplate = true;
+                 console.log("Found master template:", rubricDoc.id);
+             }
+        }
+    } catch (error) {
+         console.error("Error fetching rubric:", error);
+         rubricTableContainer.innerHTML = `<p class="text-red-500">Error loading rubric. Please check console.</p>`;
+         return;
+    }
+
+    if (!rubricDoc) {
+        rubricTableContainer.innerHTML = `<p class="text-red-500">The rubric for "${microSkill}" could not be found.</p>`;
+         editRubricBtn.classList.add('hidden');
+         downloadRubricBtn.classList.add('hidden');
         return;
     }
 
-    const rubricDoc = querySnapshot.docs[0]; // Get the first matching rubric
     const rubricId = rubricDoc.id;
     const rubricData = rubricDoc.data();
+    rubricView.dataset.editingDocId = rubricId;
+    rubricView.dataset.isMasterTemplate = isMasterTemplate;
 
-    // The rest of the function remains the same, building the table from rubricData...
-    const tableClass = rubricData.headers.length > 7 ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
+    // Build table HTML
+    const tableClass = (rubricData.headers && rubricData.headers.length > 7) ? 'rubric-table-auto text-sm' : 'rubric-table text-sm';
     let tableHTML = `<table class="${tableClass}">`;
-    tableHTML += '<thead><tr><th>Behavior</th>';
-    rubricData.headers.forEach(header => tableHTML += `<th>${header}</th>`);
-    tableHTML += '</tr></thead>';
-    tableHTML += '<tbody>';
-    rubricData.rows.forEach((rowData, rowIndex) => {
-        tableHTML += `<tr><td class="skill-label-cell">${rowData.skillLabel}</td>`;
-        rowData.levels.forEach((levelText, levelIndex) => {
-            const cellId = `${rubricId}-r${rowIndex}-c${levelIndex}`;
-            tableHTML += `<td id="${cellId}">${levelText}</td>`;
+    
+    // Build table header
+    tableHTML += '<thead><tr>';
+    tableHTML += `<th style="background-color: var(--accent-primary); color: var(--text-light);">Behavior</th>`; // First header
+    if(rubricData.headers) {
+        rubricData.headers.forEach(header => {
+            tableHTML += `<th>${header}</th>`;
         });
-        tableHTML += '</tr>';
-    });
+    }
+    tableHTML += '</tr></thead>';
+    
+    // Build table body
+    tableHTML += '<tbody>';
+    if(rubricData.rows) {
+        rubricData.rows.forEach((rowData, rowIndex) => {
+            tableHTML += '<tr>';
+            tableHTML += `<td class="skill-label-cell">${(rowData.skillLabel || '').replace(/\n/g, '<br>')}</td>`; // Skill label
+            if(rowData.levels) {
+                rowData.levels.forEach((levelText, levelIndex) => {
+                    const cellId = `${rubricId}-r${rowIndex}-c${levelIndex}`;
+                    tableHTML += `<td id="${cellId}">${levelText}</td>`; // Level descriptions
+                });
+            }
+            tableHTML += '</tr>';
+        });
+    }
     tableHTML += '</tbody></table>';
     rubricTableContainer.innerHTML = tableHTML;
 
-    const isTeacherOrAdmin = currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin';
-    if (isTeacherOrAdmin) {
-        setRubricMode('highlight');
-        const highlightsRef = doc(db, `students/${studentId}/rubricHighlights/${rubricId}`);
+    const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+     if (isAdmin) {
+         editRubricBtn.classList.toggle('hidden', isMasterTemplate && currentUserRole !== 'superAdmin');
+         setRubricMode('highlight');
+         // Load highlights...
+        const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${rubricId}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
             highlightsSnap.data().highlightedCells?.forEach(cellId => {
@@ -770,68 +784,113 @@ async function showRubricPage(studentId, coreSkill, microSkill) {
                 if (cell) cell.classList.add('admin-highlight');
             });
         }
-    } else {
-        setRubricMode('view');
-    }
+     } else {
+         editRubricBtn.classList.add('hidden');
+         setRubricMode('view');
+     }
+     downloadRubricBtn.classList.remove('hidden');
 }
 
 async function saveRubricHighlights(microSkill) {
-    const rubricId = microSkill.toLowerCase().replace(/\s+/g, '-');
+    const rubricId = rubricView.dataset.editingDocId; // Use the doc ID
+    if (!rubricId) return;
+    
     const highlightedCells = [];
     rubricTableContainer.querySelectorAll('.admin-highlight').forEach(cell => {
         highlightedCells.push(cell.id);
     });
+    
+    // Save highlights using the unique doc ID, not the microSkill name
     const highlightsRef = doc(db, `students/${currentStudentId}/rubricHighlights/${rubricId}`);
     await setDoc(highlightsRef, { highlightedCells });
 }
 
+// --- UPDATED `showContinuumPage` (with copy-on-write logic) ---
 async function showContinuumPage(coreSkill) {
     showView(continuumView);
     continuumTitle.textContent = `${coreSkill} Continuum`;
-    continuumTableContainer.innerHTML = '<p class="text-gray-500">Loading continuum...</p>';
+    continuumTableContainer.innerHTML = '<p>Loading continuum...</p>';
+    editContinuumBtn.classList.add('hidden');
+    downloadContinuumBtn.classList.add('hidden');
 
-    // NEW LOGIC: Query for the continuum by name AND schoolId
     const continuumsRef = collection(db, "continuums");
-    const q = query(continuumsRef, where("name", "==", coreSkill), where("schoolId", "in", [currentUserSchoolId, null]));
-    const querySnapshot = await getDocs(q);
+    let continuumDoc = null;
+    let isMasterTemplate = false;
 
-    if (querySnapshot.empty) {
-        continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" could not be found for your school.</p>`;
-        if(editContinuumBtn) editContinuumBtn.classList.add('hidden');
+    try {
+        if (currentUserSchoolId) {
+             console.log(`Fetching school continuum: name="${coreSkill}", schoolId="${currentUserSchoolId}"`);
+             const schoolQuery = query(continuumsRef, where("name", "==", coreSkill), where("schoolId", "==", currentUserSchoolId));
+             const schoolSnap = await getDocs(schoolQuery);
+             if (!schoolSnap.empty) {
+                 continuumDoc = schoolSnap.docs[0];
+                 isMasterTemplate = false;
+                 console.log("Found school continuum:", continuumDoc.id);
+             }
+        }
+        if (!continuumDoc) {
+             console.log(`Fetching master template continuum: name="${coreSkill}"`);
+             const allNameQuery = query(continuumsRef, where("name", "==", coreSkill));
+             const allNameSnap = await getDocs(allNameQuery);
+             const templateDoc = allNameSnap.docs.find(doc => doc.data().schoolId == null || doc.data().schoolId === undefined);
+             if (templateDoc) {
+                 continuumDoc = templateDoc;
+                 isMasterTemplate = true;
+                 console.log("Found master template continuum:", continuumDoc.id);
+             }
+        }
+    } catch (error) {
+         console.error("Error fetching continuum:", error);
+         continuumTableContainer.innerHTML = `<p class="text-red-500">Error loading continuum. Please check console.</p>`;
+         return;
+    }
+
+    if (!continuumDoc) {
+        continuumTableContainer.innerHTML = `<p class="text-red-500">The continuum for "${coreSkill}" could not be found.</p>`;
+        editContinuumBtn.classList.add('hidden');
+        downloadContinuumBtn.classList.add('hidden');
         return;
     }
 
-    const continuumDoc = querySnapshot.docs[0];
     const continuumId = continuumDoc.id;
     originalContinuumData = continuumDoc.data();
+    continuumView.dataset.editingDocId = continuumId;
+    continuumView.dataset.isMasterTemplate = isMasterTemplate;
     
     let tableHTML = '<table class="rubric-table text-sm">';
     tableHTML += '<thead><tr>';
-    originalContinuumData.headers.forEach((header, index) => {
-        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
-        tableHTML += `<th ${style}>${header}</th>`;
-    });
+    if(originalContinuumData.headers) {
+        originalContinuumData.headers.forEach((header, index) => {
+            const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
+            tableHTML += `<th ${style}>${header}</th>`;
+        });
+    }
     tableHTML += '</tr></thead>';
 
     tableHTML += '<tbody>';
-    originalContinuumData.rows.forEach((rowData, rowIndex) => {
-        tableHTML += '<tr>';
-        tableHTML += `<td class="skill-label-cell">${rowData.skillLabel.replace(/\n/g, '<br>')}</td>`;
-        rowData.levels.forEach((levelText, levelIndex) => {
-            const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
-            tableHTML += `<td id="${cellId}">${levelText}</td>`;
+    if(originalContinuumData.rows) {
+        originalContinuumData.rows.forEach((rowData, rowIndex) => {
+            tableHTML += '<tr>';
+            tableHTML += `<td class="skill-label-cell">${(rowData.skillLabel || '').replace(/\n/g, '<br>')}</td>`;
+            if(rowData.levels) {
+                rowData.levels.forEach((levelText, levelIndex) => {
+                    const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
+                    tableHTML += `<td id="${cellId}">${levelText}</td>`;
+                });
+            }
+            tableHTML += '</tr>';
         });
-        tableHTML += '</tr>';
-    });
+    }
     tableHTML += '</tbody></table>';
 
     continuumTableContainer.innerHTML = tableHTML;
 
-    const activeTable = continuumTableContainer.querySelector('table');
-    if (currentUserRole === 'admin') {
+    const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+    if (isAdmin) {
+        editContinuumBtn.classList.toggle('hidden', isMasterTemplate && currentUserRole !== 'superAdmin');
         setContinuumMode('highlight');
         
-        const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
+        const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${continuumId}`);
         const highlightsSnap = await getDoc(highlightsRef);
         if (highlightsSnap.exists()) {
             highlightsSnap.data().highlightedCells?.forEach(cellId => {
@@ -840,26 +899,40 @@ async function showContinuumPage(coreSkill) {
             });
         }
     } else {
+        editContinuumBtn.classList.add('hidden');
         setContinuumMode('view');
     }
+    downloadContinuumBtn.classList.remove('hidden');
 }
 
 async function saveContinuumHighlights(coreSkill) {
+    const continuumId = continuumView.dataset.editingDocId; // Use the doc ID
+    if (!continuumId) return;
+
     const activeContainer = document.querySelector('#continuum-table-container');
     if (!activeContainer) return;
+    
     const highlightedCells = [];
     activeContainer.querySelectorAll('.admin-highlight').forEach(cell => {
         highlightedCells.push(cell.id);
     });
-    const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${coreSkill.toLowerCase().replace(/\s+/g, '-')}`);
+    
+    const highlightsRef = doc(db, `students/${currentStudentId}/continuumHighlights/${continuumId}`);
     await setDoc(highlightsRef, { highlightedCells }, { merge: true });
 }
 
 function listenForAllAnecdotes() {
     if (unsubscribeFromAllAnecdotes) unsubscribeFromAllAnecdotes();
+    if (!currentUserSchoolId) return; // Guard clause
+    
     const q = query(collection(db, "anecdotes"), where("schoolId", "==", currentUserSchoolId));
     unsubscribeFromAllAnecdotes = onSnapshot(q, (snapshot) => {
-        const coreSkillCounts = { 'Vitality': 0, 'Integrity': 0, 'Curiosity': 0, 'Critical Thinking': 0, 'Fields of Knowledge': 0 };
+        // Use the dynamic core skills
+        const coreSkillCounts = {};
+        schoolCoreSkills.forEach(skill => {
+            coreSkillCounts[skill.name] = 0;
+        });
+
         snapshot.forEach(doc => {
             const anecdote = doc.data();
             if (coreSkillCounts.hasOwnProperty(anecdote.coreSkill)) {
@@ -867,7 +940,7 @@ function listenForAllAnecdotes() {
             }
         });
         renderAllSkillsChart(coreSkillCounts);
-    });
+    }, (error) => { console.error("Error listening for all anecdotes:", error); });
 }
 
 function renderAllSkillsChart(data) {
@@ -1043,6 +1116,8 @@ function openChat(recipient) {
 function listenForAdminMessages() {
     const currentUser = auth.currentUser;
     if (currentUserRole !== 'admin' && currentUserRole !== 'superAdmin') return;
+    if (!currentUser) return; // Add safety check
+
     const { start, end } = getWeekDates();
     const options = { month: 'long', day: 'numeric' };
     const formattedStartDate = start.toLocaleDateString('en-US', options);
@@ -1052,7 +1127,6 @@ function listenForAdminMessages() {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
     const messagesCollectionGroup = collectionGroup(db, 'messages');
-	if (!currentUser) return; // Add safety check
 
 	const q = query(messagesCollectionGroup, where("senderId", "==", currentUser.uid), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
     onSnapshot(q, (snapshot) => {
@@ -1208,7 +1282,7 @@ dashboardBtn.addEventListener('click', () => {
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
-    if (currentUserRole === 'superAdmin') { 
+    if (currentUserRole === 'superAdmin' || currentUserRole === 'admin') { // Added admin
         listenForAdminMessages();
     }
 });
@@ -1261,6 +1335,7 @@ skillsLink.addEventListener('click', (e) => {
 logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
     sessionStorage.removeItem('isSubscribing');
+    sessionStorage.removeItem('postCheckout'); // Also clear this flag
     signOut(auth).then(() => {
         window.location.reload();
     });
@@ -1272,7 +1347,7 @@ profileMenuBtn.addEventListener('click', () => {
 });
 
 document.addEventListener('click', (e) => {
-    if (!document.getElementById('profile-menu-container').contains(e.target)) {
+    if (profileMenuBtn && !profileMenuBtn.contains(e.target) && profileDropdown && !profileDropdown.contains(e.target)) {
         profileDropdown.classList.add('hidden');
     }
 });
@@ -1288,7 +1363,16 @@ addRecordBtn.addEventListener('click', () => {
 closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
 
 addAnecdoteBtn.addEventListener('click', () => {
-    updateMicroSkillsDropdown(coreSkillSelect.value);
+    // Populate core skills dropdown
+    coreSkillSelect.innerHTML = '<option value="" disabled selected>Select Core Skill</option>';
+    schoolCoreSkills.forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill.name;
+        option.textContent = skill.name;
+        coreSkillSelect.appendChild(option);
+    });
+    
+    updateMicroSkillsDropdown(coreSkillSelect.value); // Set initial state
     addAnecdoteModal.classList.remove('hidden');
 });
 
@@ -1320,8 +1404,11 @@ addStudentForm.addEventListener('submit', async (e) => {
         showMessage("Please select a classroom.");
         return;
     }
+    if (!currentUserSchoolId) {
+        showMessage("Error: Cannot identify your school. Please refresh.");
+        return;
+    }
 
-    // Save the new student to the database
 	await addDoc(collection(db, "students"), {
 		name: document.getElementById('studentName').value,
 		grade: document.getElementById('studentGrade').value,
@@ -1348,8 +1435,16 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
         text: document.getElementById('anecdoteText').value,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid,
-        imageUrl: null
+        imageUrl: null,
+        schoolId: currentUserSchoolId // Add schoolId
     };
+
+    if(!anecdoteData.coreSkill || !anecdoteData.microSkill) {
+        showMessage("Please select a core and micro skill.");
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+
     const imageFile = document.getElementById('anecdoteImage').files[0];
     console.log("Attempting to add anecdote with data:", anecdoteData);
 	try {
@@ -1441,7 +1536,8 @@ messageForm.addEventListener('submit', async (e) => {
         });
         await setDoc(chatDocRef, {
             participants: [currentUser.uid, recipientId],
-            lastMessage: file ? (text || 'File sent') : text
+            lastMessage: file ? (text || 'File sent') : text,
+            lastUpdated: serverTimestamp() // Added for sorting chats
         }, { merge: true });
         messageInput.value = '';
         fileInput.value = '';
@@ -1472,6 +1568,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
         const result = await deleteUserData();
         console.log(result.data.message);
         showMessage("Your account has been successfully deleted.", false);
+        // Auth state change will handle the reload
     } catch (error) {
         console.error("Deletion failed:", error);
         showMessage("Could not delete your account. Please try again.");
@@ -1494,7 +1591,8 @@ buildContinuumBtn.addEventListener('click', () => {
 rubricView.addEventListener('click', (e) => {
     if (isRubricEditMode) return; 
 
-    if ((currentUserRole === 'admin' || currentUserRole === 'teacher' || currentUserRole === 'superAdmin') && e.target.tagName === 'TD' && e.target.id) {
+    const isAdmin = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+    if (isAdmin && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
         saveRubricHighlights(currentMicroSkill);
     }
@@ -1503,7 +1601,6 @@ rubricView.addEventListener('click', (e) => {
 continuumView.addEventListener('click', (e) => {
     if (isContinuumEditMode) return;
 
-    const user = auth.currentUser;
     const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
 	if (isAdmin && e.target.tagName === 'TD' && e.target.id) {
         e.target.classList.toggle('admin-highlight');
@@ -1522,12 +1619,10 @@ downloadPngBtn.addEventListener('click', async () => {
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
 
-    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
     } 
-    // ELSE check if we are on the OLD static rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
 		elementToCapture = document.querySelector('#rubric-table-container table');
 		fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
@@ -1560,12 +1655,10 @@ downloadPdfBtn.addEventListener('click', async () => {
     let elementToCapture, fileName;
     const studentNameText = studentDetailName.textContent.trim() || 'student';
 
-    // Check if we are on the NEW dynamic continuum view
     if (continuumView && !continuumView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
     } 
-    // ELSE check if we are on the OLD static rubric view
     else if (rubricView && !rubricView.classList.contains('hidden')) { 
 		elementToCapture = document.querySelector('#rubric-table-container table');
 		fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
@@ -1592,46 +1685,6 @@ downloadPdfBtn.addEventListener('click', async () => {
         console.error("Error generating PDF:", error);
         showMessage("Could not download as PDF.");
     } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-});
-
-downloadPdfBtn.addEventListener('click', async () => {
-    downloadOptionsModal.classList.add('hidden');
-    loadingOverlay.classList.remove('hidden');
-    let elementToCapture, fileName;
-    if (!rubricView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('.rubric-container:not(.hidden) .rubric-table');
-        const studentNameText = studentDetailName.textContent.trim() || 'student';
-        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
-    } else if (!continuumView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('.continuum-rubric-container:not(.hidden) .rubric-table');
-        const studentNameText = studentDetailName.textContent.trim() || 'student';
-        fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
-    }
-    if (!elementToCapture) {
-        loadingOverlay.classList.add('hidden');
-        return;
-    }
-    elementToCapture.style.border = 'none';
-    elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = 'none');
-    const { jsPDF } = window.jspdf;
-    try {
-        const canvas = await html2canvas(elementToCapture, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-        });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(fileName);
-    } catch (error) {
-        console.error("Error generating PDF:", error);
-        showMessage("Could not download as PDF.");
-    } finally {
-        elementToCapture.style.border = '';
-        elementToCapture.querySelectorAll('th, td').forEach(el => el.style.border = '');
         loadingOverlay.classList.add('hidden');
     }
 });
@@ -1776,8 +1829,7 @@ downloadJourneyPdfBtn.addEventListener('click', () => {
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
 
-// Add these to the end of app.js
-
+// --- User Management ---
 async function showUsersPage() {
     showView(usersView);
     usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">Loading users...</td></tr>';
@@ -1796,28 +1848,39 @@ async function showUsersPage() {
     } else {
         q = query(usersRef, where("schoolId", "==", currentUserSchoolId));
     }
-    const snapshot = await getDocs(q);
-
-    usersListBody.innerHTML = '';
-    snapshot.forEach(doc => {
-        const user = doc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-			<td class="px-6 py-4 whitespace-nowrap">
-				<div class="text-sm text-gray-900">${user.displayName || user.email}</div>
-				<div class="text-sm text-gray-500">${user.email}</div>
-			</td>
-			<td class="px-6 py-4 whitespace-nowrap">
-				<select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
-					<option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option>
-					<option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> 
-					<option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
-					<option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-				</select>
-			</td>
-		`;;
-        usersListBody.appendChild(tr);
-    });
+    
+    try {
+        const snapshot = await getDocs(q);
+        usersListBody.innerHTML = '';
+        if (snapshot.empty) {
+             usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4">No users found.</td></tr>';
+             return;
+        }
+        
+        snapshot.forEach(doc => {
+            const user = doc.data();
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${user.displayName || user.email}</div>
+                    <div class="text-sm text-gray-500">${user.email}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+                        <option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option>
+                        <option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> 
+                        <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
+                        <option value="schoolAdmin" ${user.role === 'schoolAdmin' ? 'selected' : ''}>School Admin</option>
+                        ${currentUserRole === 'superAdmin' ? `<option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>` : ''}
+                    </select>
+                </td>
+            `;;
+            usersListBody.appendChild(tr);
+        });
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        usersListBody.innerHTML = '<tr><td colspan="2" class="text-center p-4 text-red-500">Error loading users.</td></tr>';
+    }
 }
 
 async function updateUserRole(userId, newRole) {
@@ -1888,6 +1951,11 @@ async function populateTeacherDropdown(dropdownElement) {
 async function populateClassroomDropdown() {
     studentClassSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
     
+    if (!currentUserSchoolId) {
+         studentClassSelect.innerHTML = '<option value="" disabled>School ID not found</option>';
+         return;
+    }
+
     const q = query(collection(db, "classrooms"), where("schoolId", "==", currentUserSchoolId), orderBy("className"));
     const snapshot = await getDocs(q);
 
@@ -1909,7 +1977,7 @@ async function populateClassroomDropdown() {
 
 function listenForClassrooms() {
 	if (!currentUserSchoolId) return;
-    const q = query(collection(db, "classrooms"), where("schoolId", "==", currentUserSchoolId));
+    const q = query(collection(db, "classrooms"), where("schoolId", "==", currentUserSchoolId), orderBy("className"));
     onSnapshot(q, (snapshot) => {
         classroomsList.innerHTML = '';
         if (snapshot.empty) {
@@ -1953,11 +2021,9 @@ async function renderSkillsList() {
     skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
     const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole); // Check if user can edit
 
-    try { // Added try...catch for better error handling during fetch
+    try {
         // Fetch CONTINUUMS (Core Skills)
         const skillsRef = collection(db, "continuums");
-        const schoolIdsToQuery = currentUserRole === 'superAdmin' && !currentUserSchoolId ? [null] : [currentUserSchoolId, null];
-        // Fetching all and filtering locally is safer for templates without the field.
         const allSkillsSnap = await getDocs(query(skillsRef, orderBy("name"))); // Fetch all, order by name
 
         console.log("Raw snapshot size:", allSkillsSnap.size);
@@ -1971,10 +2037,9 @@ async function renderSkillsList() {
             .filter(c => c.name); // Ensure name exists before sorting/displaying
 
         console.log("Filtered skills count:", filteredSkills.length);
-        console.log("Filtered skills data:", filteredSkills);
 
         if (filteredSkills.length === 0) {
-            skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found after filtering. Check Firestore templates or add a new skill.</p>';
+            skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found. Add a new skill to get started.</p>';
             skillsListContainer.className = 'space-y-6'; // Reset class if empty
             addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
             return;
@@ -1983,8 +2048,8 @@ async function renderSkillsList() {
         skillsListContainer.innerHTML = '';
         skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6';
 
-        filteredSkills.forEach(skill => { // Loop through filteredSkills
-            const skillId = skill.id; // Get ID from the mapped object
+        filteredSkills.forEach(skill => {
+            const skillId = skill.id;
             const isMasterTemplate = skill.schoolId === null || skill.schoolId === undefined;
 
             const skillCard = document.createElement('div');
@@ -1995,7 +2060,7 @@ async function renderSkillsList() {
             if (isAdmin && (!isMasterTemplate || currentUserRole === 'superAdmin')) {
                  adminButtons = `
                     <div class="absolute top-2 right-2 flex space-x-1">
-                        <button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill Name">
+                        <button class="edit-skill-btn text-gray-400 hover:text-blue-600 p-1" data-id="${skillId}" title="Edit Skill">
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
                         </button>
                         <button class="delete-skill-btn text-gray-400 hover:text-red-600 p-1" data-id="${skillId}" title="Delete Skill">
@@ -2014,10 +2079,10 @@ async function renderSkillsList() {
 
         addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
 
-    } catch (error) { // Added try...catch
+    } catch (error) {
         console.error("Error rendering skills list:", error);
         skillsListContainer.innerHTML = '<p class="text-red-500">Error loading skills. Please check the console.</p>';
-        skillsListContainer.className = 'space-y-6'; // Reset class on error
+        skillsListContainer.className = 'space-y-6';
     }
 }
 
@@ -2034,14 +2099,6 @@ async function deleteClassroom(classroomId) {
 }
 
 // --- Event Listeners for Classroom Management ---
-
-classroomsLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
-        showClassroomsPage();
-        profileDropdown.classList.add('hidden');
-    }
-});
 
 createClassroomForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2119,7 +2176,6 @@ editClassroomForm.addEventListener('submit', async (e) => {
 });
 
 // --- PARENT MESSAGING FUNCTIONS ---
-
 async function showParentMessageModal() {
     messageOptionsContainer.innerHTML = '<p class="text-gray-500">Loading parent info...</p>';
     messageParentsModal.classList.remove('hidden');
@@ -2191,7 +2247,6 @@ async function initiateChatWithParent(parentEmail) {
 }
 
 // --- Parent Messaging Listeners ---
-
 contactParentsBtn.addEventListener('click', () => {
     if (currentStudentId) {
         showParentMessageModal();
@@ -2212,7 +2267,6 @@ messageOptionsContainer.addEventListener('click', (e) => {
 });
 
 // --- NOTIFICATION SETTINGS ---
-
 async function showSettingsPage() {
     showView(settingsView);
     const user = auth.currentUser;
@@ -2259,11 +2313,6 @@ messageEmailsToggle.addEventListener('change', (e) => {
 });
 
 // --- CONTINUUM EDITING AND HIGHLIGHTING ---
-
-let isContinuumEditMode = false;
-let originalContinuumData = null; // To store data for 'cancel'
-
-// This function toggles the UI between view, edit, and highlight modes
 function setContinuumMode(mode) {
     const table = continuumTableContainer.querySelector('table');
     if (!table) return;
@@ -2274,27 +2323,23 @@ function setContinuumMode(mode) {
     editContinuumBtn.classList.toggle('hidden', mode === 'edit');
     saveContinuumBtn.classList.toggle('hidden', mode !== 'edit');
     cancelContinuumBtn.classList.toggle('hidden', mode !== 'edit');
-    
     downloadContinuumBtn.classList.toggle('hidden', mode === 'edit');
-
-    // Find the dynamically created back button to hide/show it
-    const backBtn = document.getElementById('back-from-continuum-btn');
-    if (backBtn) {
-        backBtn.classList.toggle('hidden', mode === 'edit');
-    }
+    backToDashboardBtn.classList.toggle('hidden', mode === 'edit'); // Hide back button in edit mode
 
     // Make table cells editable OR just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
         cell.contentEditable = (mode === 'edit');
+        if(mode === 'edit') cell.classList.add('editing-cell');
+        else cell.classList.remove('editing-cell');
     });
     table.classList.toggle('admin-clickable', mode === 'highlight');
+    table.classList.toggle('edit-mode', mode === 'edit');
 }
 
-// New function to save the edited continuum
+// --- UPDATED `saveContinuumChanges` (with copy-on-write logic) ---
 async function saveContinuumChanges() {
     const table = continuumTableContainer.querySelector('table');
     if (!table) return;
-
     loadingOverlay.classList.remove('hidden');
 
     // Reconstruct the data object from the HTML table
@@ -2304,29 +2349,48 @@ async function saveContinuumChanges() {
         rows: []
     };
 
-    // Read headers
     table.querySelectorAll('thead th').forEach(th => {
         newData.headers.push(th.innerText);
     });
 
-    // Read rows
     table.querySelectorAll('tbody tr').forEach(tr => {
         const rowData = { skillLabel: '', levels: [] };
         const cells = tr.querySelectorAll('td');
-        rowData.skillLabel = cells[0].innerHTML.replace(/<br>/g, '\n'); // Convert <br> back to \n
-        for (let i = 1; i < cells.length; i++) {
-            rowData.levels.push(cells[i].innerText);
+        if(cells.length > 0) {
+            rowData.skillLabel = cells[0].innerHTML.replace(/<br\s*\/?>/gi, '\n'); // Convert <br> back to \n
+            for (let i = 1; i < cells.length; i++) {
+                rowData.levels.push(cells[i].innerText);
+            }
+            newData.rows.push(rowData);
         }
-        newData.rows.push(rowData);
     });
 
     try {
-        const continuumId = currentCoreSkill.toLowerCase().replace(/\s+/g, '-');
-        const continuumRef = doc(db, "continuums", continuumId);
-        await setDoc(continuumRef, newData);
+        const editingDocId = continuumView.dataset.editingDocId;
+        const isEditingMaster = continuumView.dataset.isMasterTemplate === 'true';
+        if (!editingDocId) throw new Error("Document ID not found.");
+
+        if (isEditingMaster && currentUserRole !== 'superAdmin') {
+            console.log(`Copy-on-write for continuum template ${editingDocId}`);
+            const templateRef = doc(db, "continuums", editingDocId);
+            const templateSnap = await getDoc(templateRef);
+            if (!templateSnap.exists()) throw new Error("Original template not found.");
+            const fullTemplateData = templateSnap.data();
+            
+            const finalNewData = { ...fullTemplateData, ...newData, schoolId: currentUserSchoolId };
+            
+            const newContinuumRef = await addDoc(collection(db, "continuums"), finalNewData);
+            continuumView.dataset.editingDocId = newContinuumRef.id;
+            continuumView.dataset.isMasterTemplate = 'false';
+        } else {
+            console.log(`Updating existing continuum doc: ${editingDocId}`);
+            const continuumRef = doc(db, "continuums", editingDocId);
+            await setDoc(continuumRef, newData, { merge: true });
+        }
+        
         showMessage("Continuum saved successfully!", false);
         originalContinuumData = newData; // Update the 'cancel' data
-        setContinuumMode('view'); // Exit edit mode
+        setContinuumMode('highlight'); // Exit edit mode
     } catch (error) {
         console.error("Error saving continuum:", error);
         showMessage("Failed to save continuum.");
@@ -2335,27 +2399,20 @@ async function saveContinuumChanges() {
     }
 }
 
-// Add event listeners for the new buttons
+// Add event listeners for the continuum buttons
 editContinuumBtn.addEventListener('click', () => {
     setContinuumMode('edit');
 });
 
 cancelContinuumBtn.addEventListener('click', () => {
-    if (isContinuumEditMode) {
-        // If in edit mode, revert changes
-        showContinuumPage(currentCoreSkill); // This will re-fetch and re-render
-    } else {
-        // If in highlight mode, just exit to view mode
-        setContinuumMode('view');
-    }
+    // Re-fetch and re-render to discard changes
+    showContinuumPage(currentCoreSkill);
+    setContinuumMode('highlight'); // Go back to highlight mode
 });
 
 saveContinuumBtn.addEventListener('click', saveContinuumChanges);
 
 // --- RUBRIC EDITING AND HIGHLIGHTING ---
-
-let isRubricEditMode = false;
-
 function setRubricMode(mode) {
     const table = rubricTableContainer.querySelector('table');
     if (!table) return;
@@ -2363,7 +2420,7 @@ function setRubricMode(mode) {
     isRubricEditMode = (mode === 'edit');
     
     // Toggle button visibility based on the current mode
-    editRubricBtn.classList.toggle('hidden', mode !== 'highlight');
+    editRubricBtn.classList.toggle('hidden', mode === 'edit');
     saveRubricBtn.classList.toggle('hidden', mode !== 'edit');
     cancelRubricBtn.classList.toggle('hidden', mode !== 'edit');
     downloadRubricBtn.classList.toggle('hidden', mode === 'edit');
@@ -2372,15 +2429,19 @@ function setRubricMode(mode) {
     // Make table cells editable or just clickable for highlighting
     table.querySelectorAll('th, td').forEach(cell => {
         cell.contentEditable = (mode === 'edit');
+        if(mode === 'edit') cell.classList.add('editing-cell');
+        else cell.classList.remove('editing-cell');
     });
     table.classList.toggle('admin-clickable', mode === 'highlight');
+    table.classList.toggle('edit-mode', mode === 'edit');
 }
 
+// --- UPDATED `saveRubricChanges` (with copy-on-write logic) ---
 async function saveRubricChanges() {
     const table = rubricTableContainer.querySelector('table');
     if (!table) return;
-
     loadingOverlay.classList.remove('hidden');
+    
     const newData = { name: currentMicroSkill, headers: [], rows: [] };
 
     // Reconstruct the data from the edited HTML table
@@ -2391,17 +2452,38 @@ async function saveRubricChanges() {
     table.querySelectorAll('tbody tr').forEach(tr => {
         const rowData = { skillLabel: '', levels: [] };
         const cells = tr.querySelectorAll('td');
-        rowData.skillLabel = cells[0].innerText;
-        for (let i = 1; i < cells.length; i++) {
-            rowData.levels.push(cells[i].innerText);
+        if(cells.length > 0) {
+            rowData.skillLabel = cells[0].innerHTML.replace(/<br\s*\/?>/gi, '\n'); // Convert <br> back to \n
+            for (let i = 1; i < cells.length; i++) {
+                rowData.levels.push(cells[i].innerText);
+            }
+            newData.rows.push(rowData);
         }
-        newData.rows.push(rowData);
     });
 
     try {
-        const rubricId = currentMicroSkill.toLowerCase().replace(/\s+/g, '-');
-        const rubricRef = doc(db, "rubrics", rubricId);
-        await setDoc(rubricRef, newData);
+        const editingDocId = rubricView.dataset.editingDocId;
+        const isEditingMaster = rubricView.dataset.isMasterTemplate === 'true';
+        if (!editingDocId) throw new Error("Document ID not found.");
+
+        if (isEditingMaster && currentUserRole !== 'superAdmin') {
+            console.log(`Copy-on-write for rubric template ${editingDocId}`);
+            const templateRef = doc(db, "rubrics", editingDocId);
+            const templateSnap = await getDoc(templateRef);
+            if (!templateSnap.exists()) throw new Error("Original template not found.");
+            const fullTemplateData = templateSnap.data();
+            
+            const finalNewData = { ...fullTemplateData, ...newData, schoolId: currentUserSchoolId };
+
+            const newRubricRef = await addDoc(collection(db, "rubrics"), finalNewData);
+            rubricView.dataset.editingDocId = newRubricRef.id;
+            rubricView.dataset.isMasterTemplate = 'false';
+        } else {
+            console.log(`Updating existing rubric doc: ${editingDocId}`);
+            const rubricRef = doc(db, "rubrics", editingDocId);
+            await setDoc(rubricRef, newData, { merge: true });
+        }
+        
         showMessage("Rubric saved successfully!", false);
         setRubricMode('highlight'); // Return to highlight mode after saving
     } catch (error) {
@@ -2412,24 +2494,44 @@ async function saveRubricChanges() {
     }
 }
 
-// Add the event listeners for the new buttons
+// Add the event listeners for the rubric buttons
 editRubricBtn.addEventListener('click', () => setRubricMode('edit'));
 saveRubricBtn.addEventListener('click', saveRubricChanges);
-cancelRubricBtn.addEventListener('click', () => showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill));
+cancelRubricBtn.addEventListener('click', () => {
+    // Re-fetch and re-render to discard changes
+    showRubricPage(currentStudentId, currentCoreSkill, currentMicroSkill);
+    setRubricMode('highlight'); // Go back to highlight mode
+});
 
+// --- SUBSCRIPTION & ONBOARDING ---
 if (subscribeBtn) {
     subscribeBtn.addEventListener('click', () => {
         const user = auth.currentUser;
         if (user) {
             subscriptionModal.classList.remove('hidden');
         } else {
-            // Set a flag in session storage before signing in
             sessionStorage.setItem('isSubscribing', 'true');
             showMessage("Please sign in with Google to subscribe.");
             signInWithPopup(auth, new GoogleAuthProvider());
         }
     });
 }
+
+// Also attach listener to the button in the welcome message
+const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+if (subscribeBtnInWelcome) {
+     subscribeBtnInWelcome.addEventListener('click', () => {
+        const user = auth.currentUser;
+        if (user) {
+            subscriptionModal.classList.remove('hidden');
+        } else {
+            sessionStorage.setItem('isSubscribing', 'true');
+            showMessage("Please sign in with Google to subscribe.");
+            signInWithPopup(auth, new GoogleAuthProvider());
+        }
+    });
+}
+
 
 function goToCheckout(priceId) {
     loadingOverlay.classList.remove('hidden');
@@ -2447,7 +2549,6 @@ function goToCheckout(priceId) {
         });
 }
 
-// Event listeners for the modal buttons
 if (closeSubscriptionModalBtn) {
     closeSubscriptionModalBtn.addEventListener('click', () => {
         subscriptionModal.classList.add('hidden');
@@ -2474,7 +2575,6 @@ if (resubscribeBtn) {
     });
 }
 
-// --- SCHOOL ONBOARDING ---
 if (schoolNameForm) {
     schoolNameForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -2492,97 +2592,66 @@ if (schoolNameForm) {
 			showMessage("School created successfully! Reloading dashboard...", false);
 			schoolNameModal.classList.add('hidden');
 
-			// Force a refresh of the user's authentication token
 			const user = auth.currentUser;
 			if (user) {
-				await user.getIdToken(true);
+				await user.getIdToken(true); // Force token refresh
 			}
             window.location.reload(); 
         } catch (error) {
             console.error("Error setting school name:", error);
             showMessage("Could not save school name. Please try again.");
-        } finally {
             loadingOverlay.classList.add('hidden');
         }
     });
 }
 
 // --- SKILLS MANAGEMENT MODAL LOGIC ---
-
-// Open "Add Core Skill" modal
 addCoreSkillBtn.addEventListener('click', () => {
     editSkillModalTitle.textContent = 'Add New Core Skill';
     editSkillId.value = ''; // Clear ID for adding new
     coreSkillNameInput.value = '';
-    renderMicroSkillInputs([{ name: '', description: '' }]); // Start with one blank micro-skill
+    // renderMicroSkillInputs([{ name: '', description: '' }]); // Simplified: We only edit Core Skill name
+    microSkillsContainer.innerHTML = ''; // Hide micro-skills when adding/editing core skill name
     editSkillModal.classList.remove('hidden');
 });
 
-// Close/Cancel Edit Skill Modal
 closeEditSkillModalBtn.addEventListener('click', () => editSkillModal.classList.add('hidden'));
 cancelEditSkillBtn.addEventListener('click', () => editSkillModal.classList.add('hidden'));
 
-// Add a new blank micro-skill input row
-addMicroSkillBtn.addEventListener('click', () => {
-    const div = document.createElement('div');
-    div.className = 'flex items-center space-x-2';
-    div.innerHTML = `
-        <input type="text" placeholder="Micro Skill Name" class="micro-skill-name flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
-        <input type="text" placeholder="Description (Optional)" class="micro-skill-desc flex-grow bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
-        <button type="button" class="remove-micro-skill-btn text-red-500 hover:text-red-700">&times;</button>
-    `;
-    microSkillsContainer.appendChild(div);
-});
+// addMicroSkillBtn.addEventListener('click', () => { ... }); // Removed as per simplified form
+// microSkillsContainer.addEventListener('click', (e) => { ... }); // Removed as per simplified form
 
-// Remove a micro-skill input row
-microSkillsContainer.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-micro-skill-btn')) {
-        e.target.closest('.flex').remove();
-    }
-});
-
-// Handle saving new or edited skill data
 editSkillForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const coreSkillName = coreSkillNameInput.value.trim();
-    const continuumDocumentId = editSkillId.value; // ID of the continuum being edited/added
+    const continuumDocumentId = editSkillId.value;
 
     if (!coreSkillName) {
         showMessage("Core Skill Name cannot be empty.");
         return;
     }
 
-    // --- MICROSKILL EDITING REMOVED FOR SIMPLICITY ---
-    // We are only editing the Core Skill (Continuum) name here.
-    // Micro-skill (Rubric) names would need separate logic if desired.
-
     loadingOverlay.classList.remove('hidden');
     try {
-        const skillData = {
-            name: coreSkillName,
-            // We keep existing headers/rows, only changing the name
-        };
-
         if (continuumDocumentId) {
             // Update existing continuum name
             const skillRef = doc(db, "continuums", continuumDocumentId);
-            await updateDoc(skillRef, { name: coreSkillName }); // Only update the name field
+            await updateDoc(skillRef, { name: coreSkillName });
             await fetchSchoolSkills();
 			showMessage("Core Skill name updated successfully!", false);
         } else {
-             // --- ADDING NEW CORE SKILL (Continuum) ---
-             // Needs default structure (headers/rows) - define a default template
+             // ADDING NEW CORE SKILL (Continuum)
              const defaultContinuumStructure = {
                  name: coreSkillName,
-                 schoolId: currentUserSchoolId, // Tag with school ID
-                 headers: ["Micro Skill", "Level 1", "Level 2", "Level 3"], // Example structure
-                 rows: [ { skillLabel: "Default Micro Skill", levels: ["Desc 1", "Desc 2", "Desc 3"] } ] // Example structure
+                 schoolId: currentUserSchoolId,
+                 headers: ["Micro Skill", "Level 1", "Level 2", "Level 3"],
+                 rows: [ { skillLabel: "Default Micro Skill", levels: ["Description 1", "Description 2", "Description 3"] } ]
              };
             await addDoc(collection(db, "continuums"), defaultContinuumStructure);
             showMessage("New Core Skill added successfully!", false);
         }
         editSkillModal.classList.add('hidden');
-        renderSkillsList(); // Refresh the list
+        renderSkillsList();
     } catch (error) {
         console.error("Error saving core skill:", error);
         showMessage("Failed to save core skill.");
@@ -2591,39 +2660,38 @@ editSkillForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Handle opening the Edit/Delete modals from the main skills list
 skillsListContainer.addEventListener('click', async (e) => {
-    // Find the closest button element with the relevant class
     const editButton = e.target.closest('.edit-skill-btn');
     const deleteButton = e.target.closest('.delete-skill-btn');
-
-    // Get the ID from the button that was found (if any)
     const skillId = editButton?.dataset.id || deleteButton?.dataset.id;
 
-    // If no relevant button or ID was found, do nothing
     if (!skillId) return;
 
     if (editButton) {
-        // --- Edit Logic (Existing code is fine) ---
         loadingOverlay.classList.remove('hidden');
         try {
             const skillRef = doc(db, "continuums", skillId);
             const skillSnap = await getDoc(skillRef);
             if (skillSnap.exists()) {
-                // ... (populate and show edit modal) ...
+                const skillData = skillSnap.data();
+                editSkillModalTitle.textContent = 'Edit Core Skill Name';
+                editSkillId.value = skillId;
+                coreSkillNameInput.value = skillData.name;
+                microSkillsContainer.innerHTML = ''; // Hide micro-skills
                 editSkillModal.classList.remove('hidden');
             } else { showMessage("Core Skill not found."); }
-        } catch (error) { /* ... error handling ... */
-        } finally { loadingOverlay.classList.add('hidden'); }
-
+        } catch (error) {
+            console.error("Error fetching skill for edit:", error);
+            showMessage("Could not load skill details.");
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
     } else if (deleteButton) {
-        // --- Delete Logic ---
-        confirmDeleteSkillBtn.dataset.id = skillId; // Store ID on confirmation button
-        deleteSkillConfirmModal.classList.remove('hidden'); // Show confirmation modal
+        confirmDeleteSkillBtn.dataset.id = skillId;
+        deleteSkillConfirmModal.classList.remove('hidden');
     }
 });
 
-// Handle Delete Confirmation Modal
 cancelDeleteSkillBtn.addEventListener('click', () => deleteSkillConfirmModal.classList.add('hidden'));
 
 confirmDeleteSkillBtn.addEventListener('click', async (e) => {
@@ -2633,10 +2701,21 @@ confirmDeleteSkillBtn.addEventListener('click', async (e) => {
     loadingOverlay.classList.remove('hidden');
     deleteSkillConfirmModal.classList.add('hidden');
     try {
+        // Before deleting, check if it's a template
         const skillRef = doc(db, "continuums", skillIdToDelete);
+        const skillSnap = await getDoc(skillRef);
+        if(skillSnap.exists()) {
+            const skillData = skillSnap.data();
+            const isMasterTemplate = skillData.schoolId === null || skillData.schoolId === undefined;
+            if(isMasterTemplate && currentUserRole !== 'superAdmin') {
+                showMessage("You do not have permission to delete a master template.");
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+        }
+        
         await deleteDoc(skillRef);
-		confirmDeleteSkillBtn
-		await fetchSchoolSkills();
+        await fetchSchoolSkills(); // Re-fetch skills cache
         showMessage("Core skill deleted successfully.", false);
         renderSkillsList(); // Refresh the list
     } catch (error) {
