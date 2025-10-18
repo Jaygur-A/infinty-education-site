@@ -98,7 +98,7 @@ const logoutLink = document.getElementById('logout-link');
 const profileName = document.getElementById('profile-name');
 const profileEmail = document.getElementById('profile-email');
 const downloadOptionsModal = document.getElementById('download-options-modal');
-const downloadPngBtn = document.getElementById('download-png-btn');
+const downloadDocxBtn = document.getElementById('download-docx-btn');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const cancelDownloadBtn = document.getElementById('cancel-download-btn');
 const editAnecdoteModal = document.getElementById('editAnecdoteModal');
@@ -133,6 +133,7 @@ const journeyEditorTitle = document.getElementById('journey-editor-title');
 const backToJourneyBuilderBtn = document.getElementById('back-to-journey-builder-btn');
 const journeySummaryTextarea = document.getElementById('journey-summary-textarea');
 const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn');
+const downloadJourneyDocxBtn = document.getElementById('download-journey-docx-btn');
 const usersView = document.getElementById('users-view');
 const usersLink = document.getElementById('users-link');
 const usersListBody = document.getElementById('users-list-body');
@@ -196,6 +197,11 @@ const addMicroSkillBtn = document.getElementById('add-micro-skill-btn');
 const deleteSkillConfirmModal = document.getElementById('delete-skill-confirm-modal');
 const cancelDeleteSkillBtn = document.getElementById('cancel-delete-skill-btn');
 const confirmDeleteSkillBtn = document.getElementById('confirm-delete-skill-btn');
+const schoolLogoSettings = document.getElementById('school-logo-settings');
+const schoolLogoInput = document.getElementById('school-logo-input');
+const uploadSchoolLogoBtn = document.getElementById('upload-school-logo-btn');
+const schoolLogoPreviewContainer = document.getElementById('school-logo-preview-container');
+const schoolLogoPreview = document.getElementById('school-logo-preview');
 
 // App State
 let currentStudentId = null,
@@ -1333,6 +1339,70 @@ skillsLink.addEventListener('click', (e) => {
     }
 });
 
+let schoolLogoUrlCache = null; 
+async function getSchoolLogoUrl() {
+    if (schoolLogoUrlCache) return schoolLogoUrlCache; // Use cache if available
+    if (!currentUserSchoolId) return null;
+
+    try {
+        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        const schoolSnap = await getDoc(schoolRef);
+        if (schoolSnap.exists() && schoolSnap.data().logoUrl) {
+            schoolLogoUrlCache = schoolSnap.data().logoUrl; // Save to cache
+            return schoolLogoUrlCache;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching school logo URL:", error);
+        return null;
+    }
+}
+
+// Helper function to create a DOCX table from an HTML table
+    function createTableForDocx(htmlTable) {
+        const { Table, TableRow, TableCell, Paragraph, TextRun, ShadingType } = docx;
+        const tableRows = [];
+
+        // 1. Process Header
+        const headerCells = [];
+        const ths = htmlTable.querySelectorAll('thead th');
+        ths.forEach(th => {
+            headerCells.push(
+                new TableCell({
+                    children: [new Paragraph({
+                        children: [new TextRun({ text: th.innerText, bold: true })]
+                    })],
+                    shading: {
+                        fill: "D4C1A7", // From your --bg-secondary color
+                        type: ShadingType.CLEAR,
+                    },
+                })
+            );
+        });
+        tableRows.push(new TableRow({ children: headerCells }));
+
+        // 2. Process Body
+        const trs = htmlTable.querySelectorAll('tbody tr');
+        trs.forEach(tr => {
+            const bodyCells = [];
+            tr.querySelectorAll('td').forEach((td, index) => {
+                bodyCells.push(
+                    new TableCell({
+                        children: [new Paragraph(td.innerText)],
+                        // Make the first column bold like in your UI
+                        ...(index === 0 && { children: [new Paragraph({ children: [new TextRun({ text: td.innerText, bold: true })] })] }),
+                    })
+                );
+            });
+            tableRows.push(new TableRow({ children: bodyCells }));
+        });
+
+        return new Table({
+            rows: tableRows,
+            width: { size: 100, type: docx.WidthType.PERCENTAGE },
+        });
+    }
+
 logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
     sessionStorage.removeItem('isSubscribing');
@@ -1619,41 +1689,74 @@ downloadRubricBtn.addEventListener('click', () => downloadOptionsModal.classList
 downloadContinuumBtn.addEventListener('click', () => downloadOptionsModal.classList.remove('hidden'));
 cancelDownloadBtn.addEventListener('click', () => downloadOptionsModal.classList.add('hidden'));
 
-downloadPngBtn.addEventListener('click', async () => {
-    downloadOptionsModal.classList.add('hidden');
-    loadingOverlay.classList.remove('hidden');
+downloadDocxBtn.addEventListener('click', async () => {
+        downloadOptionsModal.classList.add('hidden');
+        loadingOverlay.classList.remove('hidden');
     
-    let elementToCapture, fileName;
-    const studentNameText = studentDetailName.textContent.trim() || 'student';
+        let elementToCapture, fileName, titleText;
+    
+        if (continuumView && !continuumView.classList.contains('hidden')) {
+            elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
+            titleText = continuumTitle.textContent;
+            fileName = `${currentCoreSkill}-continuum.docx`;
+        } else if (rubricView && !rubricView.classList.contains('hidden')) {
+            elementToCapture = document.querySelector('#rubric-table-container table');
+            titleText = rubricTitle.textContent;
+            fileName = `${currentMicroSkill}-rubric.docx`;
+        }
+    
+        if (!elementToCapture) {
+            loadingOverlay.classList.add('hidden');
+            showMessage("Could not find content to download.");
+            return;
+        }
+    
+        const { Document, Packer, Paragraph, HeadingLevel, ImageRun } = docx;
+        try {
+            const table = createTableForDocx(elementToCapture);
+            const docChildren = [
+                new Paragraph({ text: titleText, heading: HeadingLevel.HEADING_1 })
+            ];
 
-    if (continuumView && !continuumView.classList.contains('hidden')) {
-        elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
-        fileName = `${currentCoreSkill}-continuum-${studentNameText}.png`;
-    } 
-    else if (rubricView && !rubricView.classList.contains('hidden')) { 
-		elementToCapture = document.querySelector('#rubric-table-container table');
-		fileName = `${currentMicroSkill}-rubric-${studentNameText}.png`;
-	}
+            // --- NEW LOGO LOGIC ---
+            const logoUrl = await getSchoolLogoUrl();
+            if (logoUrl) {
+                // We need to fetch the image as a blob to give it to docx
+                const response = await fetch(logoUrl);
+                const blob = await response.blob();
+                docChildren.unshift( // Add logo to the very top
+                    new Paragraph({
+                        children: [
+                            new ImageRun({
+                                data: blob,
+                                transformation: { width: 150, height: 80 },
+                            }),
+                        ],
+                        alignment: docx.AlignmentType.RIGHT,
+                    })
+                );
+            }
+            // --- END NEW LOGO LOGIC ---
 
-    if (!elementToCapture) {
-        loadingOverlay.classList.add('hidden');
-        showMessage("Could not find content to download.");
-        return;
-    }
+            docChildren.push(new Paragraph(" ")); // Add a space
+            docChildren.push(table); // Add the table
 
-    try {
-        const canvas = await html2canvas(elementToCapture, { scale: 2 });
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = fileName;
-        link.click();
-    } catch (error) {
-        console.error("Error generating PNG:", error);
-        showMessage("Could not download as PNG.");
-    } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-});
+            const doc = new Document({
+                sections: [{ children: docChildren }]
+            });
+    
+            // Use Packer to generate the blob
+            const blob = await Packer.toBlob(doc);
+            // Use FileSaver.js to save the file
+            saveAs(blob, fileName);
+    
+        } catch (error) {
+            console.error("Error generating DOCX:", error);
+            showMessage("Could not download as DOCX.");
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
 
 downloadPdfBtn.addEventListener('click', async () => {
     downloadOptionsModal.classList.add('hidden');
@@ -1665,17 +1768,32 @@ downloadPdfBtn.addEventListener('click', async () => {
     if (continuumView && !continuumView.classList.contains('hidden')) {
         elementToCapture = document.querySelector('#continuum-table-container .rubric-table');
         fileName = `${currentCoreSkill}-continuum-${studentNameText}.pdf`;
-    } 
-    else if (rubricView && !rubricView.classList.contains('hidden')) { 
-		elementToCapture = document.querySelector('#rubric-table-container table');
-		fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
-	}
+    } else if (rubricView && !rubricView.classList.contains('hidden')) {
+        elementToCapture = document.querySelector('#rubric-table-container table');
+        fileName = `${currentMicroSkill}-rubric-${studentNameText}.pdf`;
+    }
 
     if (!elementToCapture) {
         loadingOverlay.classList.add('hidden');
         showMessage("Could not find content to download.");
         return;
     }
+    
+    // --- NEW LOGO LOGIC ---
+    const logoUrl = await getSchoolLogoUrl();
+    let logoImg = null;
+    if (logoUrl) {
+        logoImg = document.createElement('img');
+        logoImg.src = logoUrl;
+        logoImg.style = "position: absolute; top: 15px; right: 20px; max-height: 80px; max-width: 150px; z-index: 50;";
+        // Prepend to make it part of the captured element
+        elementToCapture.style.position = 'relative'; // Ensure parent is 'relative'
+        elementToCapture.prepend(logoImg);
+        
+        // Give the image a moment to render
+        await new Promise(r => setTimeout(r, 500)); 
+    }
+    // --- END NEW LOGO LOGIC ---
     
     const { jsPDF } = window.jspdf;
     try {
@@ -1693,6 +1811,12 @@ downloadPdfBtn.addEventListener('click', async () => {
         showMessage("Could not download as PDF.");
     } finally {
         loadingOverlay.classList.add('hidden');
+        // --- NEW CLEANUP LOGIC ---
+        if (logoImg) {
+            logoImg.remove(); // Clean up the injected logo
+            elementToCapture.style.position = '';
+        }
+        // --- END NEW CLEANUP LOGIC ---
     }
 });
 
@@ -1820,21 +1944,84 @@ backToJourneyBuilderBtn.addEventListener('click', () => {
     showView(journeyBuilderView);
 });
 
-downloadJourneyPdfBtn.addEventListener('click', () => {
+downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
     const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
     const summaryText = journeySummaryTextarea.value;
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
 
+    // --- NEW LOGO LOGIC ---
+    const logoUrl = await getSchoolLogoUrl();
+    if (logoUrl) {
+        try {
+            // We must add the image to the PDF manually
+            // This is a simplified example; positioning may need adjustment
+            // (x, y, width, height)
+            pdf.addImage(logoUrl, 'PNG', 150, 5, 45, 15);
+        } catch (e) {
+            console.error("Could not add logo to PDF:", e);
+        }
+    }
+    // --- END NEW LOGO LOGIC ---
+
     pdf.setFontSize(18);
-    pdf.text(`Learning Journey for ${studentName}`, 14, 22);
+    pdf.text(`Learning Journey for ${studentName}`, 14, 22); // (text, x, y)
 
     pdf.setFontSize(12);
-    const splitText = pdf.splitTextToSize(summaryText, 180); // Split text to fit page width
+    const splitText = pdf.splitTextToSize(summaryText, 180); 
     pdf.text(splitText, 14, 32);
 
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
+
+downloadJourneyDocxBtn.addEventListener('click', async () => {
+        const { Document, Packer, Paragraph, HeadingLevel, ImageRun } = docx;
+
+        const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
+        const summaryText = journeySummaryTextarea.value;
+        const titleText = `Learning Journey for ${studentName}`;
+        const fileName = `Learning-Journey-${studentName.replace(/\s+/g, '-')}.docx`;
+
+        try {
+            const docChildren = [
+                new Paragraph({ text: titleText, heading: HeadingLevel.HEADING_1 }),
+            ];
+
+            // --- NEW LOGO LOGIC ---
+            const logoUrl = await getSchoolLogoUrl();
+            if (logoUrl) {
+                const response = await fetch(logoUrl);
+                const blob = await response.blob();
+                docChildren.unshift( // Add logo to the very top
+                    new Paragraph({
+                        children: [
+                            new ImageRun({
+                                data: blob,
+                                transformation: { width: 150, height: 80 },
+                            }),
+                        ],
+                        alignment: docx.AlignmentType.RIGHT,
+                    })
+                );
+            }
+            // --- END NEW LOGO LOGIC ---
+
+            // Split summary into paragraphs by newline
+            const paragraphs = summaryText.split('\n').map(text => new Paragraph(text));
+            docChildren.push(...paragraphs);
+
+            const doc = new Document({
+                sections: [{ children: docChildren }]
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, fileName);
+
+        } catch (error) {
+            console.error("Error generating DOCX:", error);
+            showMessage("Could not download as DOCX.");
+        }
+    });
 
 // --- User Management ---
 async function showUsersPage() {
@@ -2272,6 +2459,24 @@ messageOptionsContainer.addEventListener('click', (e) => {
         }
     }
 });
+
+function showSchoolLogoSettings() {
+    if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
+        schoolLogoSettings.classList.remove('hidden');
+        // Check if a logo already exists and show it
+        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        getDoc(schoolRef).then(schoolSnap => {
+            if (schoolSnap.exists() && schoolSnap.data().logoUrl) {
+                schoolLogoPreview.src = schoolSnap.data().logoUrl;
+                schoolLogoPreviewContainer.classList.remove('hidden');
+            } else {
+                schoolLogoPreviewContainer.classList.add('hidden');
+            }
+        });
+    } else {
+        schoolLogoSettings.classList.add('hidden');
+    }
+}
 
 // --- NOTIFICATION SETTINGS ---
 async function showSettingsPage() {
@@ -2730,6 +2935,47 @@ confirmDeleteSkillBtn.addEventListener('click', async (e) => {
     } catch (error) {
         console.error("Error deleting skill:", error);
         showMessage("Failed to delete skill.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+});
+
+uploadSchoolLogoBtn.addEventListener('click', async () => {
+    const file = schoolLogoInput.files[0];
+    if (!file) {
+        showMessage("Please select an image file first.");
+        return;
+    }
+    if (!currentUserSchoolId) {
+        showMessage("Could not find your school ID.");
+        return;
+    }
+
+    loadingOverlay.classList.remove('hidden');
+    try {
+        // 1. Define storage path
+        const storageRef = ref(storage, `schools/${currentUserSchoolId}/logo/school-logo.${file.name.split('.').pop()}`);
+        
+        // 2. Upload the file
+        const uploadResult = await uploadBytes(storageRef, file);
+        
+        // 3. Get the Download URL
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+        
+        // 4. Save URL to school's Firestore document
+        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        await updateDoc(schoolRef, {
+            logoUrl: downloadURL
+        });
+
+        // 5. Show success
+        schoolLogoPreview.src = downloadURL;
+        schoolLogoPreviewContainer.classList.remove('hidden');
+        showMessage("School logo updated successfully!", false);
+
+    } catch (error) {
+        console.error("Error uploading school logo:", error);
+        showMessage("Failed to upload logo. See console for details.");
     } finally {
         loadingOverlay.classList.add('hidden');
     }
