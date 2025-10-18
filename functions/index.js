@@ -120,31 +120,39 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             console.log(`Created new school with ID: ${newSchoolId}`);
 
             // --- Step 3: Ensure Firestore User Document Exists and Set Role/School ---
-            const userRef = db.collection('users').doc(userId);
-            try {
-                // Use set with merge:true - this should create OR update reliably now that authUser is confirmed.
-                console.log(`Attempting to SET (merge) user document users/${userId} with schoolAdmin role and schoolId.`);
-                await userRef.set({
-                    // Include basic fields from Auth ONLY if creating implicitly
-                    // merge:true prevents overwriting existing name/photo if createUserProfileIfNeeded already ran
-                    uid: userId,
-                    email: authUser.email,
-                    displayName: authUser.displayName || authUser.email.split('@')[0],
-                    photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(), // Will only set on creation
-                    role: 'schoolAdmin', // Set the correct role
-                    schoolId: newSchoolId, // Set the correct school ID
-                    notificationSettings: { // Add default settings only if creating
-                        newAnecdote: true,
-                        newMessage: true
-                    }
-                }, { merge: true }); // Use merge: true!
-                console.log(`Successfully SET (merged) user ${userId} to schoolAdmin for school ${newSchoolId}`);
+			const userRef = db.collection('users').doc(userId);
+			const dataToSet = {
+				// Basic fields from Auth - will only be set if doc doesn't exist due to merge:true
+				uid: userId,
+				email: authUser.email,
+				displayName: authUser.displayName || authUser.email.split('@')[0],
+				photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
+				createdAt: admin.firestore.FieldValue.serverTimestamp(), // Will only set on creation
+				// --- The crucial fields ---
+				role: 'schoolAdmin', // Set the correct role
+				schoolId: newSchoolId, // Set the correct school ID
+				// --- Default fields ---
+				notificationSettings: {
+					newAnecdote: true,
+					newMessage: true
+				}
+			};
 
-            } catch (dbError) {
-                 console.error(`Error SETTING (merging) user document users/${userId}:`, dbError);
-                 throw dbError; // Fail function if database write fails
-            }
+			try {
+				console.log(`[fulfillSubscription] PRE-WRITE CHECK for users/${userId}. Data to set:`, JSON.stringify(dataToSet));
+
+				// Use set with merge:true
+				await userRef.set(dataToSet, { merge: true }); 
+
+				console.log(`[fulfillSubscription] POST-WRITE SUCCESS for users/${userId}.`); // If this logs, the write worked.
+
+			} catch (dbError) {
+				 // Log the specific error during the set operation
+				 console.error(`[fulfillSubscription] Error during userRef.set({merge:true}) for users/${userId}:`, dbError);
+				 // Log additional context
+				 console.error(`[fulfillSubscription] Error details: code=${dbError.code}, message=${dbError.message}`);
+				 throw dbError; // Re-throw to ensure the function fails visibly in logs
+			}
 
 
             // --- Step 4: Clone Templates ---
