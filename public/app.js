@@ -385,7 +385,8 @@ onAuthStateChanged(auth, async (user) => {
         } else { // Guest
             if (sessionStorage.getItem('postCheckout') === 'true') {
                  sessionStorage.removeItem('postCheckout');
-                 subscriptionModal.classList.remove('hidden');
+                 console.log("postCheckout was true. Waiting for webhook to update role...");
+                 return;
 			} else if (sessionStorage.getItem('isSubscribing') === 'true') {
                  sessionStorage.removeItem('isSubscribing');
                  subscriptionModal.classList.remove('hidden');

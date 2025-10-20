@@ -115,8 +115,10 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                     });
                     console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
                 } else {
-                   await userRef.set({ schoolId: newSchoolId }, { merge: true });
+                   await userRef.set({ 
+				   schoolId: newSchoolId, 
 				   role: 'schoolAdmin'
+				   }, { merge: true });
                    console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
                 }
              } catch (dbError) {
