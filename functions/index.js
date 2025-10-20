@@ -109,12 +109,14 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
                         displayName: authUser.displayName || authUser.email.split('@')[0],
                         photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                        role: 'guest', schoolId: newSchoolId,
+						role: 'schoolAdmin',
+                        schoolId: newSchoolId,
                         notificationSettings: { newAnecdote: true, newMessage: true }
                     });
                     console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
                 } else {
                    await userRef.set({ schoolId: newSchoolId }, { merge: true });
+				   role: 'schoolAdmin'
                    console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
                 }
              } catch (dbError) {
