@@ -93,37 +93,37 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             // --- Step 2: Set (Merge) user's schoolId in Firestore ---
             // Role promotion happens later in updateSchoolName
             const userRef = db.collection('users').doc(userId);
-             try {
-                const userSnap = await userRef.get();
-                if (!userSnap.exists()) {
-                   let authUser = null;
-                   let attempts = 0;
-                   while (!authUser && attempts < 3) {
-                       attempts++;
-                       try { authUser = await admin.auth().getUser(userId); }
-                       catch (e) { if (e.code === 'auth/user-not-found') await delay(1000); else throw e; }
-                   }
-                   if (!authUser) throw new Error("Auth user still not found after retries in fulfillSubscription.");
-                    await userRef.set({
-                        uid: userId, email: authUser.email,
-                        displayName: authUser.displayName || authUser.email.split('@')[0],
-                        photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
-                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+			try {
+				const userSnap = await userRef.get();
+				if (!userSnap.exists()) {
+				   let authUser = null;
+				   let attempts = 0;
+				   while (!authUser && attempts < 3) {
+					   attempts++;
+					   try { authUser = await admin.auth().getUser(userId); }
+					   catch (e) { if (e.code === 'auth/user-not-found') await delay(1000); else throw e; }
+				   }
+				   if (!authUser) throw new Error("Auth user still not found after retries in fulfillSubscription.");
+					await userRef.set({
+						uid: userId, email: authUser.email,
+						displayName: authUser.displayName || authUser.email.split('@')[0],
+						photoURL: authUser.photoURL || `https://placehold.co/100x100?text=${(authUser.email[0] || '?').toUpperCase()}`,
+						createdAt: admin.firestore.FieldValue.serverTimestamp(),
 						role: 'schoolAdmin',
-                        schoolId: newSchoolId,
-                        notificationSettings: { newAnecdote: true, newMessage: true }
-                    });
-                    console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
-                } else {
-                   await userRef.set({ 
+						schoolId: newSchoolId,
+						notificationSettings: { newAnecdote: true, newMessage: true }
+					});
+					console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
+				} else {
+				   await userRef.set({ 
 				   schoolId: newSchoolId, 
 				   role: 'schoolAdmin'
 				   }, { merge: true });
-                   console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
-                }
-             } catch (dbError) {
-               console.error(`[fulfillSubscription] Error SETTING/MERGING schoolId for user ${userId}:`, dbError);
-             }
+				   console.log(`[fulfillSubscription] Set schoolId ${newSchoolId} for user ${userId} (merged)`);
+				}
+			 } catch (dbError) {
+			   console.error(`[fulfillSubscription] Error SETTING/MERGING schoolId for user ${userId}:`, dbError);
+			 }
 
         } catch (error) {
             console.error('[fulfillSubscription] Error provisioning new school:', error);
