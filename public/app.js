@@ -386,6 +386,9 @@ onAuthStateChanged(auth, async (user) => {
             if (sessionStorage.getItem('postCheckout') === 'true') {
                  sessionStorage.removeItem('postCheckout');
                  subscriptionModal.classList.remove('hidden');
+			} else if (sessionStorage.getItem('isSubscribing') === 'true') {
+                 sessionStorage.removeItem('isSubscribing');
+                 subscriptionModal.classList.remove('hidden');
             } else {
                  showView(parentDashboardView);
                  parentStudentView.classList.add('hidden');
