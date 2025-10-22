@@ -95,7 +95,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
             const userRef = db.collection('users').doc(userId);
 			try {
 				const userSnap = await userRef.get();
-				if (!userSnap.exists()) {
+				if (!userSnap.exists) {
 				   let authUser = null;
 				   let attempts = 0;
 				   while (!authUser && attempts < 3) {
@@ -219,7 +219,7 @@ exports.updateSchoolName = functions.https.onCall(async (data, context) => {
     const userId = context.auth.uid;
     const callingUserRef = db.collection('users').doc(userId);
     const callingUserSnap = await callingUserRef.get();
-    if (!callingUserSnap.exists()) { throw new functions.https.HttpsError("not-found", "User profile not found."); }
+    if (!callingUserSnap.exists) { throw new functions.https.HttpsError("not-found", "User profile not found."); }
     const schoolId = callingUserSnap.data().schoolId;
     if (!schoolName || schoolName.trim().length === 0) { throw new functions.https.HttpsError("invalid-argument", "School name cannot be empty."); }
     if (!schoolId) { throw new functions.https.HttpsError("failed-precondition", "User has no associated school ID."); }
@@ -227,8 +227,6 @@ exports.updateSchoolName = functions.https.onCall(async (data, context) => {
         const schoolRef = db.collection('schools').doc(schoolId);
         await schoolRef.update({ name: schoolName.trim() });
         console.log(`[updateSchoolName] Updated school name for ${schoolId}`);
-        await callingUserRef.update({ role: 'schoolAdmin' });
-        console.log(`[updateSchoolName] Updated user ${userId} role to schoolAdmin`);
         return { status: 'success', message: 'School setup complete.' };
     } catch (error) {
         console.error("[updateSchoolName] Error finalizing school setup:", error);
