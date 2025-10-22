@@ -396,7 +396,7 @@ onAuthStateChanged(auth, async (user) => {
                  parentWelcomeMessage.classList.remove('hidden');
                  parentWelcomeMessage.querySelector('h2').textContent = 'Welcome to Infinity Academy!';
                  parentWelcomeMessage.querySelector('p').textContent = 'Create your own school or await an invitation to join an existing one.';
-                 const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+                 const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn-welcome');
                  if (subscribeBtnInWelcome) subscribeBtnInWelcome.classList.remove('hidden');
             }
         }
@@ -2737,22 +2737,8 @@ if (subscribeBtn) {
     });
 }
 
-const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
-if (subscribeBtnInWelcome) {
-     subscribeBtnInWelcome.addEventListener('click', () => {
-        const user = auth.currentUser;
-        if (user) {
-            subscriptionModal.classList.remove('hidden');
-        } else {
-            sessionStorage.setItem('isSubscribing', 'true');
-            showMessage("Please sign in with Google to subscribe.");
-            signInWithPopup(auth, new GoogleAuthProvider());
-        }
-    });
-}
-
 // Also attach listener to the button in the welcome message
-const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn');
+const subscribeBtnInWelcome = parentWelcomeMessage.querySelector('#subscribe-btn-welcome');
 if (subscribeBtnInWelcome) {
      subscribeBtnInWelcome.addEventListener('click', () => {
         const user = auth.currentUser;
