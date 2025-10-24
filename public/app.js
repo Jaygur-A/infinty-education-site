@@ -156,7 +156,6 @@ const messageModalStudentName = document.getElementById('message-modal-student-n
 const messageOptionsContainer = document.getElementById('message-options-container');
 const settingsLink = document.getElementById('settings-link');
 const settingsView = document.getElementById('settings-view');
-const anecdoteEmailsToggle = document.getElementById('anecdote-emails-toggle');
 const messageEmailsToggle = document.getElementById('message-emails-toggle');
 const continuumTableContainer = document.getElementById('continuum-table-container');
 const rubricView = document.getElementById('rubric-view');
@@ -431,7 +430,7 @@ async function createUserProfileIfNeeded(user) {
             photoURL: user.photoURL || `https://placehold.co/100x100?text=${user.email[0].toUpperCase()}`,
             createdAt: serverTimestamp(),
             role: 'guest',
-            notificationSettings: { newAnecdote: true, newMessage: true }
+            notificationSettings: { newMessage: true }
         });
         docSnap = await getDoc(userRef); // Re-fetch
     }
@@ -2495,7 +2494,6 @@ async function showSettingsPage() {
 
     if (docSnap.exists() && docSnap.data().notificationSettings) {
         const settings = docSnap.data().notificationSettings;
-        anecdoteEmailsToggle.checked = settings.newAnecdote;
         messageEmailsToggle.checked = settings.newMessage;
     }
 }
@@ -2520,10 +2518,6 @@ settingsLink.addEventListener('click', (e) => {
     e.preventDefault();
     showSettingsPage();
     profileDropdown.classList.add('hidden');
-});
-
-anecdoteEmailsToggle.addEventListener('change', (e) => {
-    updateNotificationSetting('newAnecdote', e.target.checked);
 });
 
 messageEmailsToggle.addEventListener('change', (e) => {

@@ -111,7 +111,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
 						createdAt: admin.firestore.FieldValue.serverTimestamp(),
 						role: 'schoolAdmin',
 						schoolId: newSchoolId,
-						notificationSettings: { newAnecdote: true, newMessage: true }
+						notificationSettings: { newMessage: true }
 					});
 					console.log(`[fulfillSubscription] Created user doc and set schoolId ${newSchoolId} for user ${userId}`);
 				} else {
@@ -314,32 +314,6 @@ exports.generateJourneySummary = functions.https.onCall(async (data, context) =>
  * NOTIFICATION FUNCTIONS (Firestore Triggers)
  * ===================================================================
  */
-exports.sendAnecdoteNotification = functions.firestore.document("anecdotes/{anecdoteId}").onCreate(async (snap, context) => {
-    const anecdote = snap.data();
-    const studentSnap = await db.collection("students").doc(anecdote.studentId).get();
-    if (!studentSnap.exists) { return null; }
-    
-    const student = studentSnap.data();
-    const parentEmails = [student.parent1Email, student.parent2Email].filter(Boolean);
-    if (parentEmails.length === 0) { return null; }
-
-    for (const email of parentEmails) {
-        const userSnap = await db.collection("users").where("email", "==", email).get();
-        if (!userSnap.empty) {
-            const parentUser = userSnap.docs[0].data();
-            if (parentUser.notificationSettings?.newAnecdote === true) {
-                await db.collection("mail").add({
-                    to: email,
-                    message: {
-                        subject: `Infinity Education: New Anecdote for ${student.name}`,
-                        html: `<p>Hello,</p><p>A new learning anecdote has just been logged for <strong>${student.name}</strong> in the area of "${anecdote.coreSkill} / ${anecdote.microSkill}".</p><p>You can log in to your dashboard to view the details.</p><p>Thank you,<br>The Infinity Education Team</p>`,
-                    },
-                });
-            }
-        }
-    }
-    return null;
-});
 
 exports.sendNewMessageNotification = functions.firestore.document("chats/{chatId}/messages/{messageId}").onCreate(async (snap, context) => {
     const message = snap.data();
