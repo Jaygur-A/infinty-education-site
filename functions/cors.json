@@ -1,8 +1,16 @@
 [
   {
     "origin": ["https://infinty-education-site-bdul9.kinsta.page"],
-    "method": ["GET", "PUT", "POST", "OPTIONS"],
-    "responseHeader": ["Content-Type", "Authorization", "X-Goog-Resumable"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Accept-Encoding",
+      "Authorization",
+      "Origin",
+      "User-Agent",
+      "X-Firebase-Storage-Version"
+    ],
     "maxAgeSeconds": 3600
   }
 ]
