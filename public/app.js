@@ -433,6 +433,214 @@ const resetCustomThemeVariables = () => {
     });
 };
 
+const defaultParsedColor = { r: 58, g: 46, b: 31, a: 1 };
+
+const parseCssColor = (value) => {
+    if (!value) return { ...defaultParsedColor };
+    const trimmed = value.trim();
+    if (trimmed.startsWith('#')) {
+        const { r, g, b } = hexToRgb(trimmed);
+        return { r, g, b, a: 1 };
+    }
+    const rgbaMatch = trimmed.match(/^rgba?\((.+)\)$/i);
+    if (rgbaMatch) {
+        const parts = rgbaMatch[1].split(',').map(part => part.trim());
+        const r = parseFloat(parts[0]);
+        const g = parseFloat(parts[1]);
+        const b = parseFloat(parts[2]);
+        const a = parts[3] !== undefined ? parseFloat(parts[3]) : 1;
+        if ([r, g, b].every(component => Number.isFinite(component))) {
+            return {
+                r: clamp(Math.round(r), 0, 255),
+                g: clamp(Math.round(g), 0, 255),
+                b: clamp(Math.round(b), 0, 255),
+                a: clamp(Number.isNaN(a) ? 1 : a, 0, 1)
+            };
+        }
+    }
+    return { ...defaultParsedColor };
+};
+
+const rgbaString = ({ r, g, b, a = 1 }) => {
+    const alpha = clamp(a, 0, 1);
+    return `rgba(${clamp(Math.round(r), 0, 255)}, ${clamp(Math.round(g), 0, 255)}, ${clamp(Math.round(b), 0, 255)}, ${Math.round(alpha * 1000) / 1000})`;
+};
+
+const withAlpha = (color, alpha) => ({
+    r: clamp(color.r, 0, 255),
+    g: clamp(color.g, 0, 255),
+    b: clamp(color.b, 0, 255),
+    a: clamp(alpha, 0, 1)
+});
+
+const mixColors = (color, target, amount = 0.5) => ({
+    r: clamp(color.r + (target.r - color.r) * amount, 0, 255),
+    g: clamp(color.g + (target.g - color.g) * amount, 0, 255),
+    b: clamp(color.b + (target.b - color.b) * amount, 0, 255),
+    a: clamp(color.a + (target.a - color.a) * amount, 0, 1)
+});
+
+const lightenColor = (color, amount = 0.2) => mixColors(color, { r: 255, g: 255, b: 255, a: color.a }, amount);
+const darkenColor = (color, amount = 0.2) => mixColors(color, { r: 0, g: 0, b: 0, a: color.a }, amount);
+
+const createVerticalGradient = (ctx, baseColor) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height || 1);
+    gradient.addColorStop(0, rgbaString(withAlpha(lightenColor(baseColor, 0.25), 0.95)));
+    gradient.addColorStop(0.5, rgbaString(withAlpha(baseColor, Math.max(baseColor.a, 0.85))));
+    gradient.addColorStop(1, rgbaString(withAlpha(darkenColor(baseColor, 0.2), Math.max(baseColor.a, 0.9))));
+    return gradient;
+};
+
+const createBarVisuals = (ctx, colorValue) => {
+    const baseColor = parseCssColor(colorValue);
+    return {
+        background: createVerticalGradient(ctx, baseColor),
+        border: rgbaString(darkenColor(baseColor, 0.35)),
+        hoverBackground: rgbaString(lightenColor(baseColor, 0.12)),
+        hoverBorder: rgbaString(darkenColor(baseColor, 0.45))
+    };
+};
+
+const getSuggestedYAxisMax = (values) => {
+    if (!Array.isArray(values) || values.length === 0) return 4;
+    const highest = Math.max(...values);
+    if (!Number.isFinite(highest) || highest <= 0) return 4;
+    if (highest <= 2) return 3;
+    return highest + Math.ceil(highest * 0.25);
+};
+
+const createBaseBarOptions = (style) => {
+    const textValue = style?.getPropertyValue('--text-dark')?.trim() || '#3a2e1f';
+    const textColor = parseCssColor(textValue);
+    const axisColor = rgbaString(darkenColor(textColor, 0.1));
+    const gridColor = rgbaString(withAlpha(lightenColor(textColor, 0.75), 0.25));
+    const tooltipBg = rgbaString(withAlpha(darkenColor(textColor, 0.45), 0.92));
+    const tooltipBorder = rgbaString(withAlpha(lightenColor(textColor, 0.6), 0.4));
+
+    return {
+        responsive: true,
+        animation: { duration: 750, easing: 'easeOutCubic' },
+        layout: { padding: { top: 24, right: 20, bottom: 24, left: 20 } },
+        scales: {
+            x: {
+                grid: { display: false, drawBorder: false },
+                ticks: {
+                    color: axisColor,
+                    font: { size: 12, weight: '600', family: "'Inter', 'Segoe UI', sans-serif" },
+                    maxRotation: 0,
+                    autoSkipPadding: 16
+                },
+                border: { display: false }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false, drawTicks: false },
+                ticks: {
+                    stepSize: 1,
+                    precision: 0,
+                    padding: 10,
+                    color: axisColor,
+                    font: { size: 12, weight: '500', family: "'Inter', 'Segoe UI', sans-serif" }
+                },
+                border: { display: false }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: tooltipBg,
+                borderColor: tooltipBorder,
+                borderWidth: 1,
+                titleColor: '#ffffff',
+                bodyColor: '#fdfaf5',
+                displayColors: false,
+                padding: 12,
+                cornerRadius: 10,
+                titleFont: { size: 14, weight: '700', family: "'Inter', 'Segoe UI', sans-serif" },
+                bodyFont: { size: 12, weight: '500', family: "'Inter', 'Segoe UI', sans-serif" }
+            },
+            softShadow: {
+                enable: true,
+                color: rgbaString(withAlpha(darkenColor(textColor, 0.75), 0.18)),
+                blur: 18,
+                offsetX: 0,
+                offsetY: 12
+            },
+            barValueLabels: {
+                display: true,
+                fontSize: 12,
+                fontWeight: 600,
+                color: axisColor,
+                padding: 12
+            }
+        },
+        interaction: { intersect: false, mode: 'index' }
+    };
+};
+
+const softShadowPlugin = {
+    id: 'softShadow',
+    beforeDatasetsDraw(chart, _args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.enable === false) return;
+        const { ctx } = chart;
+        ctx.save();
+        ctx.shadowColor = pluginOptions.color || 'rgba(15, 23, 42, 0.18)';
+        ctx.shadowBlur = pluginOptions.blur ?? 18;
+        ctx.shadowOffsetX = pluginOptions.offsetX ?? 0;
+        ctx.shadowOffsetY = pluginOptions.offsetY ?? 12;
+    },
+    afterDatasetsDraw(chart, _args, pluginOptions) {
+        if (!pluginOptions || pluginOptions.enable === false) return;
+        chart.ctx.restore();
+    }
+};
+
+const barValueLabelsPlugin = {
+    id: 'barValueLabels',
+    afterDatasetsDraw(chart, _args, pluginOptions) {
+        if (chart.config.type !== 'bar') return;
+        const opts = pluginOptions || {};
+        if (opts.display === false) return;
+        const datasetMeta = chart.getDatasetMeta(0);
+        if (!datasetMeta) return;
+        const data = chart.data.datasets[0]?.data || [];
+        const { ctx } = chart;
+        const fontSize = opts.fontSize ?? 12;
+        const fontWeight = opts.fontWeight ?? 600;
+        const fontFamily = opts.fontFamily ?? (Chart?.defaults?.font?.family || "'Inter', 'Segoe UI', sans-serif");
+        const fillColor = opts.color ?? Chart?.defaults?.color ?? '#3a2e1f';
+        const padding = opts.padding ?? 10;
+        const showZero = opts.showZero ?? false;
+        const formatter = typeof opts.formatter === 'function' ? opts.formatter : (value) => value;
+
+        ctx.save();
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.fillStyle = fillColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        datasetMeta.data.forEach((element, index) => {
+            if (!element || element.hidden) return;
+            const value = data[index];
+            if (value === undefined || value === null) return;
+            if (!showZero && Number(value) === 0) return;
+            const { x, y } = element.tooltipPosition();
+            ctx.fillText(formatter(value, index, chart), x, y - padding);
+        });
+
+        ctx.restore();
+    }
+};
+
+if (window.Chart) {
+    Chart.register(softShadowPlugin, barValueLabelsPlugin);
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+    Chart.defaults.font.weight = '500';
+    Chart.defaults.color = '#3a2e1f';
+    Chart.defaults.plugins.tooltip.bodySpacing = 4;
+    Chart.defaults.plugins.tooltip.boxPadding = 6;
+}
+
 const updateCustomThemePreview = (customThemeConfig) => {
     if (!customThemePreviewPrimary || !customThemeConfig) return;
     const palette = generateCustomPalette(customThemeConfig);
@@ -936,52 +1144,79 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 // --- UPDATED `renderAnecdoteChart` ---
 function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
     if (anecdoteChart) anecdoteChart.destroy();
-	const chartLabels = labels.length > 0 ? labels : Object.keys(data);
+    if (!canvasElement) return;
+    const chartLabels = labels.length > 0 ? labels : Object.keys(data);
     const chartData = chartLabels.map(label => data[label] || 0);
+    const hasValues = chartData.some(value => value > 0);
     const ctx = canvasElement.getContext('2d');
-	const style = getComputedStyle(document.body);
-	const chartColor = style.getPropertyValue('--chart-color-2').trim();
-	const chartBorder = style.getPropertyValue('--chart-border-2').trim();
+    const style = getComputedStyle(document.body);
+    const chartColor = style.getPropertyValue('--chart-color-2').trim();
+    const visuals = createBarVisuals(ctx, chartColor);
+    const options = createBaseBarOptions(style);
+    const suggestedMax = getSuggestedYAxisMax(chartData);
+    const valueStep = chartData.length ? Math.max(1, Math.ceil(suggestedMax / 6)) : 1;
+
+    options.scales.y.suggestedMax = suggestedMax;
+    options.scales.y.ticks.stepSize = valueStep;
+    options.scales.y.ticks.precision = 0;
+    options.scales.y.ticks.callback = (value) => Number.isInteger(value) ? value : '';
+    options.scales.y.grace = '15%';
+
+    if (chartLabels.some(label => label.length > 12)) {
+        options.scales.x.ticks.maxRotation = 35;
+        options.scales.x.ticks.minRotation = 0;
+        options.scales.x.ticks.autoSkip = false;
+    }
+
+    options.plugins.tooltip.callbacks = {
+        title: (items) => items[0]?.label || '',
+        label: (context) => {
+            const value = context.parsed.y || 0;
+            if (value === 0) return 'No anecdotes yet';
+            const suffix = value === 1 ? 'anecdote' : 'anecdotes';
+            return `${value} ${suffix}`;
+        }
+    };
+    options.plugins.tooltip.enabled = chartData.length > 0;
+
+    options.plugins.softShadow.enable = hasValues;
+    options.plugins.barValueLabels.display = hasValues;
+    options.plugins.barValueLabels.showZero = false;
+    options.plugins.barValueLabels.formatter = (value) => value;
+
+    options.onClick = (event) => {
+        const points = anecdoteChart?.getElementsAtEventForMode(event, 'index', { intersect: false }, true) || [];
+        if (points.length) {
+            const firstPoint = points[0];
+            const label = anecdoteChart.data.labels[firstPoint.index];
+            showMicroSkillDetailPage(studentId, currentCoreSkill, label);
+        }
+    };
+
+    options.onHover = (event, chartElement) => {
+        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+    };
+
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
-		data: {
+        data: {
             labels: chartLabels,
             datasets: [{
                 label: 'Anecdote Count',
                 data: chartData,
-                backgroundColor: chartColor,
-				borderColor: chartBorder,
-                borderWidth: 1,
-                borderRadius: 4
+                backgroundColor: visuals.background,
+                borderColor: visuals.border,
+                hoverBackgroundColor: visuals.hoverBackground,
+                hoverBorderColor: visuals.hoverBorder,
+                borderWidth: 2,
+                borderRadius: 12,
+                borderSkipped: false,
+                maxBarThickness: 56,
+                barPercentage: 0.7,
+                categoryPercentage: 0.58
             }]
         },
-        options: {
-            onClick: (e) => {
-                const points = anecdoteChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
-                if (points.length) {
-                    const firstPoint = points[0];
-                    const label = anecdoteChart.data.labels[firstPoint.index];
-                    showMicroSkillDetailPage(studentId, currentCoreSkill, label);
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            onHover: (event, chartElement) => {
-                event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
-            }
-        }
+        options
     });
 }
 
@@ -1293,36 +1528,65 @@ function listenForAllAnecdotes() {
 
 function renderAllSkillsChart(data) {
     if (allSkillsChart) allSkillsChart.destroy();
+    if (!allSkillsChartCanvas) return;
+    const labels = Object.keys(data);
+    const values = labels.map(label => data[label] || 0);
+    const hasValues = values.some(value => value > 0);
     const ctx = allSkillsChartCanvas.getContext('2d');
-	const style = getComputedStyle(document.body);
-	const chartColor = style.getPropertyValue('--chart-color-1').trim();
+    const style = getComputedStyle(document.body);
+    const chartColor = style.getPropertyValue('--chart-color-1').trim();
+    const visuals = createBarVisuals(ctx, chartColor);
+    const options = createBaseBarOptions(style);
+    const suggestedMax = getSuggestedYAxisMax(values);
+    const valueStep = values.length ? Math.max(1, Math.ceil(suggestedMax / 6)) : 1;
+
+    options.scales.y.suggestedMax = suggestedMax;
+    options.scales.y.ticks.stepSize = valueStep;
+    options.scales.y.ticks.precision = 0;
+    options.scales.y.ticks.callback = (value) => Number.isInteger(value) ? value : '';
+    options.scales.y.grace = '15%';
+
+    if (labels.length > 5 || labels.some(label => label.length > 12)) {
+        options.scales.x.ticks.maxRotation = 30;
+        options.scales.x.ticks.minRotation = 0;
+        options.scales.x.ticks.autoSkip = false;
+    }
+
+    options.plugins.tooltip.callbacks = {
+        title: (items) => items[0]?.label || '',
+        label: (context) => {
+            const value = context.parsed.y || 0;
+            if (value === 0) return 'No anecdotes recorded';
+            const suffix = value === 1 ? 'anecdote' : 'anecdotes';
+            return `${value} ${suffix}`;
+        }
+    };
+    options.plugins.tooltip.enabled = labels.length > 0;
+    options.plugins.softShadow.enable = hasValues;
+    options.plugins.barValueLabels.display = hasValues;
+    options.plugins.barValueLabels.showZero = false;
+    options.plugins.barValueLabels.formatter = (value) => value;
+
     allSkillsChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: Object.keys(data),
+            labels,
             datasets: [{
                 label: 'Total Anecdotes',
-                data: Object.values(data),
-                backgroundColor: chartColor,
-                borderWidth: 0
+                data: values,
+                backgroundColor: visuals.background,
+                borderColor: visuals.border,
+                hoverBackgroundColor: visuals.hoverBackground,
+                hoverBorderColor: visuals.hoverBorder,
+                borderWidth: 2,
+                borderRadius: 12,
+                borderSkipped: false,
+                maxBarThickness: 60,
+                barPercentage: 0.68,
+                categoryPercentage: 0.58
             }]
         },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        precision: 0
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
+        options
     });
 }
 
@@ -1503,29 +1767,61 @@ function listenForAdminMessages() {
 
 function renderMessagesChart(data) {
     if (messagesChart) messagesChart.destroy();
+    if (!messagesChartCanvas) return;
+    const labels = Object.keys(data);
+    const values = labels.map(label => data[label] || 0);
+    const hasValues = values.some(value => value > 0);
     const ctx = messagesChartCanvas.getContext('2d');
-	const style = getComputedStyle(document.body);
-	const chartColor = style.getPropertyValue('--chart-color-3').trim();
-	const chartBorder = style.getPropertyValue('--chart-border-3').trim();
+    const style = getComputedStyle(document.body);
+    const chartColor = style.getPropertyValue('--chart-color-3').trim();
+    const visuals = createBarVisuals(ctx, chartColor);
+    const options = createBaseBarOptions(style);
+    const suggestedMax = getSuggestedYAxisMax(values);
+    const valueStep = values.length ? Math.max(1, Math.ceil(suggestedMax / 5)) : 1;
+
+    options.scales.y.suggestedMax = suggestedMax;
+    options.scales.y.ticks.stepSize = valueStep;
+    options.scales.y.ticks.precision = 0;
+    options.scales.y.ticks.callback = (value) => Number.isInteger(value) ? value : '';
+    options.scales.y.grace = '15%';
+    options.scales.x.grid.display = false;
+
+    options.plugins.tooltip.callbacks = {
+        title: (items) => items[0]?.label || '',
+        label: (context) => {
+            const value = context.parsed.y || 0;
+            if (value === 0) return 'No messages sent';
+            const suffix = value === 1 ? 'message' : 'messages';
+            return `${value} ${suffix}`;
+        }
+    };
+    options.plugins.tooltip.enabled = labels.length > 0;
+    options.plugins.softShadow.enable = hasValues;
+    options.plugins.barValueLabels.display = hasValues;
+    options.plugins.barValueLabels.showZero = false;
+    options.plugins.barValueLabels.formatter = (value) => value;
+    options.plugins.barValueLabels.padding = 14;
+
     messagesChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: Object.keys(data),
+            labels,
             datasets: [{
                 label: 'Messages Sent',
-                data: Object.values(data),
-                backgroundColor: chartColor,
-				borderColor: chartBorder,
-                borderWidth: 1
+                data: values,
+                backgroundColor: visuals.background,
+                borderColor: visuals.border,
+                hoverBackgroundColor: visuals.hoverBackground,
+                hoverBorderColor: visuals.hoverBorder,
+                borderWidth: 2,
+                borderRadius: 12,
+                borderSkipped: false,
+                maxBarThickness: 48,
+                barPercentage: 0.68,
+                categoryPercentage: 0.6
             }]
         },
-        options: {
-            scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                x: { grid: { display: false } }
-            },
-            plugins: { legend: { display: false } }
-        }
+        options
     });
 }
 
