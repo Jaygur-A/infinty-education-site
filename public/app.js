@@ -1897,7 +1897,7 @@ function openChat(recipient) {
     const currentUser = auth.currentUser;
     const chatID = [currentUser.uid, recipient.uid].sort().join('_');
     const messagesRef = collection(db, "chats", chatID, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "desc"));
+    const q = query(messagesRef, orderBy("timestamp", "asc"));
     if (unsubscribeFromMessages) unsubscribeFromMessages();
     unsubscribeFromMessages = onSnapshot(q, (snapshot) => {
         messageList.innerHTML = '';
@@ -1916,6 +1916,10 @@ function openChat(recipient) {
             messageEl.innerHTML = contentHTML;
             messageList.appendChild(messageEl);
         });
+        // Auto-scroll to bottom on new updates
+        try {
+            messageList.scrollTop = messageList.scrollHeight;
+        } catch {}
     });
 }
 
