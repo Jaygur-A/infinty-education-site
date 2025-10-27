@@ -392,8 +392,40 @@
 				<button class="theme-btn border-2 border-gray-300 rounded-full w-12 h-12" data-theme="sunset" title="Sunset (Orange/Red)">
 					<span class="block w-full h-full rounded-full" style="background-color: #d95d39;"></span>
 				</button>
+				<button class="theme-btn border-2 border-gray-300 rounded-full w-12 h-12" data-theme="custom" title="Custom (Color Wheel)">
+					<span class="block w-full h-full rounded-full" style="background: conic-gradient(from 0deg, #ff0066, #ff9900, #ffee00, #33cc33, #0099ff, #6633ff, #ff0066);"></span>
+				</button>
 			</div>
 			<p class="text-xs text-gray-400 mt-2">Current selection will be highlighted with a green border.</p>
+			<div id="custom-theme-controls" class="hidden mt-6 space-y-4">
+				<div>
+					<h3 class="text-sm font-semibold text-gray-700">Custom Palette</h3>
+					<p class="text-xs text-gray-500 mt-1">Pick base colours and we&rsquo;ll generate complementary tones for buttons, charts, and highlights.</p>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<label class="block text-sm font-medium text-gray-600">
+						Base Accent
+						<input type="color" id="custom-base-color" class="mt-2 h-12 w-full cursor-pointer rounded border border-gray-300 bg-white p-1" value="#4f46e5">
+					</label>
+					<label class="block text-sm font-medium text-gray-600">
+						Contrast Accent
+						<input type="color" id="custom-contrast-color" class="mt-2 h-12 w-full cursor-pointer rounded border border-gray-300 bg-white p-1" value="#f97316">
+					</label>
+					<label class="block text-sm font-medium text-gray-600">
+						Neutral Accent
+						<input type="color" id="custom-neutral-color" class="mt-2 h-12 w-full cursor-pointer rounded border border-gray-300 bg-white p-1" value="#10b981">
+					</label>
+				</div>
+				<div class="flex items-center space-x-4">
+					<div id="custom-theme-preview" class="flex items-center space-x-2">
+						<span class="inline-block h-10 w-10 rounded-full border border-gray-200" data-preview="primary"></span>
+						<span class="inline-block h-10 w-10 rounded-full border border-gray-200" data-preview="secondary"></span>
+						<span class="inline-block h-10 w-10 rounded-full border border-gray-200" data-preview="tertiary"></span>
+					</div>
+					<button id="custom-theme-apply-btn" class="btn btn-primary">Save Custom Theme</button>
+				</div>
+				<p class="text-xs text-gray-500">Preview updates live as you adjust the palette. Switch to another theme to return to preset colours.</p>
+			</div>
 		</div>
 		<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow" id="notification-settings">
 			<h2 class="text-3xl font-bold text-gray-800 mb-6">Notifications</h2>

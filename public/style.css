@@ -7,6 +7,9 @@
   --accent-primary: #a78e6c;   /* Medium brown (for buttons) */
   --accent-secondary: #7e9171; /* Desaturated olive green (for buttons) */
   --accent-tertiary: #ecb2ab;  /* Muted red (for student icons) */
+  --accent-primary-hover: #8f7858;
+  --accent-secondary-hover: #6b7b60;
+  --accent-tertiary-hover: #e08d83;
   
   --chart-color-1: #9cb8d9;        /* Light Blue (for allSkillsChart) */
   --chart-color-2: #a7c7e7;        /* Lighter Blue (for anecdoteChart) */
@@ -27,27 +30,39 @@
   --accent-primary: #0077b6;       /* Strong Blue */
   --accent-secondary: #00b4d8;     /* Cyan */
   --accent-tertiary: #48cae4;      /* Light Blue */
+  --accent-primary-hover: #005f90;
+  --accent-secondary-hover: #0096b7;
+  --accent-tertiary-hover: #36b1c9;
   --chart-color-1: #00b4d8;
   --chart-color-2: #48cae4;
   --chart-border-2: #0077b6;
+  --border-secondary: #89c2d9;
 }
 
 [data-theme="forest"] {
   --accent-primary: #4f772d;       /* Dark Green */
   --accent-secondary: #90a955;     /* Light Green */
   --accent-tertiary: #ecb2ab;      /* Pink (keep same) */
+  --accent-primary-hover: #3f5f24;
+  --accent-secondary-hover: #7b9248;
+  --accent-tertiary-hover: #d88c82;
   --chart-color-1: #90a955;
   --chart-color-2: #c4d7a1;
   --chart-border-2: #4f772d;
+  --border-secondary: #c4d7a1;
 }
 
 [data-theme="sunset"] {
   --accent-primary: #d95d39;       /* Orange */
   --accent-secondary: #c04a43;     /* Red */
   --accent-tertiary: #f0a202;      /* Yellow */
+  --accent-primary-hover: #b34a2d;
+  --accent-secondary-hover: #a23d37;
+  --accent-tertiary-hover: #c98202;
   --chart-color-1: #f0a202;
   --chart-color-2: #fbc490;
   --chart-border-2: #d95d39;
+  --border-secondary: #f6b48a;
 }
 
 /* NEW HELPER CLASSES FOR TAILWIND REPLACEMENT */
@@ -68,6 +83,16 @@
 .btn-secondary { background-color: var(--accent-secondary); }
 .btn-tertiary { background-color: var(--accent-tertiary); }
 .btn-neutral { background-color: #8c7a65; } /* Muted brown for neutral buttons */
+
+.bg-blue-600 { background-color: var(--accent-primary) !important; }
+.bg-blue-700 { background-color: var(--accent-primary-hover) !important; }
+.hover\:bg-blue-700:hover { background-color: var(--accent-primary-hover) !important; }
+.bg-green-600 { background-color: var(--accent-secondary) !important; }
+.bg-green-700 { background-color: var(--accent-secondary-hover) !important; }
+.hover\:bg-green-700:hover { background-color: var(--accent-secondary-hover) !important; }
+.bg-yellow-600 { background-color: var(--accent-tertiary) !important; }
+.bg-yellow-700 { background-color: var(--accent-tertiary-hover) !important; }
+.hover\:bg-yellow-700:hover { background-color: var(--accent-tertiary-hover) !important; }
 
 
 .student-avatar-bg { background-color: var(--accent-tertiary); }

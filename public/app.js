@@ -10,7 +10,7 @@ if (urlParamsOnLoad.has('session_id')) {
 // Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
@@ -201,6 +201,15 @@ const schoolLogoInput = document.getElementById('school-logo-input');
 const uploadSchoolLogoBtn = document.getElementById('upload-school-logo-btn');
 const schoolLogoPreviewContainer = document.getElementById('school-logo-preview-container');
 const schoolLogoPreview = document.getElementById('school-logo-preview');
+const customThemeControls = document.getElementById('custom-theme-controls');
+const customBaseColorInput = document.getElementById('custom-base-color');
+const customContrastColorInput = document.getElementById('custom-contrast-color');
+const customNeutralColorInput = document.getElementById('custom-neutral-color');
+const customThemeApplyBtn = document.getElementById('custom-theme-apply-btn');
+const customThemePreview = document.getElementById('custom-theme-preview');
+const customThemePreviewPrimary = customThemePreview ? customThemePreview.querySelector('[data-preview="primary"]') : null;
+const customThemePreviewSecondary = customThemePreview ? customThemePreview.querySelector('[data-preview="secondary"]') : null;
+const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
 
 // App State
 let currentStudentId = null,
@@ -220,6 +229,9 @@ let schoolMicroSkills = [];
 let isRubricEditMode = false;
 let isContinuumEditMode = false;
 let originalContinuumData = null;
+let currentTheme = 'default';
+let currentCustomTheme = null;
+let themeControlsInitialized = false;
 
 
 // --- Helper Functions ---
@@ -242,6 +254,263 @@ const getWeekDates = () => {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
     return { start: startOfWeek, end: endOfWeek };
+};
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const normalizeHex = (hex, fallback = '#000000') => {
+    if (typeof hex !== 'string') return fallback;
+    let cleaned = hex.trim();
+    if (!cleaned.startsWith('#')) cleaned = `#${cleaned}`;
+    if (cleaned.length === 4) {
+        cleaned = `#${cleaned[1]}${cleaned[1]}${cleaned[2]}${cleaned[2]}${cleaned[3]}${cleaned[3]}`;
+    }
+    return /^#([0-9A-Fa-f]{6})$/.test(cleaned) ? cleaned.toLowerCase() : fallback;
+};
+
+const hexToRgb = (hex) => {
+    const normalized = normalizeHex(hex);
+    const bigint = parseInt(normalized.slice(1), 16);
+    return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+    };
+};
+
+const rgbToHex = (r, g, b) => {
+    const toHex = (value) => value.toString(16).padStart(2, '0');
+    return `#${toHex(clamp(Math.round(r), 0, 255))}${toHex(clamp(Math.round(g), 0, 255))}${toHex(clamp(Math.round(b), 0, 255))}`;
+};
+
+const hexToHsl = (hex) => {
+    const { r, g, b } = hexToRgb(hex);
+    const rNorm = r / 255;
+    const gNorm = g / 255;
+    const bNorm = b / 255;
+    const max = Math.max(rNorm, gNorm, bNorm);
+    const min = Math.min(rNorm, gNorm, bNorm);
+    let h, s;
+    const l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0;
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case rNorm:
+                h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0);
+                break;
+            case gNorm:
+                h = (bNorm - rNorm) / d + 2;
+                break;
+            default:
+                h = (rNorm - gNorm) / d + 4;
+        }
+        h /= 6;
+    }
+
+    return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+    };
+};
+
+const hslToHex = (h, s, l) => {
+    const hue = clamp(h, 0, 360) / 360;
+    const saturation = clamp(s, 0, 100) / 100;
+    const lightness = clamp(l, 0, 100) / 100;
+
+    if (saturation === 0) {
+        const gray = lightness * 255;
+        return rgbToHex(gray, gray, gray);
+    }
+
+    const hueToRgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+    };
+
+    const q = lightness < 0.5 ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
+    const p = 2 * lightness - q;
+
+    const r = hueToRgb(p, q, hue + 1 / 3);
+    const g = hueToRgb(p, q, hue);
+    const b = hueToRgb(p, q, hue - 1 / 3);
+
+    return rgbToHex(r * 255, g * 255, b * 255);
+};
+
+const adjustLightness = (hex, delta) => {
+    const { h, s, l } = hexToHsl(hex);
+    return hslToHex(h, s, clamp(l + delta, 0, 100));
+};
+
+const shiftHue = (hex, delta) => {
+    const { h, s, l } = hexToHsl(hex);
+    const hue = (h + delta + 360) % 360;
+    return hslToHex(hue, s, l);
+};
+
+const hexWithAlpha = (hex, alpha) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`;
+};
+
+const generateCustomPalette = ({ base, contrast, neutral }) => {
+    const baseHex = normalizeHex(base, '#4f46e5');
+    const contrastHex = normalizeHex(contrast, shiftHue(baseHex, 30));
+    const neutralHex = normalizeHex(neutral, adjustLightness(baseHex, 25));
+
+    const accentPrimary = baseHex;
+    const accentPrimaryHover = adjustLightness(baseHex, -7);
+    const accentSecondary = contrastHex;
+    const accentSecondaryHover = adjustLightness(contrastHex, -7);
+    const accentTertiary = neutralHex;
+    const accentTertiaryHover = adjustLightness(neutralHex, -7);
+    const chartColor1 = adjustLightness(baseHex, 10);
+    const chartColor2 = adjustLightness(contrastHex, 5);
+    const chartBorder2 = adjustLightness(baseHex, -15);
+    const chartColor3 = hexWithAlpha(neutralHex, 0.4);
+    const chartBorder3 = adjustLightness(neutralHex, -10);
+    const borderSecondary = adjustLightness(baseHex, 35);
+
+    return {
+        accentPrimary,
+        accentPrimaryHover,
+        accentSecondary,
+        accentSecondaryHover,
+        accentTertiary,
+        accentTertiaryHover,
+        chartColor1,
+        chartColor2,
+        chartBorder2,
+        chartColor3,
+        chartBorder3,
+        borderSecondary
+    };
+};
+
+const applyCustomThemeVariables = (palette) => {
+    if (!palette) return;
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty('--accent-primary', palette.accentPrimary);
+    rootStyle.setProperty('--accent-primary-hover', palette.accentPrimaryHover);
+    rootStyle.setProperty('--accent-secondary', palette.accentSecondary);
+    rootStyle.setProperty('--accent-secondary-hover', palette.accentSecondaryHover);
+    rootStyle.setProperty('--accent-tertiary', palette.accentTertiary);
+    rootStyle.setProperty('--accent-tertiary-hover', palette.accentTertiaryHover);
+    rootStyle.setProperty('--chart-color-1', palette.chartColor1);
+    rootStyle.setProperty('--chart-color-2', palette.chartColor2);
+    rootStyle.setProperty('--chart-border-2', palette.chartBorder2);
+    rootStyle.setProperty('--chart-color-3', palette.chartColor3);
+    rootStyle.setProperty('--chart-border-3', palette.chartBorder3);
+    rootStyle.setProperty('--border-secondary', palette.borderSecondary);
+};
+
+const resetCustomThemeVariables = () => {
+    const rootStyle = document.documentElement.style;
+    ['--accent-primary', '--accent-primary-hover', '--accent-secondary', '--accent-secondary-hover', '--accent-tertiary', '--accent-tertiary-hover', '--chart-color-1', '--chart-color-2', '--chart-border-2', '--chart-color-3', '--chart-border-3', '--border-secondary'].forEach(variable => {
+        rootStyle.removeProperty(variable);
+    });
+};
+
+const updateCustomThemePreview = (customThemeConfig) => {
+    if (!customThemePreviewPrimary || !customThemeConfig) return;
+    const palette = generateCustomPalette(customThemeConfig);
+    customThemePreviewPrimary.style.backgroundColor = palette.accentPrimary;
+    if (customThemePreviewSecondary) customThemePreviewSecondary.style.backgroundColor = palette.accentSecondary;
+    if (customThemePreviewTertiary) customThemePreviewTertiary.style.backgroundColor = palette.accentTertiary;
+};
+
+const toggleCustomThemeControls = (isVisible) => {
+    if (!customThemeControls) return;
+    if (isVisible) {
+        customThemeControls.classList.remove('hidden');
+    } else {
+        customThemeControls.classList.add('hidden');
+    }
+};
+
+const getCustomThemeFromInputs = () => {
+    if (!customBaseColorInput || !customContrastColorInput || !customNeutralColorInput) return null;
+    return {
+        base: customBaseColorInput.value,
+        contrast: customContrastColorInput.value,
+        neutral: customNeutralColorInput.value
+    };
+};
+
+const setCustomThemeInputs = (customThemeConfig) => {
+    if (!customThemeConfig || !customBaseColorInput) return;
+    if (customThemeConfig.base) customBaseColorInput.value = normalizeHex(customThemeConfig.base);
+    if (customThemeConfig.contrast) customContrastColorInput.value = normalizeHex(customThemeConfig.contrast);
+    if (customThemeConfig.neutral) customNeutralColorInput.value = normalizeHex(customThemeConfig.neutral);
+    updateCustomThemePreview(customThemeConfig);
+};
+
+const normalizeCustomThemeConfig = (config) => {
+    if (!config) return null;
+    return {
+        base: normalizeHex(config.base, '#4f46e5'),
+        contrast: normalizeHex(config.contrast, '#f97316'),
+        neutral: normalizeHex(config.neutral, '#10b981')
+    };
+};
+
+const initializeThemeControls = () => {
+    if (themeControlsInitialized) return;
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const themeName = btn.dataset.theme;
+            if (themeName === 'custom') {
+                const currentInputs = getCustomThemeFromInputs();
+                const fallbackConfig = {
+                    base: customBaseColorInput ? customBaseColorInput.value : '#4f46e5',
+                    contrast: customContrastColorInput ? customContrastColorInput.value : '#f97316',
+                    neutral: customNeutralColorInput ? customNeutralColorInput.value : '#10b981'
+                };
+                const config = normalizeCustomThemeConfig(currentCustomTheme || currentInputs || fallbackConfig);
+                currentCustomTheme = config;
+                setCustomThemeInputs(config);
+                toggleCustomThemeControls(true);
+                applyTheme('custom', config);
+            } else {
+                toggleCustomThemeControls(false);
+                saveThemePreference(themeName);
+            }
+        });
+    });
+
+    [customBaseColorInput, customContrastColorInput, customNeutralColorInput].forEach(input => {
+        if (!input) return;
+        input.addEventListener('input', () => {
+            const config = normalizeCustomThemeConfig(getCustomThemeFromInputs());
+            if (!config) return;
+            currentCustomTheme = config;
+            updateCustomThemePreview(config);
+            if (currentTheme === 'custom') {
+                applyCustomThemeVariables(generateCustomPalette(config));
+            }
+        });
+    });
+
+    if (customThemeApplyBtn) {
+        customThemeApplyBtn.addEventListener('click', () => {
+            const config = normalizeCustomThemeConfig(getCustomThemeFromInputs());
+            if (!config) return;
+            saveThemePreference('custom', config);
+        });
+    }
+
+    themeControlsInitialized = true;
 };
 
 // --- UPDATED `showView` ---
@@ -332,7 +601,7 @@ onAuthStateChanged(auth, async (user) => {
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists()) {
 				const schoolData = schoolSnap.data();
-				applyTheme(schoolData.theme);
+				applyTheme(schoolData.theme, schoolData.customTheme);
                 console.log("School name:", schoolSnap.data().name, "Status:", schoolSnap.data().subscriptionStatus);
                 if (schoolSnap.data().name === "New School") {
                     console.log("School needs naming. Showing modal.");
@@ -2506,27 +2775,58 @@ async function showSettingsPage() {
         const settings = docSnap.data().notificationSettings;
         // messageEmailsToggle.checked = settings.newMessage;
     }
-	document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const themeName = btn.dataset.theme;
-            saveThemePreference(themeName);
-        });
-    });
+
+    initializeThemeControls();
+
+    if (currentTheme === 'custom') {
+        const config = normalizeCustomThemeConfig(currentCustomTheme || getCustomThemeFromInputs());
+        if (config) {
+            currentCustomTheme = config;
+            setCustomThemeInputs(config);
+            toggleCustomThemeControls(true);
+            updateCustomThemePreview(config);
+        }
+    } else {
+        toggleCustomThemeControls(false);
+    }
 }
 
 /**
  * Applies a color theme by setting a data-theme attribute on the <html> element.
  * @param {string} themeName - The name of the theme (e.g., "ocean", "forest")
  */
-function applyTheme(themeName) {
+function applyTheme(themeName, customThemeConfig = null) {
     if (!themeName) {
         themeName = "default"; // Fallback to default
     }
-    document.documentElement.dataset.theme = themeName;
+
+    currentTheme = themeName;
+    const themeButtons = document.querySelectorAll('.theme-btn');
+
+    if (themeName === 'custom') {
+        const fallbackConfig = {
+            base: customBaseColorInput ? customBaseColorInput.value : '#4f46e5',
+            contrast: customContrastColorInput ? customContrastColorInput.value : '#f97316',
+            neutral: customNeutralColorInput ? customNeutralColorInput.value : '#10b981'
+        };
+        const config = normalizeCustomThemeConfig(customThemeConfig || currentCustomTheme || fallbackConfig);
+        currentCustomTheme = config;
+        applyCustomThemeVariables(generateCustomPalette(config));
+        document.documentElement.dataset.theme = 'custom';
+        toggleCustomThemeControls(true);
+        setCustomThemeInputs(config);
+    } else {
+        document.documentElement.dataset.theme = themeName;
+        resetCustomThemeVariables();
+        if (themeName !== 'custom') {
+            toggleCustomThemeControls(false);
+        }
+    }
+
     console.log(`Theme applied: ${themeName}`);
     
     // Update active state in settings
-    document.querySelectorAll('.theme-btn').forEach(btn => {
+    themeButtons.forEach(btn => {
         if (btn.dataset.theme === themeName) {
             btn.style.borderColor = 'rgb(34 197 94)'; // Green border
         } else {
@@ -2539,18 +2839,24 @@ function applyTheme(themeName) {
  * Saves the admin's theme preference to the school's document in Firestore.
  * @param {string} themeName - The name of the theme to save
  */
-async function saveThemePreference(themeName) {
+async function saveThemePreference(themeName, customThemeConfig = null) {
     if (!currentUserSchoolId || currentUserRole !== 'schoolAdmin') {
         return;
     }
+
+    const normalizedConfig = themeName === 'custom'
+        ? normalizeCustomThemeConfig(customThemeConfig || currentCustomTheme || getCustomThemeFromInputs())
+        : null;
     
     loadingOverlay.classList.remove('hidden');
     try {
         const schoolRef = doc(db, "schools", currentUserSchoolId);
-        await updateDoc(schoolRef, {
-            theme: themeName
-        });
-        applyTheme(themeName); // Apply it immediately
+        const payload = themeName === 'custom'
+            ? { theme: themeName, customTheme: normalizedConfig }
+            : { theme: themeName, customTheme: deleteField() };
+
+        await updateDoc(schoolRef, payload);
+        applyTheme(themeName, normalizedConfig); // Apply it immediately
         showMessage("Theme saved successfully!", false);
     } catch (error) {
         console.error("Error saving theme:", error);
