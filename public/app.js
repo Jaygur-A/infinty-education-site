@@ -650,6 +650,9 @@ const destroyChartInstance = (chart) => {
     if (chart.canvas) {
         chart.canvas.style.height = '';
         chart.canvas.removeAttribute('height');
+        if (chart.canvas.parentNode && chart.canvas.parentNode.style) {
+            chart.canvas.parentNode.style.height = '';
+        }
     }
     delete chart.$currentHeight;
     chart.destroy();
@@ -699,14 +702,16 @@ const updateBarChartViewportOptions = (chart) => {
 
     options.maintainAspectRatio = false;
     options.resizeDelay = 120;
-    options.aspectRatio = containerWidth > 0 && targetHeight > 0 ? Number((containerWidth / targetHeight).toFixed(2)) : undefined;
 
     if (chart.canvas && Number.isFinite(targetHeight) && targetHeight > 0) {
         if (chart.$currentHeight !== targetHeight) {
             chart.$currentHeight = targetHeight;
             chart.canvas.style.height = `${targetHeight}px`;
-            chart.canvas.height = targetHeight;
-            chart.resize(undefined, targetHeight);
+            chart.canvas.removeAttribute('height');
+            const parentEl = chart.canvas.parentNode;
+            if (parentEl && parentEl.style) {
+                parentEl.style.height = `${targetHeight}px`;
+            }
         }
     }
 
