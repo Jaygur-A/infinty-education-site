@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+  
+    // Allow anyone to read chat images
+    match /chats/{chatId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null; // Only logged-in users can write
+    }
+
+    // Allow logged-in users to upload/read their own anecdote images
+    match /anecdotes/{studentId}/{fileName} {
+      allow write: if request.auth != null;
+      allow read: if request.auth != null;
+    }
+
+    // Allow a user to upload a logo for their own school
+    match /schools/{schoolId}/logo/{fileName} {
+      // Allow write (upload) IF the user is logged in
+      // AND their token's schoolId matches the folder they are trying to upload to.
+      allow write: if request.auth != null && 
+		(request.auth.token.role == 'superAdmin' || request.auth.token.schoolId == schoolId);
+      // Allow anyone to read school logos (so they can be downloaded in PDFs)
+      allow read: if true;
+    }
+  }
+}

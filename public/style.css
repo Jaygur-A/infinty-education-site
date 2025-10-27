@@ -7,6 +7,12 @@
   --accent-primary: #a78e6c;   /* Medium brown (for buttons) */
   --accent-secondary: #7e9171; /* Desaturated olive green (for buttons) */
   --accent-tertiary: #ecb2ab;  /* Muted red (for student icons) */
+  
+  --chart-color-1: #9cb8d9;        /* Light Blue (for allSkillsChart) */
+  --chart-color-2: #a7c7e7;        /* Lighter Blue (for anecdoteChart) */
+  --chart-border-2: #6b93b9;       /* Darker Blue (for anecdoteChart) */
+  --chart-color-3: rgba(52, 211, 153, 0.5); /* Green (for messagesChart) */
+  --chart-border-3: rgba(5, 150, 105, 1);    /* Dark Green (for messagesChart) */
 
   --text-dark: #3a2e1f;        /* Very dark brown for main text */
   --text-light: #f7f2ea;       /* Light cream for text on dark backgrounds */
@@ -15,6 +21,33 @@
   --border-secondary: #d4c1a7; /* Lighter brown for table borders */
 
   --admin-highlight: #fef08a;  /* Keeping the yellow for admin highlights */
+}
+
+[data-theme="ocean"] {
+  --accent-primary: #0077b6;       /* Strong Blue */
+  --accent-secondary: #00b4d8;     /* Cyan */
+  --accent-tertiary: #48cae4;      /* Light Blue */
+  --chart-color-1: #00b4d8;
+  --chart-color-2: #48cae4;
+  --chart-border-2: #0077b6;
+}
+
+[data-theme="forest"] {
+  --accent-primary: #4f772d;       /* Dark Green */
+  --accent-secondary: #90a955;     /* Light Green */
+  --accent-tertiary: #ecb2ab;      /* Pink (keep same) */
+  --chart-color-1: #90a955;
+  --chart-color-2: #c4d7a1;
+  --chart-border-2: #4f772d;
+}
+
+[data-theme="sunset"] {
+  --accent-primary: #d95d39;       /* Orange */
+  --accent-secondary: #c04a43;     /* Red */
+  --accent-tertiary: #f0a202;      /* Yellow */
+  --chart-color-1: #f0a202;
+  --chart-color-2: #fbc490;
+  --chart-border-2: #d95d39;
 }
 
 /* NEW HELPER CLASSES FOR TAILWIND REPLACEMENT */

@@ -331,6 +331,8 @@ onAuthStateChanged(auth, async (user) => {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists()) {
+				const schoolData = schoolSnap.data();
+				applyTheme(schoolData.theme);
                 console.log("School name:", schoolSnap.data().name, "Status:", schoolSnap.data().subscriptionStatus);
                 if (schoolSnap.data().name === "New School") {
                     console.log("School needs naming. Showing modal.");
@@ -604,15 +606,18 @@ function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
 	const chartLabels = labels.length > 0 ? labels : Object.keys(data);
     const chartData = chartLabels.map(label => data[label] || 0);
     const ctx = canvasElement.getContext('2d');
+	const style = getComputedStyle(document.body);
+	const chartColor = style.getPropertyValue('--chart-color-2').trim();
+	const chartBorder = style.getPropertyValue('--chart-border-2').trim();
     anecdoteChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+		data: {
             labels: chartLabels,
             datasets: [{
                 label: 'Anecdote Count',
                 data: chartData,
-                backgroundColor: '#a7c7e7',
-                borderColor: '#6b93b9',
+                backgroundColor: chartColor,
+				borderColor: chartBorder,
                 borderWidth: 1,
                 borderRadius: 4
             }]
@@ -956,6 +961,8 @@ function listenForAllAnecdotes() {
 function renderAllSkillsChart(data) {
     if (allSkillsChart) allSkillsChart.destroy();
     const ctx = allSkillsChartCanvas.getContext('2d');
+	const style = getComputedStyle(document.body);
+	const chartColor = style.getPropertyValue('--chart-color-1').trim();
     allSkillsChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -963,7 +970,7 @@ function renderAllSkillsChart(data) {
             datasets: [{
                 label: 'Total Anecdotes',
                 data: Object.values(data),
-                backgroundColor: '#9cb8d9',
+                backgroundColor: chartColor,
                 borderWidth: 0
             }]
         },
@@ -1164,6 +1171,9 @@ function listenForAdminMessages() {
 function renderMessagesChart(data) {
     if (messagesChart) messagesChart.destroy();
     const ctx = messagesChartCanvas.getContext('2d');
+	const style = getComputedStyle(document.body);
+	const chartColor = style.getPropertyValue('--chart-color-3').trim();
+	const chartBorder = style.getPropertyValue('--chart-border-3').trim();
     messagesChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1171,8 +1181,8 @@ function renderMessagesChart(data) {
             datasets: [{
                 label: 'Messages Sent',
                 data: Object.values(data),
-                backgroundColor: 'rgba(52, 211, 153, 0.5)',
-                borderColor: 'rgba(5, 150, 105, 1)',
+                backgroundColor: chartColor,
+				borderColor: chartBorder,
                 borderWidth: 1
             }]
         },
@@ -2498,6 +2508,57 @@ async function showSettingsPage() {
     }
 }
 
+/**
+ * Applies a color theme by setting a data-theme attribute on the <html> element.
+ * @param {string} themeName - The name of the theme (e.g., "ocean", "forest")
+ */
+function applyTheme(themeName) {
+    if (!themeName) {
+        themeName = "default"; // Fallback to default
+    }
+    document.documentElement.dataset.theme = themeName;
+    console.log(`Theme applied: ${themeName}`);
+    
+    // Update active state in settings
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        if (btn.dataset.theme === themeName) {
+            btn.style.borderColor = 'rgb(34 197 94)'; // Green border
+        } else {
+            btn.style.borderColor = 'rgb(209 213 219)'; // Gray border
+        }
+    });
+}
+
+/**
+ * Saves the admin's theme preference to the school's document in Firestore.
+ * @param {string} themeName - The name of the theme to save
+ */
+async function saveThemePreference(themeName) {
+    if (!currentUserSchoolId || currentUserRole !== 'schoolAdmin') {
+        return;
+    }
+    
+    loadingOverlay.classList.remove('hidden');
+    try {
+        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        await updateDoc(schoolRef, {
+            theme: themeName
+        });
+        applyTheme(themeName); // Apply it immediately
+        showMessage("Theme saved successfully!", false);
+    } catch (error) {
+        console.error("Error saving theme:", error);
+        // This is a Firestore rules error, we'll fix this next.
+        if (error.code === 'permission-denied') {
+            showMessage("Error: You do not have permission to change settings.");
+        } else {
+            showMessage("Could not save theme.");
+        }
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
 async function updateNotificationSetting(settingName, value) {
     const user = auth.currentUser;
     if (!user) return;
@@ -2625,6 +2686,13 @@ cancelContinuumBtn.addEventListener('click', () => {
 });
 
 saveContinuumBtn.addEventListener('click', saveContinuumChanges);
+
+document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const themeName = btn.dataset.theme;
+        saveThemePreference(themeName);
+    });
+});
 
 // --- RUBRIC EDITING AND HIGHLIGHTING ---
 function setRubricMode(mode) {
