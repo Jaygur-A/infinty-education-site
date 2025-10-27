@@ -210,6 +210,7 @@ const customThemePreview = document.getElementById('custom-theme-preview');
 const customThemePreviewPrimary = customThemePreview ? customThemePreview.querySelector('[data-preview="primary"]') : null;
 const customThemePreviewSecondary = customThemePreview ? customThemePreview.querySelector('[data-preview="secondary"]') : null;
 const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
+const saveThemeSelectionBtn = document.getElementById('save-theme-selection-btn');
 
 // App State
 let currentStudentId = null,
@@ -232,6 +233,11 @@ let originalContinuumData = null;
 let currentTheme = 'default';
 let currentCustomTheme = null;
 let themeControlsInitialized = false;
+let savedTheme = 'default';
+let savedCustomTheme = null;
+let pendingThemeSelection = null;
+let pendingCustomTheme = null;
+let themeSaveInProgress = false;
 
 
 // --- Helper Functions ---
@@ -254,6 +260,12 @@ const getWeekDates = () => {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
     return { start: startOfWeek, end: endOfWeek };
+};
+
+const defaultCustomThemeConfig = {
+    base: '#4f46e5',
+    contrast: '#f97316',
+    neutral: '#10b981'
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -433,9 +445,14 @@ const toggleCustomThemeControls = (isVisible) => {
     if (!customThemeControls) return;
     if (isVisible) {
         customThemeControls.classList.remove('hidden');
+        if (saveThemeSelectionBtn) {
+            saveThemeSelectionBtn.classList.add('hidden');
+            saveThemeSelectionBtn.disabled = true;
+        }
     } else {
         customThemeControls.classList.add('hidden');
     }
+    updateSaveButtonsState();
 };
 
 const getCustomThemeFromInputs = () => {
@@ -464,6 +481,40 @@ const normalizeCustomThemeConfig = (config) => {
     };
 };
 
+const areCustomThemesEqual = (a, b) => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return a.base === b.base && a.contrast === b.contrast && a.neutral === b.neutral;
+};
+
+const setThemeSaveInProgress = (isSaving) => {
+    themeSaveInProgress = isSaving;
+    updateSaveButtonsState();
+};
+
+const updateSaveButtonsState = () => {
+    if (saveThemeSelectionBtn) {
+        const shouldShowPresetSave = pendingThemeSelection && pendingThemeSelection !== 'custom' && pendingThemeSelection !== savedTheme;
+        if (shouldShowPresetSave) {
+            saveThemeSelectionBtn.classList.remove('hidden');
+            saveThemeSelectionBtn.disabled = themeSaveInProgress;
+        } else {
+            saveThemeSelectionBtn.classList.add('hidden');
+            saveThemeSelectionBtn.disabled = true;
+        }
+    }
+
+    if (customThemeApplyBtn) {
+        if (currentTheme === 'custom') {
+            const activeConfig = normalizeCustomThemeConfig(getCustomThemeFromInputs() || currentCustomTheme || pendingCustomTheme || savedCustomTheme || defaultCustomThemeConfig);
+            const isMatchingSaved = savedTheme === 'custom' && areCustomThemesEqual(activeConfig, savedCustomTheme);
+            customThemeApplyBtn.disabled = themeSaveInProgress || isMatchingSaved;
+        } else {
+            customThemeApplyBtn.disabled = true;
+        }
+    }
+};
+
 const initializeThemeControls = () => {
     if (themeControlsInitialized) return;
     const themeButtons = document.querySelectorAll('.theme-btn');
@@ -472,20 +523,20 @@ const initializeThemeControls = () => {
             const themeName = btn.dataset.theme;
             if (themeName === 'custom') {
                 const currentInputs = getCustomThemeFromInputs();
-                const fallbackConfig = {
-                    base: customBaseColorInput ? customBaseColorInput.value : '#4f46e5',
-                    contrast: customContrastColorInput ? customContrastColorInput.value : '#f97316',
-                    neutral: customNeutralColorInput ? customNeutralColorInput.value : '#10b981'
-                };
-                const config = normalizeCustomThemeConfig(currentCustomTheme || currentInputs || fallbackConfig);
-                currentCustomTheme = config;
-                setCustomThemeInputs(config);
+                const fallbackConfig = normalizeCustomThemeConfig(currentCustomTheme || currentInputs || defaultCustomThemeConfig);
+                currentCustomTheme = fallbackConfig;
+                pendingThemeSelection = 'custom';
+                pendingCustomTheme = fallbackConfig;
+                setCustomThemeInputs(fallbackConfig);
                 toggleCustomThemeControls(true);
-                applyTheme('custom', config);
+                applyTheme('custom', fallbackConfig, { isPreview: true });
             } else {
+                pendingThemeSelection = themeName;
+                pendingCustomTheme = null;
                 toggleCustomThemeControls(false);
-                saveThemePreference(themeName);
+                applyTheme(themeName, null, { isPreview: true });
             }
+            updateSaveButtonsState();
         });
     });
 
@@ -494,11 +545,14 @@ const initializeThemeControls = () => {
         input.addEventListener('input', () => {
             const config = normalizeCustomThemeConfig(getCustomThemeFromInputs());
             if (!config) return;
+            pendingThemeSelection = 'custom';
+            pendingCustomTheme = config;
             currentCustomTheme = config;
             updateCustomThemePreview(config);
             if (currentTheme === 'custom') {
                 applyCustomThemeVariables(generateCustomPalette(config));
             }
+            updateSaveButtonsState();
         });
     });
 
@@ -506,11 +560,21 @@ const initializeThemeControls = () => {
         customThemeApplyBtn.addEventListener('click', () => {
             const config = normalizeCustomThemeConfig(getCustomThemeFromInputs());
             if (!config) return;
+            pendingThemeSelection = 'custom';
+            pendingCustomTheme = config;
             saveThemePreference('custom', config);
         });
     }
 
+    if (saveThemeSelectionBtn) {
+        saveThemeSelectionBtn.addEventListener('click', () => {
+            if (!pendingThemeSelection || pendingThemeSelection === 'custom') return;
+            saveThemePreference(pendingThemeSelection);
+        });
+    }
+
     themeControlsInitialized = true;
+    updateSaveButtonsState();
 };
 
 // --- UPDATED `showView` ---
@@ -2779,51 +2843,74 @@ async function showSettingsPage() {
     initializeThemeControls();
 
     if (currentTheme === 'custom') {
-        const config = normalizeCustomThemeConfig(currentCustomTheme || getCustomThemeFromInputs());
+        const config = normalizeCustomThemeConfig(currentCustomTheme || getCustomThemeFromInputs() || savedCustomTheme || defaultCustomThemeConfig);
         if (config) {
             currentCustomTheme = config;
             setCustomThemeInputs(config);
             toggleCustomThemeControls(true);
             updateCustomThemePreview(config);
+        } else {
+            toggleCustomThemeControls(true);
+        }
+        const hasUnsavedCustom = savedTheme !== 'custom' || !areCustomThemesEqual(config, savedCustomTheme);
+        if (hasUnsavedCustom) {
+            pendingThemeSelection = 'custom';
+            pendingCustomTheme = config;
+        } else {
+            pendingThemeSelection = null;
+            pendingCustomTheme = null;
         }
     } else {
         toggleCustomThemeControls(false);
+        pendingCustomTheme = null;
+        pendingThemeSelection = currentTheme !== savedTheme ? currentTheme : null;
     }
+
+    updateSaveButtonsState();
 }
 
 /**
  * Applies a color theme by setting a data-theme attribute on the <html> element.
  * @param {string} themeName - The name of the theme (e.g., "ocean", "forest")
+ * @param {object|null} customThemeConfig - Custom theme configuration when themeName is "custom"
+ * @param {object} options - Additional options (e.g., { isPreview: true })
  */
-function applyTheme(themeName, customThemeConfig = null) {
+function applyTheme(themeName, customThemeConfig = null, options = {}) {
     if (!themeName) {
         themeName = "default"; // Fallback to default
     }
 
+    const { isPreview = false } = options;
     currentTheme = themeName;
     const themeButtons = document.querySelectorAll('.theme-btn');
 
     if (themeName === 'custom') {
-        const fallbackConfig = {
-            base: customBaseColorInput ? customBaseColorInput.value : '#4f46e5',
-            contrast: customContrastColorInput ? customContrastColorInput.value : '#f97316',
-            neutral: customNeutralColorInput ? customNeutralColorInput.value : '#10b981'
-        };
-        const config = normalizeCustomThemeConfig(customThemeConfig || currentCustomTheme || fallbackConfig);
+        const config = normalizeCustomThemeConfig(customThemeConfig || currentCustomTheme || getCustomThemeFromInputs() || defaultCustomThemeConfig);
         currentCustomTheme = config;
         applyCustomThemeVariables(generateCustomPalette(config));
         document.documentElement.dataset.theme = 'custom';
         toggleCustomThemeControls(true);
         setCustomThemeInputs(config);
+        updateCustomThemePreview(config);
+        if (!isPreview) {
+            savedTheme = 'custom';
+            savedCustomTheme = config;
+            pendingThemeSelection = null;
+            pendingCustomTheme = null;
+        }
     } else {
         document.documentElement.dataset.theme = themeName;
         resetCustomThemeVariables();
-        if (themeName !== 'custom') {
-            toggleCustomThemeControls(false);
+        toggleCustomThemeControls(false);
+        if (!isPreview) {
+            savedTheme = themeName;
+            savedCustomTheme = null;
+            pendingThemeSelection = null;
+            pendingCustomTheme = null;
         }
     }
 
-    console.log(`Theme applied: ${themeName}`);
+    console.log(`Theme applied: ${themeName}${isPreview ? ' (preview)' : ''}`);
     
     // Update active state in settings
     themeButtons.forEach(btn => {
@@ -2833,6 +2920,8 @@ function applyTheme(themeName, customThemeConfig = null) {
             btn.style.borderColor = 'rgb(209 213 219)'; // Gray border
         }
     });
+
+    updateSaveButtonsState();
 }
 
 /**
@@ -2843,11 +2932,23 @@ async function saveThemePreference(themeName, customThemeConfig = null) {
     if (!currentUserSchoolId || currentUserRole !== 'schoolAdmin') {
         return;
     }
+    if (!themeName) return;
 
     const normalizedConfig = themeName === 'custom'
         ? normalizeCustomThemeConfig(customThemeConfig || currentCustomTheme || getCustomThemeFromInputs())
         : null;
+
+    if (themeName !== 'custom' && themeName === savedTheme) {
+        updateSaveButtonsState();
+        return;
+    }
+
+    if (themeName === 'custom' && areCustomThemesEqual(normalizedConfig, savedCustomTheme)) {
+        updateSaveButtonsState();
+        return;
+    }
     
+    setThemeSaveInProgress(true);
     loadingOverlay.classList.remove('hidden');
     try {
         const schoolRef = doc(db, "schools", currentUserSchoolId);
@@ -2856,8 +2957,11 @@ async function saveThemePreference(themeName, customThemeConfig = null) {
             : { theme: themeName, customTheme: deleteField() };
 
         await updateDoc(schoolRef, payload);
-        applyTheme(themeName, normalizedConfig); // Apply it immediately
+        applyTheme(themeName, normalizedConfig, { isPreview: false }); // Apply it immediately and mark as saved
         showMessage("Theme saved successfully!", false);
+        pendingThemeSelection = null;
+        pendingCustomTheme = null;
+        updateSaveButtonsState();
     } catch (error) {
         console.error("Error saving theme:", error);
         // This is a Firestore rules error, we'll fix this next.
@@ -2868,6 +2972,7 @@ async function saveThemePreference(themeName, customThemeConfig = null) {
         }
     } finally {
         loadingOverlay.classList.add('hidden');
+        setThemeSaveInProgress(false);
     }
 }
 
