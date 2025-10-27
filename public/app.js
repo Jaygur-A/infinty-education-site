@@ -2504,8 +2504,14 @@ async function showSettingsPage() {
 
     if (docSnap.exists() && docSnap.data().notificationSettings) {
         const settings = docSnap.data().notificationSettings;
-        messageEmailsToggle.checked = settings.newMessage;
+        // messageEmailsToggle.checked = settings.newMessage;
     }
+	document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const themeName = btn.dataset.theme;
+            saveThemePreference(themeName);
+        });
+    });
 }
 
 /**
@@ -2686,13 +2692,6 @@ cancelContinuumBtn.addEventListener('click', () => {
 });
 
 saveContinuumBtn.addEventListener('click', saveContinuumChanges);
-
-document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const themeName = btn.dataset.theme;
-        saveThemePreference(themeName);
-    });
-});
 
 // --- RUBRIC EDITING AND HIGHLIGHTING ---
 function setRubricMode(mode) {
