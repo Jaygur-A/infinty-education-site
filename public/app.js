@@ -641,6 +641,141 @@ if (window.Chart) {
     Chart.defaults.plugins.tooltip.boxPadding = 6;
 }
 
+const destroyChartInstance = (chart) => {
+    if (!chart) return;
+    if (chart.$responsiveHandler) {
+        window.removeEventListener('resize', chart.$responsiveHandler);
+        delete chart.$responsiveHandler;
+    }
+    chart.destroy();
+};
+
+const updateBarChartViewportOptions = (chart) => {
+    if (!chart) return;
+    const dataset = chart.data?.datasets?.[0];
+    const options = chart.options;
+    if (!dataset || !options || !options.scales || !options.scales.x || !options.scales.y) return;
+
+    dataset.$baseMaxBarThickness = dataset.$baseMaxBarThickness ?? dataset.maxBarThickness ?? 60;
+    dataset.$baseBarPercentage = dataset.$baseBarPercentage ?? dataset.barPercentage ?? 0.7;
+    dataset.$baseCategoryPercentage = dataset.$baseCategoryPercentage ?? dataset.categoryPercentage ?? 0.58;
+    dataset.$baseBorderRadius = dataset.$baseBorderRadius ?? dataset.borderRadius ?? 12;
+
+    const labels = chart.data.labels || [];
+    const values = Array.isArray(dataset.data) ? dataset.data : [];
+    const hasValues = values.some(value => Number(value) > 0);
+    const longLabels = labels.some(label => (label || '').length > 12);
+    const labelCount = labels.length;
+
+    const containerWidth = chart.canvas?.parentNode?.clientWidth || chart.width || window.innerWidth;
+    const isTinyContainer = containerWidth <= 400;
+    const isCompactContainer = containerWidth <= 640;
+    const viewportSmall = window.matchMedia('(max-width: 640px)').matches;
+    const viewportMedium = window.matchMedia('(max-width: 1024px)').matches;
+
+    const isSmall = viewportSmall || isTinyContainer;
+    const isMedium = !isSmall && (viewportMedium || isCompactContainer);
+
+    const targetBuckets = isSmall ? 4 : isMedium ? 5 : 6;
+    const suggestedMax = getSuggestedYAxisMax(values);
+    const stepSize = values.length ? Math.max(1, Math.ceil(suggestedMax / targetBuckets)) : 1;
+
+    options.maintainAspectRatio = false;
+    options.aspectRatio = isSmall ? 1.05 : isMedium ? 1.35 : 1.6;
+    options.resizeDelay = 120;
+
+    options.layout = options.layout || {};
+    options.layout.padding = isSmall
+        ? { top: 14, right: 12, bottom: 18, left: 12 }
+        : isMedium
+            ? { top: 18, right: 16, bottom: 22, left: 16 }
+            : { top: 24, right: 20, bottom: 24, left: 20 };
+
+    const xTicks = options.scales.x.ticks;
+    const yTicks = options.scales.y.ticks;
+
+    xTicks.font = xTicks.font || {};
+    yTicks.font = yTicks.font || {};
+
+    xTicks.font.size = isSmall ? 10 : 12;
+    yTicks.font.size = isSmall ? 10 : 12;
+    yTicks.padding = isSmall ? 6 : 10;
+
+    yTicks.stepSize = stepSize;
+    yTicks.precision = 0;
+    options.scales.y.suggestedMax = suggestedMax;
+    options.scales.y.grace = '15%';
+
+    const autoSkip = labelCount > (isSmall ? (isTinyContainer ? 3 : 4) : isMedium ? 9 : 12);
+    const smallMaxTicks = isSmall ? (isTinyContainer ? 4 : 5) : undefined;
+    xTicks.autoSkip = autoSkip;
+    xTicks.maxTicksLimit = autoSkip
+        ? Math.max(3, Math.min(isSmall ? smallMaxTicks : isMedium ? 7 : labelCount, labelCount))
+        : undefined;
+    xTicks.minRotation = 0;
+    xTicks.maxRotation = longLabels
+        ? (isSmall ? (isTinyContainer ? 55 : 50) : isMedium ? 30 : 25)
+        : (autoSkip ? (isSmall ? (isTinyContainer ? 28 : 20) : 12) : 0);
+    xTicks.padding = isSmall ? 6 : 8;
+
+    const tooltipOpts = options.plugins?.tooltip;
+    if (tooltipOpts) {
+        tooltipOpts.padding = isSmall ? 10 : 12;
+        tooltipOpts.titleFont = tooltipOpts.titleFont || {};
+        tooltipOpts.bodyFont = tooltipOpts.bodyFont || {};
+        tooltipOpts.titleFont.size = isSmall ? 12 : 14;
+        tooltipOpts.bodyFont.size = isSmall ? 11 : 12;
+    }
+
+    const labelPlugin = options.plugins?.barValueLabels;
+    if (labelPlugin) {
+        labelPlugin.display = hasValues && !isSmall;
+        labelPlugin.fontSize = isSmall ? 11 : 12;
+        labelPlugin.padding = isSmall ? 8 : 12;
+    }
+
+    if (options.plugins?.softShadow) {
+        options.plugins.softShadow.enable = hasValues;
+    }
+
+    const baseMax = dataset.$baseMaxBarThickness;
+    const baseBarPct = dataset.$baseBarPercentage;
+    const baseCategoryPct = dataset.$baseCategoryPercentage;
+    const baseRadius = dataset.$baseBorderRadius;
+
+    dataset.borderRadius = isSmall ? Math.min(baseRadius, 10) : baseRadius;
+    dataset.maxBarThickness = isSmall
+        ? Math.max(isTinyContainer ? 26 : 32, Math.round(baseMax * (isTinyContainer ? 0.6 : 0.68)))
+        : isMedium
+            ? Math.max(36, Math.round(baseMax * 0.85))
+            : baseMax;
+    dataset.barPercentage = isSmall
+        ? Math.max(0.5, Math.min(isTinyContainer ? 0.68 : 0.72, Number((baseBarPct - (isTinyContainer ? 0.1 : 0.08)).toFixed(2))))
+        : isMedium
+            ? Math.max(0.54, Math.min(0.7, Number((baseBarPct - 0.04).toFixed(2))))
+            : baseBarPct;
+    dataset.categoryPercentage = isSmall
+        ? Math.max(0.44, Math.min(isTinyContainer ? 0.6 : 0.64, Number((baseCategoryPct - (isTinyContainer ? 0.06 : 0.04)).toFixed(2))))
+        : isMedium
+            ? Math.max(0.5, Math.min(0.64, Number((baseCategoryPct - 0.02).toFixed(2))))
+            : baseCategoryPct;
+};
+
+const attachResponsiveHandler = (chart) => {
+    if (!chart) return;
+    const handler = () => {
+        window.requestAnimationFrame(() => {
+            if (!chart || chart._destroyed) return;
+            updateBarChartViewportOptions(chart);
+            chart.update('none');
+        });
+    };
+    updateBarChartViewportOptions(chart);
+    chart.update('none');
+    chart.$responsiveHandler = handler;
+    window.addEventListener('resize', handler);
+};
+
 const updateCustomThemePreview = (customThemeConfig) => {
     if (!customThemePreviewPrimary || !customThemeConfig) return;
     const palette = generateCustomPalette(customThemeConfig);
@@ -1143,7 +1278,10 @@ function listenForAnecdotes(studentId, coreSkill, targetCanvas, targetTitle, tar
 
 // --- UPDATED `renderAnecdoteChart` ---
 function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
-    if (anecdoteChart) anecdoteChart.destroy();
+    if (anecdoteChart) {
+        destroyChartInstance(anecdoteChart);
+        anecdoteChart = null;
+    }
     if (!canvasElement) return;
     const chartLabels = labels.length > 0 ? labels : Object.keys(data);
     const chartData = chartLabels.map(label => data[label] || 0);
@@ -1218,6 +1356,7 @@ function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
         },
         options
     });
+    attachResponsiveHandler(anecdoteChart);
 }
 
 // --- UPDATED `showMicroSkillDetailPage` ---
@@ -1527,7 +1666,10 @@ function listenForAllAnecdotes() {
 }
 
 function renderAllSkillsChart(data) {
-    if (allSkillsChart) allSkillsChart.destroy();
+    if (allSkillsChart) {
+        destroyChartInstance(allSkillsChart);
+        allSkillsChart = null;
+    }
     if (!allSkillsChartCanvas) return;
     const labels = Object.keys(data);
     const values = labels.map(label => data[label] || 0);
@@ -1588,6 +1730,7 @@ function renderAllSkillsChart(data) {
         },
         options
     });
+    attachResponsiveHandler(allSkillsChart);
 }
 
 // CHAT LOGIC
@@ -1766,7 +1909,10 @@ function listenForAdminMessages() {
 }
 
 function renderMessagesChart(data) {
-    if (messagesChart) messagesChart.destroy();
+    if (messagesChart) {
+        destroyChartInstance(messagesChart);
+        messagesChart = null;
+    }
     if (!messagesChartCanvas) return;
     const labels = Object.keys(data);
     const values = labels.map(label => data[label] || 0);
@@ -1823,6 +1969,7 @@ function renderMessagesChart(data) {
         },
         options
     });
+    attachResponsiveHandler(messagesChart);
 }
 
 function renderParentStudentView(studentId, studentName) {
@@ -1845,7 +1992,7 @@ function renderParentStudentView(studentId, studentName) {
 parentCloseAnecdoteBtn.addEventListener('click', () => {
     parentAnecdoteContainer.classList.add('hidden');
     if (anecdoteChart) {
-        anecdoteChart.destroy();
+        destroyChartInstance(anecdoteChart);
         anecdoteChart = null;
     }
 });
@@ -2100,7 +2247,7 @@ closeAnecdoteModalBtn.addEventListener('click', () => addAnecdoteModal.classList
 closeAnecdoteDisplayBtn.addEventListener('click', () => {
     anecdoteDisplayContainer.classList.add('hidden');
     if (anecdoteChart) {
-        anecdoteChart.destroy();
+        destroyChartInstance(anecdoteChart);
         anecdoteChart = null;
     }
 });
