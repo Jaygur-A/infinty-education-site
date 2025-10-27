@@ -647,7 +647,40 @@ const destroyChartInstance = (chart) => {
         window.removeEventListener('resize', chart.$responsiveHandler);
         delete chart.$responsiveHandler;
     }
+    if (chart.canvas) {
+        chart.canvas.style.height = '';
+        chart.canvas.removeAttribute('height');
+    }
+    delete chart.$currentHeight;
     chart.destroy();
+};
+
+const resolveChartContainerWidth = (chart) => {
+    const canvas = chart?.canvas;
+    if (!canvas) return window.innerWidth || 0;
+    const parent = canvas.parentNode;
+    if (parent) {
+        const width = parent.clientWidth;
+        if (Number.isFinite(width) && width > 0) return width;
+        const rectWidth = parent.getBoundingClientRect?.().width;
+        if (Number.isFinite(rectWidth) && rectWidth > 0) return rectWidth;
+    }
+    if (Number.isFinite(chart?.width) && chart.width > 0) return chart.width;
+    return window.innerWidth || 0;
+};
+
+const computeResponsiveChartHeight = (width) => {
+    if (!Number.isFinite(width) || width <= 0) return 320;
+    if (width <= 340) return 220;
+    if (width <= 400) return 236;
+    if (width <= 480) return 248;
+    if (width <= 560) return 264;
+    if (width <= 640) return 280;
+    if (width <= 768) return 298;
+    if (width <= 960) return 320;
+    if (width <= 1200) return 348;
+    if (width <= 1440) return 368;
+    return 388;
 };
 
 const updateBarChartViewportOptions = (chart) => {
@@ -661,13 +694,28 @@ const updateBarChartViewportOptions = (chart) => {
     dataset.$baseCategoryPercentage = dataset.$baseCategoryPercentage ?? dataset.categoryPercentage ?? 0.58;
     dataset.$baseBorderRadius = dataset.$baseBorderRadius ?? dataset.borderRadius ?? 12;
 
+    const containerWidth = resolveChartContainerWidth(chart);
+    const targetHeight = computeResponsiveChartHeight(containerWidth);
+
+    options.maintainAspectRatio = false;
+    options.resizeDelay = 120;
+    options.aspectRatio = containerWidth > 0 && targetHeight > 0 ? Number((containerWidth / targetHeight).toFixed(2)) : undefined;
+
+    if (chart.canvas && Number.isFinite(targetHeight) && targetHeight > 0) {
+        if (chart.$currentHeight !== targetHeight) {
+            chart.$currentHeight = targetHeight;
+            chart.canvas.style.height = `${targetHeight}px`;
+            chart.canvas.height = targetHeight;
+            chart.resize(undefined, targetHeight);
+        }
+    }
+
     const labels = chart.data.labels || [];
     const values = Array.isArray(dataset.data) ? dataset.data : [];
     const hasValues = values.some(value => Number(value) > 0);
     const longLabels = labels.some(label => (label || '').length > 12);
     const labelCount = labels.length;
 
-    const containerWidth = chart.canvas?.parentNode?.clientWidth || chart.width || window.innerWidth;
     const isTinyContainer = containerWidth <= 400;
     const isCompactContainer = containerWidth <= 640;
     const viewportSmall = window.matchMedia('(max-width: 640px)').matches;
@@ -679,10 +727,6 @@ const updateBarChartViewportOptions = (chart) => {
     const targetBuckets = isSmall ? 4 : isMedium ? 5 : 6;
     const suggestedMax = getSuggestedYAxisMax(values);
     const stepSize = values.length ? Math.max(1, Math.ceil(suggestedMax / targetBuckets)) : 1;
-
-    options.maintainAspectRatio = false;
-    options.aspectRatio = isSmall ? 1.05 : isMedium ? 1.35 : 1.6;
-    options.resizeDelay = 120;
 
     options.layout = options.layout || {};
     options.layout.padding = isSmall
