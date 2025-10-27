@@ -2196,8 +2196,34 @@ async function getSchoolLogoUrl() {
     }
 }
 
+async function fetchImageAsArrayBuffer(url) {
+    try {
+        const response = await fetch(url);
+        return await response.arrayBuffer();
+    } catch (error) {
+        console.error("Error fetching image as array buffer:", error);
+        return null;
+    }
+}
+
+async function fetchImageAsDataURL(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error("Error fetching image as data URL:", error);
+        return null;
+    }
+}
+
 // Helper function to create a DOCX table from an HTML table
-    function createTableForDocx(htmlTable) {
+function createTableForDocx(htmlTable) {
         const { Table, TableRow, TableCell, Paragraph, TextRun, ShadingType } = docx;
         const tableRows = [];
 
@@ -2561,20 +2587,20 @@ downloadDocxBtn.addEventListener('click', async () => {
             // --- NEW LOGO LOGIC ---
             const logoUrl = await getSchoolLogoUrl();
             if (logoUrl) {
-                // We need to fetch the image as a blob to give it to docx
-                const response = await fetch(logoUrl);
-                const blob = await response.blob();
-                docChildren.unshift( // Add logo to the very top
-                    new Paragraph({
-                        children: [
-                            new ImageRun({
-                                data: blob,
-                                transformation: { width: 150, height: 80 },
-                            }),
-                        ],
-                        alignment: docx.AlignmentType.RIGHT,
-                    })
-                );
+                const logoArrayBuffer = await fetchImageAsArrayBuffer(logoUrl);
+                if (logoArrayBuffer) {
+                    docChildren.unshift( // Add logo to the very top
+                        new Paragraph({
+                            children: [
+                                new ImageRun({
+                                    data: logoArrayBuffer,
+                                    transformation: { width: 150, height: 80 },
+                                }),
+                            ],
+                            alignment: docx.AlignmentType.RIGHT,
+                        })
+                    );
+                }
             }
             // --- END NEW LOGO LOGIC ---
 
@@ -2794,22 +2820,29 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
     const logoUrl = await getSchoolLogoUrl();
     if (logoUrl) {
         try {
-            // We must add the image to the PDF manually
-            // This is a simplified example; positioning may need adjustment
-            // (x, y, width, height)
-            pdf.addImage(logoUrl, 'PNG', 150, 5, 45, 15);
+            const logoDataUrl = await fetchImageAsDataURL(logoUrl);
+            if (logoDataUrl) {
+                // Position at top-right: (x, y, width, height)
+                pdf.addImage(logoDataUrl, 'PNG', 150, 5, 45, 15);
+            }
         } catch (e) {
             console.error("Could not add logo to PDF:", e);
         }
     }
     // --- END NEW LOGO LOGIC ---
 
+    const margin = 20;
     pdf.setFontSize(18);
-    pdf.text(`Learning Journey for ${studentName}`, 14, 22); // (text, x, y)
+    pdf.text(`Learning Journey for ${studentName}`, margin, 28);
 
     pdf.setFontSize(12);
-    const splitText = pdf.splitTextToSize(summaryText, 180); 
-    pdf.text(splitText, 14, 32);
+    pdf.setLineHeightFactor(1.35);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const usableWidth = pageWidth - margin * 2;
+    const bodyY = 40;
+    const content = summaryText.trim().length ? summaryText.trim() : " ";
+    const splitText = pdf.splitTextToSize(content, usableWidth);
+    pdf.text(splitText, margin, bodyY);
 
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
@@ -2830,24 +2863,39 @@ downloadJourneyDocxBtn.addEventListener('click', async () => {
             // --- NEW LOGO LOGIC ---
             const logoUrl = await getSchoolLogoUrl();
             if (logoUrl) {
-                const response = await fetch(logoUrl);
-                const blob = await response.blob();
-                docChildren.unshift( // Add logo to the very top
-                    new Paragraph({
-                        children: [
-                            new ImageRun({
-                                data: blob,
-                                transformation: { width: 150, height: 80 },
-                            }),
-                        ],
-                        alignment: docx.AlignmentType.RIGHT,
-                    })
-                );
+                const logoArrayBuffer = await fetchImageAsArrayBuffer(logoUrl);
+                if (logoArrayBuffer) {
+                    docChildren.unshift( // Add logo to the very top
+                        new Paragraph({
+                            children: [
+                                new ImageRun({
+                                    data: logoArrayBuffer,
+                                    transformation: { width: 150, height: 80 },
+                                }),
+                            ],
+                            alignment: docx.AlignmentType.RIGHT,
+                        })
+                    );
+                }
             }
             // --- END NEW LOGO LOGIC ---
 
-            // Split summary into paragraphs by newline
-            const paragraphs = summaryText.split('\n').map(text => new Paragraph(text));
+            // Split summary into neatly spaced paragraphs
+            const summaryLines = summaryText
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (summaryLines.length === 0 && summaryText.trim().length === 0) {
+                summaryLines.push(" ");
+            } else if (summaryLines.length === 0) {
+                summaryLines.push(summaryText.trim());
+            }
+
+            const paragraphs = summaryLines.map(line => new Paragraph({
+                text: line,
+                spacing: { after: 200 },
+            }));
             docChildren.push(...paragraphs);
 
             const doc = new Document({
@@ -3934,9 +3982,8 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         
         // 4. Save URL to school's Firestore document
         const schoolRef = doc(db, "schools", currentUserSchoolId);
-        await updateDoc(schoolRef, {
-            logoUrl: downloadURL
-        });
+        await setDoc(schoolRef, { logoUrl: downloadURL }, { merge: true });
+        schoolLogoUrlCache = downloadURL; // Ensure future exports use the new logo immediately
 
         // 5. Show success
         schoolLogoPreview.src = downloadURL;
