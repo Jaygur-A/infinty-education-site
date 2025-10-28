@@ -1923,7 +1923,7 @@ function openChat(recipient) {
     });
 }
 
-function listenForAdminMessages() {
+async function listenForAdminMessages() {
     const currentUser = auth.currentUser;
     // Show the messages chart for admin, superAdmin, schoolAdmin, and teacher
     if (!['admin', 'superAdmin', 'schoolAdmin', 'teacher'].includes(currentUserRole)) return;
@@ -1937,29 +1937,44 @@ function listenForAdminMessages() {
     if (chartTitleEl) {
         chartTitleEl.textContent = `Messages sent the week of ${formattedStartDate} - ${formattedEndDate}`;
     }
-    const messagesCollectionGroup = collectionGroup(db, 'messages');
+    try {
+        // Query chats the current user participates in, then aggregate messages per day
+        const chatsRef = collection(db, 'chats');
+        const chatsQuery = query(chatsRef, where('participants', 'array-contains', currentUser.uid));
+        const chatsSnap = await getDocs(chatsQuery);
 
-	const q = query(messagesCollectionGroup, where("senderId", "==", currentUser.uid), where("timestamp", ">=", start), where("timestamp", "<=", end), orderBy("timestamp", "asc"));
-    onSnapshot(q, (snapshot) => {
         const dailyCounts = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        snapshot.forEach(doc => {
-            const message = doc.data();
-            if (message.timestamp) {
-                const date = message.timestamp.toDate();
-                const dayIndex = date.getDay();
-                const dayName = dayNames[dayIndex];
-                if (dayName) {
-                    dailyCounts[dayName]++;
+
+        // For each chat, fetch messages in the current week and count those sent by current user
+        for (const chatDoc of chatsSnap.docs) {
+            const messagesRef = collection(db, 'chats', chatDoc.id, 'messages');
+            const msgQuery = query(
+                messagesRef,
+                where('timestamp', '>=', start),
+                where('timestamp', '<=', end),
+                orderBy('timestamp', 'asc')
+            );
+            const msgSnap = await getDocs(msgQuery);
+            msgSnap.forEach((docSnap) => {
+                const message = docSnap.data();
+                if (message.senderId === currentUser.uid && message.timestamp) {
+                    const date = message.timestamp.toDate();
+                    const dayIndex = date.getDay();
+                    const dayName = dayNames[dayIndex];
+                    if (dayName) {
+                        dailyCounts[dayName]++;
+                    }
                 }
-            }
-        });
+            });
+        }
+
         renderMessagesChart(dailyCounts);
-    }, (error) => {
+    } catch (error) {
         console.error("Error fetching admin messages:", error);
         if (chartTitleEl) { chartTitleEl.textContent = 'Messages Sent This Week'; }
         showMessage("Could not load message chart. See console for details.");
-    });
+    }
 }
 
 function renderMessagesChart(data) {
