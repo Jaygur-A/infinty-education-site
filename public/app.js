@@ -3124,7 +3124,27 @@ async function renderSkillsList() {
 
         console.log("Filtered skills count:", filteredSkills.length);
 
-        if (filteredSkills.length === 0) {
+        // For schoolAdmins, prefer the school-owned version when both template and school copy exist
+        let skillsToRender = filteredSkills;
+        if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
+            const byName = new Map();
+            filteredSkills.forEach(s => {
+                const key = (s.name || '').toLowerCase();
+                const isSchool = s.schoolId === currentUserSchoolId;
+                const existing = byName.get(key);
+                if (!existing) {
+                    byName.set(key, s);
+                } else {
+                    const existingIsSchool = existing.schoolId === currentUserSchoolId;
+                    if (isSchool && !existingIsSchool) {
+                        byName.set(key, s);
+                    }
+                }
+            });
+            skillsToRender = Array.from(byName.values());
+        }
+
+        if (skillsToRender.length === 0) {
             skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found. Add a new skill to get started.</p>';
             skillsListContainer.className = 'space-y-6'; // Reset class if empty
             addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
@@ -3134,7 +3154,7 @@ async function renderSkillsList() {
         skillsListContainer.innerHTML = '';
         skillsListContainer.className = 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6';
 
-        filteredSkills.forEach(skill => {
+        skillsToRender.forEach(skill => {
             const skillId = skill.id;
             const isMasterTemplate = skill.schoolId === null || skill.schoolId === undefined;
 
@@ -3915,12 +3935,19 @@ skillsListContainer.addEventListener('click', async (e) => {
                 const isMasterTemplate = skillData.schoolId === null || skillData.schoolId === undefined;
                 let targetId = skillId;
                 if (isMasterTemplate && currentUserRole !== 'superAdmin') {
-                    // Clone master template to this school, then edit the clone
-                    const cloneData = { ...skillData, schoolId: currentUserSchoolId };
-                    const newRef = await addDoc(collection(db, "continuums"), cloneData);
-                    targetId = newRef.id;
-                    showMessage("Copied template to your school. You can now edit.", false);
-                    // Refresh list so the cloned item appears under school
+                    // If a school-owned copy already exists for this name, use it
+                    const existingQ = query(collection(db, "continuums"), where("name", "==", skillData.name), where("schoolId", "==", currentUserSchoolId));
+                    const existingSnap = await getDocs(existingQ);
+                    if (!existingSnap.empty) {
+                        targetId = existingSnap.docs[0].id;
+                    } else {
+                        // Clone master template to this school, then edit the clone
+                        const cloneData = { ...skillData, schoolId: currentUserSchoolId };
+                        const newRef = await addDoc(collection(db, "continuums"), cloneData);
+                        targetId = newRef.id;
+                        showMessage("Copied template to your school. You can now edit.", false);
+                    }
+                    // Refresh list so the correct item appears
                     await renderSkillsList();
                 }
                 editSkillModalTitle.textContent = 'Edit Core Skill Name';
