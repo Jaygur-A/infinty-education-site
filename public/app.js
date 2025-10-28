@@ -1990,32 +1990,54 @@ function renderMessagesChart(data) {
     const style = getComputedStyle(document.body);
     const chartColor = style.getPropertyValue('--chart-color-3').trim();
     const visuals = createBarVisuals(ctx, chartColor);
-    const options = createBaseBarOptions(style);
+
     const suggestedMax = getSuggestedYAxisMax(values);
     const valueStep = values.length ? Math.max(1, Math.ceil(suggestedMax / 5)) : 1;
 
-    options.scales.y.suggestedMax = suggestedMax;
-    options.scales.y.ticks.stepSize = valueStep;
-    options.scales.y.ticks.precision = 0;
-    options.scales.y.ticks.callback = (value) => Number.isInteger(value) ? value : '';
-    options.scales.y.grace = '15%';
-    options.scales.x.grid.display = false;
-
-    options.plugins.tooltip.callbacks = {
-        title: (items) => items[0]?.label || '',
-        label: (context) => {
-            const value = context.parsed.y || 0;
-            if (value === 0) return 'No messages sent';
-            const suffix = value === 1 ? 'message' : 'messages';
-            return `${value} ${suffix}`;
-        }
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-color') || '#3a2e1f' }
+            },
+            y: {
+                beginAtZero: true,
+                suggestedMax: suggestedMax,
+                grace: '15%',
+                ticks: {
+                    stepSize: valueStep,
+                    precision: 0,
+                    callback: (value) => Number.isInteger(value) ? value : ''
+                },
+                grid: { color: 'rgba(0,0,0,0.06)' }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                enabled: labels.length > 0,
+                callbacks: {
+                    title: (items) => items[0]?.label || '',
+                    label: (context) => {
+                        const value = context.parsed.y || 0;
+                        if (value === 0) return 'No messages sent';
+                        const suffix = value === 1 ? 'message' : 'messages';
+                        return `${value} ${suffix}`;
+                    }
+                }
+            },
+            softShadow: { enable: hasValues },
+            barValueLabels: {
+                display: hasValues,
+                showZero: false,
+                formatter: (value) => value,
+                padding: 14
+            }
+        },
+        interaction: { intersect: false, mode: 'index' }
     };
-    options.plugins.tooltip.enabled = labels.length > 0;
-    options.plugins.softShadow.enable = hasValues;
-    options.plugins.barValueLabels.display = hasValues;
-    options.plugins.barValueLabels.showZero = false;
-    options.plugins.barValueLabels.formatter = (value) => value;
-    options.plugins.barValueLabels.padding = 14;
 
     messagesChart = new Chart(ctx, {
         type: 'bar',
@@ -2038,7 +2060,7 @@ function renderMessagesChart(data) {
         },
         options
     });
-    attachResponsiveHandler(messagesChart);
+    // Intentionally do not attach custom responsive handler to avoid recursion
 }
 
 function renderParentStudentView(studentId, studentName) {
