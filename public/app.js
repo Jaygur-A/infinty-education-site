@@ -1084,7 +1084,7 @@ onAuthStateChanged(auth, async (user) => {
 
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
-        messagesChartContainer.classList.toggle('hidden', !['admin', 'superAdmin'].includes(currentUserRole));
+        messagesChartContainer.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin', 'teacher'].includes(currentUserRole));
 
         if (canAddRecord) {
             showView(dashboardView);
@@ -1925,7 +1925,8 @@ function openChat(recipient) {
 
 function listenForAdminMessages() {
     const currentUser = auth.currentUser;
-    if (currentUserRole !== 'admin' && currentUserRole !== 'superAdmin') return;
+    // Show the messages chart for admin, superAdmin, schoolAdmin, and teacher
+    if (!['admin', 'superAdmin', 'schoolAdmin', 'teacher'].includes(currentUserRole)) return;
     if (!currentUser) return; // Add safety check
 
     const { start, end } = getWeekDates();
@@ -2131,7 +2132,7 @@ dashboardBtn.addEventListener('click', () => {
 messagesBtn.addEventListener('click', () => {
     showView(messagesView);
     listenForUsers();
-    if (currentUserRole === 'superAdmin' || currentUserRole === 'admin') { // Added admin
+    if (['superAdmin', 'admin', 'schoolAdmin', 'teacher'].includes(currentUserRole)) {
         listenForAdminMessages();
     }
 });
