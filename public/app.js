@@ -2946,13 +2946,17 @@ async function showUsersPage() {
         snapshot.forEach(doc => {
             const user = doc.data();
             const tr = document.createElement('tr');
+
+            const isSelf = (auth.currentUser && user.uid === auth.currentUser.uid);
+            const selectDisabledAttr = isSelf ? 'disabled title="You cannot change your own role"' : '';
+
             tr.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">${user.displayName || user.email}</div>
-                    <div class="text-sm text-gray-500">${user.email}</div>
+                    <div class="text-sm text-gray-500">${user.email}${isSelf ? ' <span class="ml-2 text-xs text-gray-400">(you)</span>' : ''}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <select data-uid="${user.uid}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2">
+                    <select data-uid="${user.uid}" data-original-role="${user.role || ''}" class="role-select bg-gray-50 border border-gray-300 text-sm rounded-lg p-2" ${selectDisabledAttr}>
                         <option value="guest" ${user.role === 'guest' ? 'selected' : ''}>Guest</option>
                         <option value="parent" ${user.role === 'parent' ? 'selected' : ''}>Parent</option> 
                         <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
@@ -2970,6 +2974,11 @@ async function showUsersPage() {
 }
 
 async function updateUserRole(userId, newRole) {
+    // Prevent self-modification of role
+    if (auth.currentUser && userId === auth.currentUser.uid) {
+        showMessage("You cannot change your own role.");
+        return;
+    }
     const userRef = doc(db, "users", userId);
     try {
         await updateDoc(userRef, { role: newRole });
@@ -2984,6 +2993,13 @@ usersListBody.addEventListener('change', (e) => {
     if (e.target.classList.contains('role-select')) {
         const userId = e.target.dataset.uid;
         const newRole = e.target.value;
+        // If attempting to change own role, revert selection and block
+        if (auth.currentUser && userId === auth.currentUser.uid) {
+            const original = e.target.getAttribute('data-original-role') || '';
+            if (original) e.target.value = original;
+            showMessage("You cannot change your own role.");
+            return;
+        }
         if (userId && newRole) {
             updateUserRole(userId, newRole);
         }
