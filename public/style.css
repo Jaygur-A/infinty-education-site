@@ -136,6 +136,15 @@ body {
     cursor: pointer;
 }
 
+/* Stabilize chart sizes without JS resize loops */
+#all-skills-chart,
+#anecdote-chart,
+#messages-chart {
+  width: 100%;
+  height: 320px; /* consistent default height */
+  max-height: 420px;
+}
+
 /* Custom Design Classes (Updated with new colors) */
 .dashboard-title {
     font-family: serif;

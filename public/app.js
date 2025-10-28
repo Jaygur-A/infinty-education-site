@@ -1405,7 +1405,6 @@ function renderAnecdoteChart(data, canvasElement, studentId, labels = []) {
         },
         options
     });
-    attachResponsiveHandler(anecdoteChart);
 }
 
 // --- UPDATED `showMicroSkillDetailPage` ---
@@ -1779,7 +1778,6 @@ function renderAllSkillsChart(data) {
         },
         options
     });
-    attachResponsiveHandler(allSkillsChart);
 }
 
 // CHAT LOGIC
