@@ -60,6 +60,16 @@ const addRecordModal = document.getElementById('addRecordModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const addStudentForm = document.getElementById('addStudentForm');
 const addAnecdoteBtn = document.getElementById('add-anecdote-btn');
+// Bulk anecdote elements
+const bulkAddAnecdoteBtn = document.getElementById('bulk-add-anecdote-btn');
+const bulkAddAnecdoteModal = document.getElementById('bulkAddAnecdoteModal');
+const closeBulkAnecdoteModalBtn = document.getElementById('closeBulkAnecdoteModalBtn');
+const bulkAddAnecdoteForm = document.getElementById('bulkAddAnecdoteForm');
+const bulkClassroomSelect = document.getElementById('bulkClassroomSelect');
+const bulkStudentList = document.getElementById('bulk-student-list');
+const bulkSelectAllStudents = document.getElementById('bulkSelectAllStudents');
+const bulkCoreSkillSelect = document.getElementById('bulkCoreSkill');
+const bulkMicroSkillSelect = document.getElementById('bulkMicroSkill');
 const addAnecdoteModal = document.getElementById('addAnecdoteModal');
 const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
 const addAnecdoteForm = document.getElementById('addAnecdoteForm');
@@ -221,6 +231,104 @@ let anecdoteChart = null,
     allSkillsChart = null,
     messagesChart = null;
 let selectedJourneyAnecdotes = [];
+
+// --- Helpers for Bulk Anecdotes ---
+async function populateBulkClassroomSelect() {
+    if (!bulkClassroomSelect) return;
+    bulkClassroomSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
+    if (!currentUserSchoolId) {
+        bulkClassroomSelect.innerHTML = '<option value="" disabled>School ID not found</option>';
+        return;
+    }
+    let options = [];
+    if (currentUserRole === 'teacher') {
+        if (!currentUserClassroomId) {
+            bulkClassroomSelect.innerHTML = '<option value="" disabled>No classroom assigned</option>';
+            return;
+        }
+        const classroomRef = doc(db, 'classrooms', currentUserClassroomId);
+        const snap = await getDoc(classroomRef);
+        if (snap.exists()) {
+            options.push({ id: snap.id, name: (snap.data().className || 'My Classroom') });
+        }
+    } else if (currentUserRole === 'schoolAdmin') {
+        const q = query(collection(db, 'classrooms'), where('schoolId', '==', currentUserSchoolId), orderBy('className'));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(d => options.push({ id: d.id, name: (d.data().className || 'Unnamed Classroom') }));
+    } else {
+        bulkClassroomSelect.innerHTML = '<option value="" disabled>Not allowed</option>';
+        return;
+    }
+    if (options.length === 0) {
+        bulkClassroomSelect.innerHTML = '<option value="" disabled>No classrooms found</option>';
+        return;
+    }
+    bulkClassroomSelect.innerHTML = '';
+    options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt.id; o.textContent = opt.name; bulkClassroomSelect.appendChild(o);
+    });
+    // Preselect teacher classroom
+    if (currentUserRole === 'teacher' && currentUserClassroomId) {
+        bulkClassroomSelect.value = currentUserClassroomId;
+    }
+}
+
+async function loadBulkStudentsForClassroom(classroomId) {
+    if (!bulkStudentList) return;
+    bulkStudentList.innerHTML = '<p class="text-gray-500">Loading students...</p>';
+    if (!classroomId || !currentUserSchoolId) {
+        bulkStudentList.innerHTML = '<p class="text-gray-500">Select a classroom to see students.</p>';
+        return;
+    }
+    const q = query(collection(db, 'students'), where('schoolId', '==', currentUserSchoolId), where('classroomId', '==', classroomId), orderBy('name'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        bulkStudentList.innerHTML = '<p class="text-gray-500">No students in this classroom.</p>';
+        return;
+    }
+    const frag = document.createDocumentFragment();
+    snapshot.forEach(d => {
+        const s = d.data();
+        const row = document.createElement('label');
+        row.className = 'flex items-center space-x-2 py-1';
+        row.innerHTML = `<input type="checkbox" class="bulk-student-checkbox rounded" data-id="${d.id}"><span>${s.name || 'Unnamed'}</span>`;
+        frag.appendChild(row);
+    });
+    bulkStudentList.innerHTML = '';
+    bulkStudentList.appendChild(frag);
+}
+
+function populateBulkCoreSkills() {
+    if (!bulkCoreSkillSelect) return;
+    bulkCoreSkillSelect.innerHTML = '<option value="" disabled selected>Select Core Skill</option>';
+    (schoolCoreSkills || []).forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill.name;
+        option.textContent = skill.name;
+        bulkCoreSkillSelect.appendChild(option);
+    });
+    updateBulkMicroSkillsDropdown(bulkCoreSkillSelect.value);
+}
+
+function updateBulkMicroSkillsDropdown(selectedCoreSkill) {
+    if (!bulkMicroSkillSelect) return;
+    bulkMicroSkillSelect.innerHTML = '';
+    const microSkills = (schoolMicroSkills || []).filter(ms => ms.coreSkillName === selectedCoreSkill).map(ms => ms.name);
+    if (microSkills.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'No micro skills found';
+        option.disabled = true;
+        bulkMicroSkillSelect.appendChild(option);
+        return;
+    }
+    microSkills.forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill;
+        option.textContent = skill;
+        bulkMicroSkillSelect.appendChild(option);
+    });
+}
 let currentUserRole = null;
 let currentUserClassroomId = null;
 let currentUserSchoolId = null;
@@ -1084,6 +1192,11 @@ onAuthStateChanged(auth, async (user) => {
 
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
+        // Bulk anecdote button visible to teachers and school admins
+        if (bulkAddAnecdoteBtn) {
+            const canBulkAnecdote = ['teacher', 'schoolAdmin'].includes(currentUserRole);
+            bulkAddAnecdoteBtn.classList.toggle('hidden', !canBulkAnecdote);
+        }
         messagesChartContainer.classList.toggle('hidden', !['admin', 'superAdmin', 'schoolAdmin', 'teacher'].includes(currentUserRole));
 
         if (canAddRecord) {
@@ -2350,6 +2463,94 @@ addAnecdoteBtn.addEventListener('click', () => {
     updateMicroSkillsDropdown(coreSkillSelect.value); // Set initial state
     addAnecdoteModal.classList.remove('hidden');
 });
+
+// Bulk anecdote open handler
+if (bulkAddAnecdoteBtn) {
+    bulkAddAnecdoteBtn.addEventListener('click', async () => {
+        await populateBulkClassroomSelect();
+        // Load students for preselected (teacher) or first classroom
+        const classroomId = bulkClassroomSelect.value || bulkClassroomSelect.options[0]?.value;
+        if (classroomId) await loadBulkStudentsForClassroom(classroomId);
+        populateBulkCoreSkills();
+        bulkAddAnecdoteModal.classList.remove('hidden');
+    });
+}
+
+if (closeBulkAnecdoteModalBtn) {
+    closeBulkAnecdoteModalBtn.addEventListener('click', () => {
+        bulkAddAnecdoteModal.classList.add('hidden');
+    });
+}
+
+if (bulkClassroomSelect) {
+    bulkClassroomSelect.addEventListener('change', async (e) => {
+        await loadBulkStudentsForClassroom(e.target.value);
+        // Reset select-all on classroom change
+        if (bulkSelectAllStudents) bulkSelectAllStudents.checked = false;
+    });
+}
+
+if (bulkCoreSkillSelect) {
+    bulkCoreSkillSelect.addEventListener('change', (e) => updateBulkMicroSkillsDropdown(e.target.value));
+}
+
+if (bulkSelectAllStudents) {
+    bulkSelectAllStudents.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        bulkStudentList.querySelectorAll('.bulk-student-checkbox').forEach(cb => { cb.checked = checked; });
+    });
+}
+
+if (bulkAddAnecdoteForm) {
+    bulkAddAnecdoteForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUserSchoolId) { showMessage('Cannot identify your school.'); return; }
+        const classroomId = bulkClassroomSelect.value;
+        if (!classroomId) { showMessage('Please select a classroom.'); return; }
+        const coreSkill = bulkCoreSkillSelect.value;
+        const microSkill = bulkMicroSkillSelect.value;
+        if (!coreSkill || !microSkill) { showMessage('Please select a core and micro skill.'); return; }
+        const text = document.getElementById('bulkAnecdoteText').value;
+        const imageFile = document.getElementById('bulkAnecdoteImage').files[0];
+        const selected = Array.from(bulkStudentList.querySelectorAll('.bulk-student-checkbox'))
+            .filter(cb => cb.checked)
+            .map(cb => cb.dataset.id);
+        if (selected.length === 0) { showMessage('Please select at least one student.'); return; }
+
+        loadingOverlay.classList.remove('hidden');
+        try {
+            let sharedImageUrl = null;
+            if (imageFile) {
+                const storageRefPath = `anecdotes/shared/${Date.now()}-${imageFile.name}`;
+                const storageRefObj = ref(storage, storageRefPath);
+                const uploadResult = await uploadBytes(storageRefObj, imageFile);
+                sharedImageUrl = await getDownloadURL(uploadResult.ref);
+            }
+            const writes = selected.map(studentId => {
+                const data = {
+                    studentId,
+                    coreSkill,
+                    microSkill,
+                    text,
+                    createdAt: serverTimestamp(),
+                    createdBy: auth.currentUser.uid,
+                    imageUrl: sharedImageUrl,
+                    schoolId: currentUserSchoolId
+                };
+                return addDoc(collection(db, 'anecdotes'), data);
+            });
+            await Promise.all(writes);
+            showMessage('Anecdote(s) saved successfully!', false);
+            bulkAddAnecdoteForm.reset();
+            bulkAddAnecdoteModal.classList.add('hidden');
+        } catch (err) {
+            console.error('Error adding bulk anecdotes:', err);
+            showMessage('Failed to save anecdotes.');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
+}
 
 if (coreSkillSelect) {
     coreSkillSelect.addEventListener('change', (e) => {

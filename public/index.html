@@ -84,7 +84,10 @@
         
         <main id="dashboard-view" class="container mx-auto p-8">
              <div class="bg-white p-8 rounded-lg shadow mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Master Class List</h2>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Master Class List</h2>
+                    <button id="bulk-add-anecdote-btn" class="btn btn-secondary hidden">Add Anecdote to Class</button>
+                </div>
                 <div id="student-grid" class="flex flex-row flex-wrap gap-x-12 gap-y-6 items-start"></div>
                 <div id="no-students-message" class="hidden text-center py-10"><p class="text-gray-500">No students found.</p></div>
             </div>
@@ -501,6 +504,47 @@
                 </div>
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote</button>
             </form></div>
+        </div>
+    </div>
+
+    <div id="bulkAddAnecdoteModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg m-4">
+            <div class="flex justify-between items-center p-5 border-b">
+                <h3 class="text-2xl font-semibold">Add Anecdote to Classroom</h3>
+                <button id="closeBulkAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <form id="bulkAddAnecdoteForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-5 md:col-span-1">
+                            <label for="bulkClassroomSelect" class="block mb-2 text-sm font-medium">Classroom</label>
+                            <select id="bulkClassroomSelect" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
+                        </div>
+                        <div class="mb-5 md:col-span-1">
+                            <label for="bulkCoreSkill" class="block mb-2 text-sm font-medium">Core Skill</label>
+                            <select id="bulkCoreSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
+                        </div>
+                        <div class="mb-5 md:col-span-1">
+                            <label for="bulkMicroSkill" class="block mb-2 text-sm font-medium">Micro Skill</label>
+                            <select id="bulkMicroSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
+                        </div>
+                    </div>
+                    <div class="mb-3 flex items-center justify-between">
+                        <label class="text-sm font-medium">Students in Classroom</label>
+                        <label class="inline-flex items-center space-x-2 text-sm"><input type="checkbox" id="bulkSelectAllStudents" class="rounded"> <span>Select All</span></label>
+                    </div>
+                    <div id="bulk-student-list" class="mb-6 max-h-56 overflow-y-auto border border-gray-200 rounded p-3 text-sm"></div>
+                    <div class="mb-6">
+                        <label for="bulkAnecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label>
+                        <textarea id="bulkAnecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea>
+                    </div>
+                    <div class="mb-6">
+                        <label for="bulkAnecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
+                        <input type="file" id="bulkAnecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
+                    </div>
+                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Anecdote(s)</button>
+                </form>
+            </div>
         </div>
     </div>
     <div id="editAnecdoteModal" class="modal-backdrop hidden">
