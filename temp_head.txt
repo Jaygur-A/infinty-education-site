@@ -1,0 +1,250 @@
+// --- Handle Stripe Redirect Immediately ---
+const urlParamsOnLoad = new URLSearchParams(window.location.search);
+if (urlParamsOnLoad.has('session_id')) {
+    console.log("Stripe session ID found in URL. Setting postCheckout flag.");
+    sessionStorage.setItem('postCheckout', 'true');
+    console.log("postCheckout flag SET to:", sessionStorage.getItem('postCheckout'));
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// Firebase Imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, where, collectionGroup, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
+
+// Firebase Config
+const firebaseConfig = {
+    apiKey: "AIzaSyCSHcp39QCEyDbpGWn8y4rDxXA6erEDo7Q",
+    authDomain: "infinity-education-c170b.firebaseapp.com",
+    projectId: "infinity-education-c170b",
+    storageBucket: "infinity-education-c170b.firebasestorage.app",
+    messagingSenderId: "312781945568",
+    appId: "1:312781945568:web:04104d51e968dff9fa2e85",
+    measurementId: "G-FSGELW7P1Z"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+window.auth = auth;
+const db = getFirestore(app);
+const storage = getStorage(app);
+const functions = getFunctions(app);
+
+// --- DOM Elements (Complete List) ---
+const loadingOverlay = document.getElementById('loading-overlay');
+const authContainer = document.getElementById('auth-container');
+const appContainer = document.getElementById('app-container');
+const googleSignInBtn = document.getElementById('google-signin-btn');
+const userEmailDisplay = document.getElementById('user-email-display');
+const dashboardBtn = document.getElementById('dashboard-btn');
+const messagesBtn = document.getElementById('messages-btn');
+const dashboardView = document.getElementById('dashboard-view');
+const parentDashboardView = document.getElementById('parent-dashboard-view');
+const profileView = document.getElementById('profile-view');
+const messagesView = document.getElementById('messages-view');
+const chatView = document.getElementById('chat-view');
+const studentDetailView = document.getElementById('student-detail-view');
+const userList = document.getElementById('user-list');
+const noUsersMessage = document.getElementById('no-users-message');
+const chatWithUser = document.getElementById('chat-with-user');
+const backToMessagesBtn = document.getElementById('back-to-messages-btn');
+const messageList = document.getElementById('message-list');
+const messageForm = document.getElementById('message-form');
+const messageInput = document.getElementById('message-input');
+const studentGrid = document.getElementById('student-grid');
+const noStudentsMessage = document.getElementById('no-students-message');
+const studentDetailName = document.getElementById('student-detail-name');
+const addRecordBtn = document.getElementById('addRecordBtn');
+const addRecordModal = document.getElementById('addRecordModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const addStudentForm = document.getElementById('addStudentForm');
+const addAnecdoteBtn = document.getElementById('add-anecdote-btn');
+// Bulk anecdote elements
+const bulkAddAnecdoteBtn = document.getElementById('bulk-add-anecdote-btn');
+const bulkAddAnecdoteModal = document.getElementById('bulkAddAnecdoteModal');
+const closeBulkAnecdoteModalBtn = document.getElementById('closeBulkAnecdoteModalBtn');
+const bulkAddAnecdoteForm = document.getElementById('bulkAddAnecdoteForm');
+const bulkClassroomSelect = document.getElementById('bulkClassroomSelect');
+const bulkStudentList = document.getElementById('bulk-student-list');
+const bulkSelectAllStudents = document.getElementById('bulkSelectAllStudents');
+const bulkCoreSkillSelect = document.getElementById('bulkCoreSkill');
+const bulkMicroSkillSelect = document.getElementById('bulkMicroSkill');
+const addAnecdoteModal = document.getElementById('addAnecdoteModal');
+const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
+const addAnecdoteForm = document.getElementById('addAnecdoteForm');
+const coreSkillSelect = document.getElementById('coreSkill');
+const microSkillSelect = document.getElementById('microSkill');
+const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
+const anecdoteListTitle = document.getElementById('anecdote-list-title');
+const anecdoteChartCanvas = document.getElementById('anecdote-chart');
+const closeAnecdoteDisplayBtn = document.getElementById('close-anecdote-display-btn');
+const microSkillDetailView = document.getElementById('micro-skill-detail-view');
+const microSkillTitle = document.getElementById('micro-skill-title');
+// microSkillDescription removed as per your new `showMicroSkillDetailPage`
+const microSkillAnecdoteList = document.getElementById('micro-skill-anecdote-list');
+const noMicroSkillAnecdotesMessage = document.getElementById('no-micro-skill-anecdotes-message');
+const backToStudentDetailBtn = document.getElementById('back-to-student-detail-btn');
+const allSkillsChartCanvas = document.getElementById('all-skills-chart');
+const attachFileBtn = document.getElementById('attach-file-btn');
+const fileInput = document.getElementById('file-input');
+const imageModal = document.getElementById('image-modal');
+const modalImage = document.getElementById('modal-image');
+const closeImageModalBtn = document.getElementById('close-image-modal-btn');
+const filePreviewContainer = document.getElementById('file-preview-container');
+const filePreviewImage = document.getElementById('file-preview-image');
+const filePreviewName = document.getElementById('file-preview-name');
+const removeFileBtn = document.getElementById('remove-file-btn');
+const messagesChartCanvas = document.getElementById('messages-chart');
+const messagesChartContainer = document.getElementById('messages-chart-container');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
+const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const profileMenuBtn = document.getElementById('profile-menu-btn');
+const profileDropdown = document.getElementById('profile-dropdown');
+const profileLink = document.getElementById('profile-link');
+const logoutLink = document.getElementById('logout-link');
+const profileName = document.getElementById('profile-name');
+const profileEmail = document.getElementById('profile-email');
+const downloadOptionsModal = document.getElementById('download-options-modal');
+const downloadDocxBtn = document.getElementById('download-docx-btn');
+const downloadPdfBtn = document.getElementById('download-pdf-btn');
+const cancelDownloadBtn = document.getElementById('cancel-download-btn');
+const editAnecdoteModal = document.getElementById('editAnecdoteModal');
+const closeEditAnecdoteModalBtn = document.getElementById('closeEditAnecdoteModalBtn');
+const editAnecdoteForm = document.getElementById('editAnecdoteForm');
+const deleteAnecdoteConfirmModal = document.getElementById('deleteAnecdoteConfirmModal');
+const cancelDeleteAnecdoteBtn = document.getElementById('cancel-delete-anecdote-btn');
+const confirmDeleteAnecdoteBtn = document.getElementById('confirm-delete-anecdote-btn');
+const parentWelcomeMessage = document.getElementById('parent-welcome-message');
+const parentStudentView = document.getElementById('parent-student-view');
+const parentViewStudentName = document.getElementById('parent-view-student-name');
+const parentViewSkillsGrid = document.getElementById('parent-view-skills-grid');
+const parentAnecdoteContainer = document.getElementById('parent-view-anecdote-container');
+const parentAnecdoteListTitle = document.getElementById('parent-anecdote-list-title');
+const parentAnecdoteChartCanvas = document.getElementById('parent-anecdote-chart');
+const parentCloseAnecdoteBtn = document.getElementById('parent-close-anecdote-display-btn');
+const continuumView = document.getElementById('continuum-view');
+const buildContinuumBtn = document.getElementById('build-continuum-btn');
+const continuumTitle = document.getElementById('continuum-title');
+const downloadContinuumBtn = document.getElementById('download-continuum-btn');
+const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+const backToStudentFromContinuumBtn = document.getElementById('back-to-student-from-continuum-btn');
+const buildJourneyBtn = document.getElementById('build-journey-btn');
+const journeyBuilderView = document.getElementById('journey-builder-view');
+const journeyStudentName = document.getElementById('journey-student-name');
+const backToStudentFromJourneyBtn = document.getElementById('back-to-student-from-journey-btn');
+const journeyAnecdoteSelectionList = document.getElementById('journey-anecdote-selection-list');
+const journeySelectionCounter = document.getElementById('journey-selection-counter');
+const generateJourneySummaryBtn = document.getElementById('generate-journey-summary-btn');
+const journeyEditorView = document.getElementById('journey-editor-view');
+const journeyEditorTitle = document.getElementById('journey-editor-title');
+const backToJourneyBuilderBtn = document.getElementById('back-to-journey-builder-btn');
+const journeySummaryTextarea = document.getElementById('journey-summary-textarea');
+const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn');
+const downloadJourneyDocxBtn = document.getElementById('download-journey-docx-btn');
+const usersView = document.getElementById('users-view');
+const usersLink = document.getElementById('users-link');
+const usersListBody = document.getElementById('users-list-body');
+const classroomsLink = document.getElementById('classrooms-link');
+const classroomsView = document.getElementById('classrooms-view');
+const createClassroomForm = document.getElementById('create-classroom-form');
+const newClassroomName = document.getElementById('new-classroom-name');
+const teacherSelectDropdown = document.getElementById('teacher-select-dropdown');
+const classroomsList = document.getElementById('classrooms-list');
+const editClassroomModal = document.getElementById('edit-classroom-modal');
+const closeEditClassroomModalBtn = document.getElementById('close-edit-classroom-modal-btn');
+const editClassroomForm = document.getElementById('edit-classroom-form');
+const editClassroomName = document.getElementById('edit-classroom-name');
+const editTeacherSelect = document.getElementById('edit-teacher-select');
+const studentClassSelect = document.getElementById('studentClassSelect');
+const contactParentsBtn = document.getElementById('contact-parents-btn');
+const messageParentsModal = document.getElementById('message-parents-modal');
+const closeMessageParentsModalBtn = document.getElementById('close-message-parents-modal-btn');
+const messageModalStudentName = document.getElementById('message-modal-student-name');
+const messageOptionsContainer = document.getElementById('message-options-container');
+const settingsLink = document.getElementById('settings-link');
+const settingsView = document.getElementById('settings-view');
+const messageEmailsToggle = document.getElementById('message-emails-toggle');
+const continuumTableContainer = document.getElementById('continuum-table-container');
+const rubricView = document.getElementById('rubric-view');
+const viewRubricBtn = document.getElementById('view-rubric-btn');
+const backToAnecdotesBtn = document.getElementById('back-to-anecdotes-btn');
+const downloadRubricBtn = document.getElementById('download-rubric-btn');
+const rubricTitle = document.getElementById('rubric-title');
+const editContinuumBtn = document.getElementById('edit-continuum-btn');
+const saveContinuumBtn = document.getElementById('save-continuum-btn');
+const cancelContinuumBtn = document.getElementById('cancel-continuum-btn');
+const rubricTableContainer = document.getElementById('rubric-table-container');
+const editRubricBtn = document.getElementById('edit-rubric-btn');
+const saveRubricBtn = document.getElementById('save-rubric-btn');
+const cancelRubricBtn = document.getElementById('cancel-rubric-btn');
+const subscribeBtn = document.getElementById('subscribe-btn');
+const subscriptionModal = document.getElementById('subscription-modal');
+const closeSubscriptionModalBtn = document.getElementById('close-subscription-modal-btn');
+const selectMonthlyPlanBtn = document.getElementById('select-monthly-plan-btn');
+const selectYearlyPlanBtn = document.getElementById('select-yearly-plan-btn');
+const subscriptionInactiveView = document.getElementById('subscription-inactive-view');
+const resubscribeBtn = document.getElementById('resubscribe-btn');
+const schoolNameModal = document.getElementById('school-name-modal');
+const schoolNameForm = document.getElementById('school-name-form');
+const schoolNameInput = document.getElementById('schoolNameInput');
+const skillsView = document.getElementById('skills-view');
+const skillsLink = document.getElementById('skills-link');
+const skillsListContainer = document.getElementById('skills-list-container');
+const addCoreSkillBtn = document.getElementById('add-core-skill-btn');
+const editSkillModal = document.getElementById('edit-skill-modal');
+const closeEditSkillModalBtn = document.getElementById('close-edit-skill-modal-btn');
+const cancelEditSkillBtn = document.getElementById('cancel-edit-skill-btn');
+const editSkillForm = document.getElementById('edit-skill-form');
+const editSkillModalTitle = document.getElementById('edit-skill-modal-title');
+const editSkillId = document.getElementById('editSkillId');
+const coreSkillNameInput = document.getElementById('coreSkillNameInput');
+const microSkillsContainer = document.getElementById('micro-skills-container');
+const addMicroSkillBtn = document.getElementById('add-micro-skill-btn');
+const deleteSkillConfirmModal = document.getElementById('delete-skill-confirm-modal');
+const cancelDeleteSkillBtn = document.getElementById('cancel-delete-skill-btn');
+const confirmDeleteSkillBtn = document.getElementById('confirm-delete-skill-btn');
+const schoolLogoSettings = document.getElementById('school-logo-settings');
+const schoolLogoInput = document.getElementById('school-logo-input');
+const uploadSchoolLogoBtn = document.getElementById('upload-school-logo-btn');
+const schoolLogoPreviewContainer = document.getElementById('school-logo-preview-container');
+const schoolLogoPreview = document.getElementById('school-logo-preview');
+const customThemeControls = document.getElementById('custom-theme-controls');
+const customBaseColorInput = document.getElementById('custom-base-color');
+const customContrastColorInput = document.getElementById('custom-contrast-color');
+const customNeutralColorInput = document.getElementById('custom-neutral-color');
+const customThemeApplyBtn = document.getElementById('custom-theme-apply-btn');
+const customThemePreview = document.getElementById('custom-theme-preview');
+const customThemePreviewPrimary = customThemePreview ? customThemePreview.querySelector('[data-preview="primary"]') : null;
+const customThemePreviewSecondary = customThemePreview ? customThemePreview.querySelector('[data-preview="secondary"]') : null;
+const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
+const saveThemeSelectionBtn = document.getElementById('save-theme-selection-btn');
+
+// App State
+let currentStudentId = null,
+    currentCoreSkill = null,
+    currentMicroSkill = null;
+let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
+let anecdoteChart = null,
+    allSkillsChart = null,
+    messagesChart = null;
+let selectedJourneyAnecdotes = [];
+
+// --- Helpers for Bulk Anecdotes ---
+async function populateBulkClassroomSelect() {
+    if (!bulkClassroomSelect) return;
+    bulkClassroomSelect.innerHTML = '<option value="" disabled selected>Loading classrooms...</option>';
+    if (!currentUserSchoolId) {
+        bulkClassroomSelect.innerHTML = '<option value="" disabled>School ID not found</option>';
+        return;
+    }
+    let options = [];
+    if (currentUserRole === 'teacher') {
+        if (!currentUserClassroomId) {
+            bulkClassroomSelect.innerHTML = '<option value="" disabled>No classroom assigned</option>';
+            return;
+        }
+        const classroomRef = doc(db, 'classrooms', currentUserClassroomId);
+        const snap = await getDoc(classroomRef);

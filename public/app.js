@@ -1288,11 +1288,28 @@ async function fetchSchoolSkills() {
         const rubricsRef = collection(db, "rubrics");
         const allRubricsSnap = await getDocs(rubricsRef);
         
-        schoolCoreSkills = allContinuumsSnap.docs
+        // Collect skills that belong to the current school or are templates
+        const rawCoreSkills = allContinuumsSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .filter(c => c.schoolId === currentUserSchoolId || c.schoolId === undefined || c.schoolId === null)
-            .filter(c => c.name)
-            .sort((a, b) => a.name.localeCompare(b.name));
+            .filter(c => c.name);
+
+        // Deduplicate by name, preferring the school-owned copy over the template
+        const byName = new Map();
+        rawCoreSkills.forEach(s => {
+            const key = (s.name || '').toLowerCase();
+            const existing = byName.get(key);
+            const isSchool = s.schoolId === currentUserSchoolId;
+            if (!existing) {
+                byName.set(key, s);
+            } else {
+                const existingIsSchool = existing.schoolId === currentUserSchoolId;
+                if (isSchool && !existingIsSchool) {
+                    byName.set(key, s);
+                }
+            }
+        });
+        schoolCoreSkills = Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
             
         const combinedRubrics = allRubricsSnap.docs
              .map(doc => ({ id: doc.id, ...doc.data() }))
