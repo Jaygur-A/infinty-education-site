@@ -236,9 +236,24 @@ let anecdoteChart = null,
 let selectedJourneyAnecdotes = [];
 
 // --- Journey Selection Persistence ---
+// Runtime mode: 'firestore' | 'local' (set to 'local' after first permission-denied)
+window.__journeySelStoreMode = window.__journeySelStoreMode || 'firestore';
+window.__journeySelWarnedRead = false;
+window.__journeySelWarnedWrite = false;
 async function getSavedJourneySelection(studentId) {
     const user = auth.currentUser;
     if (!user) return [];
+    if (window.__journeySelStoreMode === 'local') {
+        try {
+            const key = `journeySel:${user.uid}:${studentId}`;
+            const raw = localStorage.getItem(key);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (_) {}
+        return [];
+    }
     try {
         // Prefer per-user subcollection for safer rules
         const selRef = doc(db, 'users', user.uid, 'journeySelections', studentId);
@@ -249,7 +264,11 @@ async function getSavedJourneySelection(studentId) {
         }
     } catch (e) {
         if (e && e.code === 'permission-denied') {
-            console.warn('Saved journey selection not accessible by rules; using local storage.');
+            if (!window.__journeySelWarnedRead) {
+                console.warn('Saved journey selection not accessible by rules; using local storage.');
+                window.__journeySelWarnedRead = true;
+            }
+            window.__journeySelStoreMode = 'local';
         } else {
             console.error('Error reading saved journey selection:', e);
         }
@@ -269,6 +288,13 @@ async function getSavedJourneySelection(studentId) {
 async function saveJourneySelection(studentId, anecdoteIds) {
     const user = auth.currentUser;
     if (!user) return;
+    if (window.__journeySelStoreMode === 'local') {
+        try {
+            const key = `journeySel:${user.uid}:${studentId}`;
+            localStorage.setItem(key, JSON.stringify(Array.from(new Set(anecdoteIds))));
+        } catch (_) {}
+        return;
+    }
     try {
         const selRef = doc(db, 'users', user.uid, 'journeySelections', studentId);
         await setDoc(selRef, {
@@ -280,7 +306,11 @@ async function saveJourneySelection(studentId, anecdoteIds) {
         }, { merge: true });
     } catch (e) {
         if (e && e.code === 'permission-denied') {
-            console.warn('Cannot save journey selection to Firestore due to rules; falling back to local storage.');
+            if (!window.__journeySelWarnedWrite) {
+                console.warn('Cannot save journey selection to Firestore due to rules; falling back to local storage.');
+                window.__journeySelWarnedWrite = true;
+            }
+            window.__journeySelStoreMode = 'local';
         } else {
             console.error('Error saving journey selection:', e);
         }
