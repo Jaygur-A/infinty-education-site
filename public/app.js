@@ -2591,6 +2591,20 @@ if (bulkAddAnecdoteBtn) {
     });
 }
 
+// Returns intrinsic width/height for a given image data URL
+async function getImageDimensionsFromDataURL(dataUrl) {
+    return new Promise((resolve) => {
+        try {
+            const img = new Image();
+            img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+            img.onerror = () => resolve({ width: 0, height: 0 });
+            img.src = dataUrl;
+        } catch (_) {
+            resolve({ width: 0, height: 0 });
+        }
+    });
+}
+
 if (closeBulkAnecdoteModalBtn) {
     closeBulkAnecdoteModalBtn.addEventListener('click', () => {
         bulkAddAnecdoteModal.classList.add('hidden');
@@ -3200,6 +3214,66 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
     const splitText = pdf.splitTextToSize(content, usableWidth);
     pdf.text(splitText, margin, bodyY);
 
+    // Append selected anecdote images on subsequent pages
+    try {
+        if (selectedJourneyAnecdotes && selectedJourneyAnecdotes.length) {
+            // Fetch selected anecdotes
+            const anecdoteSnaps = await Promise.all(
+                selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id)))
+            );
+            const anecdotesWithImages = anecdoteSnaps
+                .filter(s => s.exists())
+                .map(s => ({ id: s.id, ...s.data() }))
+                .filter(a => a && a.imageUrl);
+
+            if (anecdotesWithImages.length) {
+                // Start a new page for images section
+                pdf.addPage();
+                pdf.setFontSize(16);
+                pdf.text('Selected Anecdote Images', margin, 20);
+
+                let yPos = 30;
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                for (const a of anecdotesWithImages) {
+                    try {
+                        const dataUrl = await fetchImageAsDataURL(a.imageUrl);
+                        if (!dataUrl) continue;
+                        const dims = await getImageDimensionsFromDataURL(dataUrl);
+                        if (!dims.width || !dims.height) continue;
+                        const scale = Math.min(usableWidth / dims.width, 1);
+                        const drawW = dims.width * scale;
+                        const drawH = dims.height * scale;
+
+                        // Optional caption
+                        if (a.text) {
+                            pdf.setFontSize(11);
+                            const captionLines = pdf.splitTextToSize(a.text, usableWidth);
+                            // Page break if needed for caption + image
+                            const estimatedCaptionHeight = 6 * Math.max(1, captionLines.length);
+                            if (yPos + estimatedCaptionHeight + drawH > pageHeight - margin) {
+                                pdf.addPage();
+                                yPos = margin + 10;
+                            }
+                            pdf.text(captionLines, margin, yPos);
+                            yPos += estimatedCaptionHeight + 2;
+                        } else if (yPos + drawH > pageHeight - margin) {
+                            pdf.addPage();
+                            yPos = margin + 10;
+                        }
+
+                        const fmt = dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+                        pdf.addImage(dataUrl, fmt, margin, yPos, drawW, drawH);
+                        yPos += drawH + 10;
+                    } catch (e) {
+                        console.error('Error adding anecdote image to PDF:', e);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to append anecdote images to PDF:', e);
+    }
+
     pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
 });
 
@@ -3253,6 +3327,66 @@ downloadJourneyDocxBtn.addEventListener('click', async () => {
                 spacing: { after: 200 },
             }));
             docChildren.push(...paragraphs);
+
+            // Append selected anecdote images, if any
+            if (selectedJourneyAnecdotes && selectedJourneyAnecdotes.length) {
+                const anecdoteSnaps = await Promise.all(
+                    selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id)))
+                );
+                const anecdotesWithImages = anecdoteSnaps
+                    .filter(s => s.exists())
+                    .map(s => ({ id: s.id, ...s.data() }))
+                    .filter(a => a && a.imageUrl);
+
+                if (anecdotesWithImages.length) {
+                    // Section heading
+                    docChildren.push(new Paragraph({
+                        text: 'Selected Anecdote Images',
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { before: 300, after: 200 },
+                    }));
+
+                    for (const a of anecdotesWithImages) {
+                        try {
+                            const dataUrl = await fetchImageAsDataURL(a.imageUrl);
+                            if (!dataUrl) continue;
+                            const dims = await getImageDimensionsFromDataURL(dataUrl);
+                            if (!dims.width || !dims.height) continue;
+
+                            // Fetch image bytes for docx
+                            const imgBytes = await fetchImageAsArrayBuffer(a.imageUrl);
+                            if (!imgBytes) continue;
+
+                            // Scale to a max width (e.g., 500px) maintaining aspect ratio
+                            const maxWidthPx = 500;
+                            const scale = Math.min(maxWidthPx / dims.width, 1);
+                            const outW = Math.max(1, Math.round(dims.width * scale));
+                            const outH = Math.max(1, Math.round(dims.height * scale));
+
+                            // Optional caption first
+                            if (a.text) {
+                                docChildren.push(new Paragraph({
+                                    text: a.text,
+                                    spacing: { after: 120 },
+                                }));
+                            }
+
+                            docChildren.push(new Paragraph({
+                                children: [
+                                    new ImageRun({
+                                        data: imgBytes,
+                                        transformation: { width: outW, height: outH },
+                                    })
+                                ],
+                                alignment: docx.AlignmentType.CENTER,
+                                spacing: { after: 200 },
+                            }));
+                        } catch (e) {
+                            console.error('Error adding anecdote image to DOCX:', e);
+                        }
+                    }
+                }
+            }
 
             const doc = new Document({
                 sections: [{ children: docChildren }]
