@@ -240,14 +240,28 @@ async function getSavedJourneySelection(studentId) {
     const user = auth.currentUser;
     if (!user) return [];
     try {
-        const selRef = doc(db, 'journeySelections', `${user.uid}_${studentId}`);
+        // Prefer per-user subcollection for safer rules
+        const selRef = doc(db, 'users', user.uid, 'journeySelections', studentId);
         const snap = await getDoc(selRef);
         if (snap.exists()) {
             const data = snap.data();
             if (Array.isArray(data.anecdoteIds)) return data.anecdoteIds;
         }
     } catch (e) {
-        console.error('Error reading saved journey selection:', e);
+        if (e && e.code === 'permission-denied') {
+            console.warn('Saved journey selection not accessible by rules; using local storage.');
+        } else {
+            console.error('Error reading saved journey selection:', e);
+        }
+        // Fallback to localStorage if rules block Firestore access
+        try {
+            const key = `journeySel:${user.uid}:${studentId}`;
+            const raw = localStorage.getItem(key);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (_) {}
     }
     return [];
 }
@@ -256,7 +270,7 @@ async function saveJourneySelection(studentId, anecdoteIds) {
     const user = auth.currentUser;
     if (!user) return;
     try {
-        const selRef = doc(db, 'journeySelections', `${user.uid}_${studentId}`);
+        const selRef = doc(db, 'users', user.uid, 'journeySelections', studentId);
         await setDoc(selRef, {
             userId: user.uid,
             studentId,
@@ -265,7 +279,16 @@ async function saveJourneySelection(studentId, anecdoteIds) {
             updatedAt: serverTimestamp()
         }, { merge: true });
     } catch (e) {
-        console.error('Error saving journey selection:', e);
+        if (e && e.code === 'permission-denied') {
+            console.warn('Cannot save journey selection to Firestore due to rules; falling back to local storage.');
+        } else {
+            console.error('Error saving journey selection:', e);
+        }
+        // Fallback to localStorage if rules block Firestore access
+        try {
+            const key = `journeySel:${user.uid}:${studentId}`;
+            localStorage.setItem(key, JSON.stringify(Array.from(new Set(anecdoteIds))));
+        } catch (_) {}
     }
 }
 
@@ -3190,6 +3213,8 @@ journeyAnecdoteSelectionList.addEventListener('click', (e) => {
             selectedJourneyAnecdotes = selectedJourneyAnecdotes.filter(id => id !== anecdoteId);
         }
         updateJourneyCounter();
+        // Persist selection opportunistically; ignore failures
+        saveJourneySelection(currentStudentId, selectedJourneyAnecdotes);
     }
 });
 
