@@ -292,6 +292,15 @@ async function saveJourneySelection(studentId, anecdoteIds) {
     }
 }
 
+// Debounced save to reduce Firestore channel churn
+let _journeySelDebounceTimer = null;
+function debouncedSaveJourneySelection(studentId, anecdoteIds, delayMs = 600) {
+    try { if (_journeySelDebounceTimer) clearTimeout(_journeySelDebounceTimer); } catch (_) {}
+    _journeySelDebounceTimer = setTimeout(() => {
+        saveJourneySelection(studentId, anecdoteIds);
+    }, delayMs);
+}
+
 // --- Helpers for Bulk Anecdotes ---
 async function populateBulkClassroomSelect() {
     if (!bulkClassroomSelect) return;
@@ -3213,8 +3222,8 @@ journeyAnecdoteSelectionList.addEventListener('click', (e) => {
             selectedJourneyAnecdotes = selectedJourneyAnecdotes.filter(id => id !== anecdoteId);
         }
         updateJourneyCounter();
-        // Persist selection opportunistically; ignore failures
-        saveJourneySelection(currentStudentId, selectedJourneyAnecdotes);
+        // Persist selection opportunistically with debounce; ignore failures
+        debouncedSaveJourneySelection(currentStudentId, selectedJourneyAnecdotes);
     }
 });
 
