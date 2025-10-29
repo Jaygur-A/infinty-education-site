@@ -1953,28 +1953,71 @@ async function showContinuumPage(coreSkill) {
     
     let tableHTML = '<table class="rubric-table text-sm">';
     tableHTML += '<thead><tr>';
-    if(originalContinuumData.headers) {
-        originalContinuumData.headers.forEach((header, index) => {
-            const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
-            tableHTML += `<th ${style}>${header}</th>`;
-        });
+    // Normalize headers to an array in case data was saved as an object
+    let headersArray = [];
+    if (originalContinuumData.headers) {
+        if (Array.isArray(originalContinuumData.headers)) {
+            headersArray = originalContinuumData.headers;
+        } else if (typeof originalContinuumData.headers === 'object') {
+            headersArray = Object.keys(originalContinuumData.headers)
+                .sort((a, b) => {
+                    const na = parseInt(a, 10);
+                    const nb = parseInt(b, 10);
+                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                    return String(a).localeCompare(String(b));
+                })
+                .map(k => originalContinuumData.headers[k]);
+        }
     }
+    headersArray.forEach((header, index) => {
+        const style = index === 0 ? 'style="background-color: var(--accent-primary); color: var(--text-light);"' : '';
+        tableHTML += `<th ${style}>${header}</th>`;
+    });
     tableHTML += '</tr></thead>';
 
     tableHTML += '<tbody>';
-    if(originalContinuumData.rows) {
-        originalContinuumData.rows.forEach((rowData, rowIndex) => {
-            tableHTML += '<tr>';
-            tableHTML += `<td class="skill-label-cell">${(rowData.skillLabel || '').replace(/\n/g, '<br>')}</td>`;
-            if(rowData.levels) {
-                rowData.levels.forEach((levelText, levelIndex) => {
-                    const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
-                    tableHTML += `<td id="${cellId}">${levelText}</td>`;
-                });
-            }
-            tableHTML += '</tr>';
-        });
+    // Normalize rows to an array in case data was saved as an object
+    let rowsArray = [];
+    if (originalContinuumData.rows) {
+        if (Array.isArray(originalContinuumData.rows)) {
+            rowsArray = originalContinuumData.rows;
+        } else if (typeof originalContinuumData.rows === 'object') {
+            rowsArray = Object.keys(originalContinuumData.rows)
+                .sort((a, b) => {
+                    const na = parseInt(a, 10);
+                    const nb = parseInt(b, 10);
+                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                    return String(a).localeCompare(String(b));
+                })
+                .map(k => originalContinuumData.rows[k]);
+        }
     }
+
+    rowsArray.forEach((rowData, rowIndex) => {
+        tableHTML += '<tr>';
+        tableHTML += `<td class="skill-label-cell">${(rowData?.skillLabel || '').replace(/\n/g, '<br>')}</td>`;
+        // Normalize levels to an array as well
+        let levelsArray = [];
+        if (rowData && rowData.levels) {
+            if (Array.isArray(rowData.levels)) {
+                levelsArray = rowData.levels;
+            } else if (typeof rowData.levels === 'object') {
+                levelsArray = Object.keys(rowData.levels)
+                    .sort((a, b) => {
+                        const na = parseInt(a, 10);
+                        const nb = parseInt(b, 10);
+                        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                        return String(a).localeCompare(String(b));
+                    })
+                    .map(k => rowData.levels[k]);
+            }
+        }
+        levelsArray.forEach((levelText, levelIndex) => {
+            const cellId = `${continuumId}-r${rowIndex}-c${levelIndex}`;
+            tableHTML += `<td id="${cellId}">${levelText || ''}</td>`;
+        });
+        tableHTML += '</tr>';
+    });
     tableHTML += '</tbody></table>';
 
     continuumTableContainer.innerHTML = tableHTML;
