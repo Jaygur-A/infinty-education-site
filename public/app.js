@@ -53,6 +53,9 @@ const messageList = document.getElementById('message-list');
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const studentGrid = document.getElementById('student-grid');
+// Track per-classroom student listeners when grouping by classroom on dashboard
+let unsubscribeFromClassrooms = null;
+const classroomStudentUnsubs = new Map();
 const noStudentsMessage = document.getElementById('no-students-message');
 const studentDetailName = document.getElementById('student-detail-name');
 const addRecordBtn = document.getElementById('addRecordBtn');
@@ -1348,7 +1351,19 @@ async function fetchSchoolSkills() {
 
 // Data Logic
 function listenForStudentRecords() {
-    if (unsubscribeFromStudents) unsubscribeFromStudents();
+    // Cleanup existing listeners
+    if (unsubscribeFromStudents) {
+        unsubscribeFromStudents();
+        unsubscribeFromStudents = null;
+    }
+    if (unsubscribeFromClassrooms) {
+        unsubscribeFromClassrooms();
+        unsubscribeFromClassrooms = null;
+    }
+    for (const [cid, unsub] of classroomStudentUnsubs.entries()) {
+        try { unsub(); } catch (_) {}
+        classroomStudentUnsubs.delete(cid);
+    }
 
     // We must have a schoolId to fetch school-specific data.
     if (!currentUserSchoolId) {
@@ -1358,33 +1373,116 @@ function listenForStudentRecords() {
         return;
     }
 
-    let q;
     const studentsRef = collection(db, "students");
 
-    // The main change: ALL queries are now filtered by schoolId first.
+    // Teachers: show single grid with only their classroom
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
-        q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), where("classroomId", "==", currentUserClassroomId));
-    } else if (currentUserRole === 'admin' || currentUserRole === 'superAdmin' || currentUserRole === 'schoolAdmin') {
-        // This now correctly handles all admin types for a given school.
-        q = query(studentsRef, where("schoolId", "==", currentUserSchoolId));
-    } else {
-        studentGrid.innerHTML = '';
-        noStudentsMessage.classList.remove('hidden');
+        const q = query(
+            studentsRef,
+            where("schoolId", "==", currentUserSchoolId),
+            where("classroomId", "==", currentUserClassroomId)
+        );
+        unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
+            studentGrid.innerHTML = '';
+            noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
+            snapshot.forEach(doc => {
+                const student = doc.data();
+                const studentCard = document.createElement('div');
+                studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
+                studentCard.innerHTML = `<div class=\"w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all\"><span class=\"text-2xl student-avatar-text\">${student.name ? student.name.charAt(0).toUpperCase() : '?'}<\/span><\/div><p class=\"font-medium text-gray-700 group-hover:text-green-600\">${student.name || 'Unnamed'}<\/p>`;
+                studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
+                studentGrid.appendChild(studentCard);
+            });
+        });
         return;
     }
 
-    unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
-        studentGrid.innerHTML = '';
-        noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
-        snapshot.forEach(doc => {
-            const student = doc.data();
-            const studentCard = document.createElement('div');
-            studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
-            studentCard.innerHTML = `<div class="w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all"><span class="text-2xl student-avatar-text">${student.name ? student.name.charAt(0).toUpperCase() : '?'}</span></div><p class="font-medium text-gray-700 group-hover:text-green-600">${student.name || 'Unnamed'}</p>`;
-            studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
-            studentGrid.appendChild(studentCard);
+    // Admins: group students by classroom sections
+    if (['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole)) {
+        const classroomsRef = collection(db, 'classrooms');
+        const classroomsQuery = query(
+            classroomsRef,
+            where('schoolId', '==', currentUserSchoolId),
+            orderBy('className')
+        );
+
+        unsubscribeFromClassrooms = onSnapshot(classroomsQuery, (classroomsSnap) => {
+            // Clear existing UI and per-class listeners
+            studentGrid.innerHTML = '';
+            for (const [cid, unsub] of classroomStudentUnsubs.entries()) {
+                try { unsub(); } catch (_) {}
+                classroomStudentUnsubs.delete(cid);
+            }
+
+            if (classroomsSnap.empty) {
+                noStudentsMessage.classList.remove('hidden');
+                noStudentsMessage.querySelector('p').textContent = 'No classrooms created yet.';
+                return;
+            } else {
+                noStudentsMessage.classList.add('hidden');
+            }
+
+            // Track counts per classroom to decide if there are students overall
+            const studentCountByClass = new Map();
+
+            classroomsSnap.forEach(cdoc => {
+                const classroom = cdoc.data();
+                const classroomId = cdoc.id;
+
+                // Section container for this classroom
+                const section = document.createElement('div');
+                section.className = 'mb-8 w-full';
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between mb-4';
+                header.innerHTML = `
+                    <h3 class=\"text-2xl font-bold text-gray-800\">${classroom.className || 'Unnamed Classroom'}<\/h3>
+                    <p class=\"text-sm text-gray-500\">${classroom.teacherName ? 'Teacher: ' + classroom.teacherName : ''}<\/p>
+                `;
+                const grid = document.createElement('div');
+                grid.className = 'flex flex-row flex-wrap gap-x-12 gap-y-6 items-start';
+
+                section.appendChild(header);
+                section.appendChild(grid);
+                studentGrid.appendChild(section);
+
+                // Listen to students for this classroom
+                const sq = query(
+                    studentsRef,
+                    where('schoolId', '==', currentUserSchoolId),
+                    where('classroomId', '==', classroomId)
+                );
+
+                const unsub = onSnapshot(sq, (ssnap) => {
+                    grid.innerHTML = '';
+                    studentCountByClass.set(classroomId, ssnap.size || 0);
+                    ssnap.forEach(sdoc => {
+                        const s = sdoc.data();
+                        const card = document.createElement('div');
+                        card.className = 'flex flex-col items-center text-center cursor-pointer group';
+                        card.innerHTML = `<div class=\"w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all\"><span class=\"text-2xl student-avatar-text\">${s.name ? s.name.charAt(0).toUpperCase() : '?'}<\/span><\/div><p class=\"font-medium text-gray-700 group-hover:text-green-600\">${s.name || 'Unnamed'}<\/p>`;
+                        card.addEventListener('click', () => showStudentDetailPage(sdoc.id));
+                        grid.appendChild(card);
+                    });
+
+                    // Recompute overall count across classrooms
+                    const totalStudents = Array.from(studentCountByClass.values()).reduce((a, b) => a + b, 0);
+                    if (totalStudents === 0) {
+                        noStudentsMessage.classList.remove('hidden');
+                        noStudentsMessage.querySelector('p').textContent = 'No students found.';
+                    } else {
+                        noStudentsMessage.classList.add('hidden');
+                    }
+                });
+
+                classroomStudentUnsubs.set(classroomId, unsub);
+            });
         });
-    });
+        return;
+    }
+
+    // Fallback for roles without access
+    studentGrid.innerHTML = '';
+    noStudentsMessage.classList.remove('hidden');
 }
 
 // --- UPDATED `showStudentDetailPage` ---
