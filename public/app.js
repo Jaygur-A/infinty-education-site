@@ -235,6 +235,40 @@ let anecdoteChart = null,
     messagesChart = null;
 let selectedJourneyAnecdotes = [];
 
+// --- Journey Selection Persistence ---
+async function getSavedJourneySelection(studentId) {
+    const user = auth.currentUser;
+    if (!user) return [];
+    try {
+        const selRef = doc(db, 'journeySelections', `${user.uid}_${studentId}`);
+        const snap = await getDoc(selRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data.anecdoteIds)) return data.anecdoteIds;
+        }
+    } catch (e) {
+        console.error('Error reading saved journey selection:', e);
+    }
+    return [];
+}
+
+async function saveJourneySelection(studentId, anecdoteIds) {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+        const selRef = doc(db, 'journeySelections', `${user.uid}_${studentId}`);
+        await setDoc(selRef, {
+            userId: user.uid,
+            studentId,
+            schoolId: currentUserSchoolId || null,
+            anecdoteIds: Array.from(new Set(anecdoteIds)),
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        console.error('Error saving journey selection:', e);
+    }
+}
+
 // --- Helpers for Bulk Anecdotes ---
 async function populateBulkClassroomSelect() {
     if (!bulkClassroomSelect) return;
@@ -2327,6 +2361,12 @@ async function showJourneyBuilderPage(studentId) {
         journeyStudentName.textContent = `Learning Journey for ${studentSnap.data().name}`;
     }
 
+    // Load any previously saved selections for this user/student
+    const previouslySelected = await getSavedJourneySelection(studentId);
+    if (Array.isArray(previouslySelected) && previouslySelected.length) {
+        selectedJourneyAnecdotes = previouslySelected.slice();
+    }
+
     // Fetch all anecdotes for this student
     const anecdotesRef = collection(db, "anecdotes");
     const q = query(anecdotesRef, where("studentId", "==", studentId), orderBy("createdAt", "desc"));
@@ -2356,10 +2396,13 @@ async function showJourneyBuilderPage(studentId) {
             const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate().toLocaleDateString() : 'N/A';
             const anecdoteEl = document.createElement('div');
             anecdoteEl.className = 'flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50';
+            const isPrev = selectedJourneyAnecdotes.includes(anecdote.id);
+            const checkedAttr = isPrev ? 'checked' : '';
+            const badge = isPrev ? '<span class="ml-2 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">Previously chosen</span>' : '';
             anecdoteEl.innerHTML = `
-                <input type="checkbox" data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                <input type="checkbox" ${checkedAttr} data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
                 <label for="anecdote-${anecdote.id}" class="flex-1">
-                    <p class="text-gray-800">${anecdote.text}</p>
+                    <p class="text-gray-800">${anecdote.text} ${badge}</p>
                     <p class="text-xs text-gray-400 mt-1">Logged on: ${date}</p>
                 </label>
             `;
@@ -2367,6 +2410,9 @@ async function showJourneyBuilderPage(studentId) {
         });
         journeyAnecdoteSelectionList.appendChild(groupContainer);
     }
+
+    // Refresh counter in case we loaded previous selections
+    updateJourneyCounter();
 }
 
 function updateJourneyCounter() {
@@ -3157,6 +3203,8 @@ generateJourneySummaryBtn.addEventListener('click', async () => {
 
     try {
         const studentName = journeyStudentName.textContent.replace('Learning Journey for ', '');
+        // Persist current selection for this user and student
+        await saveJourneySelection(currentStudentId, selectedJourneyAnecdotes);
         const generateSummary = httpsCallable(functions, 'generateJourneySummary');
 
         const result = await generateSummary({
