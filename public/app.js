@@ -2230,7 +2230,9 @@ async function listenForUsers() {
 
             userSnaps.forEach(userSnap => {
                 if (userSnap.exists()) {
-                    renderUserCard(userSnap.data());
+                    const data = userSnap.data();
+                    // Ensure UID is present; fall back to document ID
+                    renderUserCard({ ...data, uid: data.uid || userSnap.id });
                 }
             });
         }, (error) => {
@@ -2254,7 +2256,9 @@ async function listenForUsers() {
              noUsersMessage.textContent = "No other users found.";
         }
         snapshot.forEach(docSnap => {
-            renderUserCard(docSnap.data());
+            const data = docSnap.data();
+            // Ensure UID is present; fall back to document ID
+            renderUserCard({ ...data, uid: data.uid || docSnap.id });
         });
     } catch (error) {
          console.error("Error fetching users:", error);
@@ -2279,11 +2283,17 @@ function renderUserCard(userData) {
 }
 
 function openChat(recipient) {
+    const recipientId = recipient.uid || recipient.id;
+    if (!recipientId) {
+        console.error('openChat called without a valid recipient UID');
+        showMessage('Unable to start chat: invalid recipient.');
+        return;
+    }
     chatWithUser.textContent = `Chat with ${recipient.displayName || recipient.email}`;
-    chatWithUser.dataset.recipientId = recipient.uid;
+    chatWithUser.dataset.recipientId = recipientId;
     showView(chatView);
     const currentUser = auth.currentUser;
-    const chatID = [currentUser.uid, recipient.uid].sort().join('_');
+    const chatID = [currentUser.uid, recipientId].sort().join('_');
     const messagesRef = collection(db, "chats", chatID, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
     if (unsubscribeFromMessages) unsubscribeFromMessages();
@@ -4162,8 +4172,8 @@ async function initiateChatWithParent(parentEmail) {
         const parentUserDoc = snapshot.docs[0];
         const parentData = parentUserDoc.data();
         
-        // Reuse the existing openChat function
-        openChat(parentData);
+        // Reuse the existing openChat function, ensure uid fallback to doc id
+        openChat({ ...parentData, uid: parentData.uid || parentUserDoc.id });
         
         // Close the modal after initiating the chat
         messageParentsModal.classList.add('hidden');
