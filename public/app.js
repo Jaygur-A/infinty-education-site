@@ -2797,6 +2797,17 @@ function renderAssessmentTypeChart(canvas, counts, scope) {
     const baseColor = style.getPropertyValue('--chart-color-1').trim() || '#4caf50';
     const colors = createPieColors(ctx, baseColor);
 
+    // Ensure a bounded height to prevent infinite growth
+    try {
+        const containerWidth = resolveChartContainerWidth({ canvas });
+        const targetHeight = computeResponsiveChartHeight(containerWidth);
+        const clamped = Math.max(260, Math.min(targetHeight, 420));
+        canvas.style.height = `${clamped}px`;
+        if (canvas.parentNode && canvas.parentNode.style) {
+            canvas.parentNode.style.height = `${clamped}px`;
+        }
+    } catch (_) { /* ignore sizing errors */ }
+
     const options = {
         responsive: true,
         maintainAspectRatio: false,
@@ -2834,9 +2845,33 @@ function renderAssessmentTypeChart(canvas, counts, scope) {
 
     if (scope === 'school') {
         assessmentTypeChart = new Chart(ctx, cfg);
+        attachResponsivePieHandler(assessmentTypeChart);
     } else {
         studentAssessmentTypeChart = new Chart(ctx, cfg);
+        attachResponsivePieHandler(studentAssessmentTypeChart);
     }
+}
+
+// Keep pie charts responsive but bounded, similar to bar charts
+function attachResponsivePieHandler(chart) {
+    if (!chart) return;
+    const handler = () => {
+        const canvas = chart.canvas;
+        if (!canvas) return;
+        try {
+            const containerWidth = resolveChartContainerWidth(chart);
+            const targetHeight = computeResponsiveChartHeight(containerWidth);
+            const clamped = Math.max(260, Math.min(targetHeight, 420));
+            canvas.style.height = `${clamped}px`;
+            if (canvas.parentNode && canvas.parentNode.style) {
+                canvas.parentNode.style.height = `${clamped}px`;
+            }
+            chart.update('none');
+        } catch (_) { /* noop */ }
+    };
+    handler();
+    chart.$responsiveHandler = handler;
+    window.addEventListener('resize', handler);
 }
 // Returns intrinsic width/height for a given image data URL
 async function getImageDimensionsFromDataURL(dataUrl) {
