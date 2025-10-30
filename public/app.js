@@ -2282,7 +2282,7 @@ function renderUserCard(userData) {
     userList.appendChild(userCard);
 }
 
-function openChat(recipient) {
+async function openChat(recipient) {
     const recipientId = recipient.uid || recipient.id;
     if (!recipientId) {
         console.error('openChat called without a valid recipient UID');
@@ -2294,6 +2294,18 @@ function openChat(recipient) {
     showView(chatView);
     const currentUser = auth.currentUser;
     const chatID = [currentUser.uid, recipientId].sort().join('_');
+    // Ensure the chat document exists before listening, so rules can validate participants
+    try {
+        const chatDocRef = doc(db, "chats", chatID);
+        await setDoc(chatDocRef, {
+            participants: [currentUser.uid, recipientId],
+            lastUpdated: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        console.error('Failed to initialize chat doc:', e);
+        showMessage('Unable to open chat due to permissions.');
+        return;
+    }
     const messagesRef = collection(db, "chats", chatID, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
     if (unsubscribeFromMessages) unsubscribeFromMessages();
