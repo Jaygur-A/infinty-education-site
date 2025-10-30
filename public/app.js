@@ -37,6 +37,7 @@ const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
 const googleSignInBtn = document.getElementById('google-signin-btn');
 const userEmailDisplay = document.getElementById('user-email-display');
+const navSchoolLogo = document.getElementById('nav-school-logo');
 const dashboardBtn = document.getElementById('dashboard-btn');
 const messagesBtn = document.getElementById('messages-btn');
 const dashboardView = document.getElementById('dashboard-view');
@@ -1261,6 +1262,17 @@ onAuthStateChanged(auth, async (user) => {
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
         userEmailDisplay.textContent = user.email;
+        // Load and apply school logo to the header if available
+        try {
+            const url = await getSchoolLogoUrl();
+            if (url && navSchoolLogo) {
+                navSchoolLogo.src = url;
+            } else if (navSchoolLogo) {
+                navSchoolLogo.src = '/images/InfinityEducation.webp';
+            }
+        } catch (e) {
+            if (navSchoolLogo) navSchoolLogo.src = '/images/InfinityEducation.webp';
+        }
 
         // Step 5: Mandatory Onboarding / Inactive Check
         if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
@@ -1347,6 +1359,9 @@ onAuthStateChanged(auth, async (user) => {
         // --- Logout Logic ---
         currentUserRole = null;
         currentUserSchoolId = null;
+        // Reset cached logo and header image on logout
+        try { schoolLogoUrlCache = null; } catch (_) {}
+        if (navSchoolLogo) navSchoolLogo.src = '/images/InfinityEducation.webp';
         document.body.classList.add('login-background');
         document.body.classList.add('bg-overlay');
         appContainer.classList.add('hidden');
@@ -4835,6 +4850,7 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         const schoolRef = doc(db, "schools", currentUserSchoolId);
         await setDoc(schoolRef, { logoUrl: downloadURL }, { merge: true });
         schoolLogoUrlCache = downloadURL; // Ensure future exports use the new logo immediately
+        if (navSchoolLogo) navSchoolLogo.src = downloadURL; // Update header logo immediately
 
         // 5. Show success
         schoolLogoPreview.src = downloadURL;
