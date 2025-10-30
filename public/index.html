@@ -64,6 +64,7 @@
                     <button id="dashboard-btn" class="font-semibold header-text-hover">Dashboard</button>
 					<button id="messages-btn" class="font-semibold header-text-hover">✉️ Messages</button>
 					<button id="addRecordBtn" class="font-semibold header-text-hover">➕ Add Student</button>
+                    <button id="addTeacherBtn" class="font-semibold header-text-hover">Add Teacher</button>
                     <div id="profile-menu-container" class="relative">
                         <button id="profile-menu-btn" class="font-semibold hover:text-green-200 flex items-center">
                             <span id="user-email-display"></span>
@@ -487,6 +488,26 @@
         </div>
     </div>
 	
+    <!-- Add Teacher Modal -->
+    <div id="addTeacherModal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="flex justify-between items-center p-5 border-b">
+                <h3 class="text-2xl font-semibold">Add Teacher</h3>
+                <button id="closeAddTeacherModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <form id="addTeacherForm">
+                    <div class="mb-5">
+                        <label for="teacherEmailInput" class="block mb-2 text-sm font-medium">Teacher Email</label>
+                        <input type="email" id="teacherEmailInput" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="teacher@gmail.com" required>
+                        <p class="text-xs text-gray-500 mt-1">Enter the teacher's Google email. On their next login, they'll be granted access.</p>
+                    </div>
+                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Add Teacher</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="addAnecdoteModal" class="modal-backdrop hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Add Anecdote</h3><button id="closeAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>

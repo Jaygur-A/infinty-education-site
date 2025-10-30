@@ -63,6 +63,12 @@ const addRecordBtn = document.getElementById('addRecordBtn');
 const addRecordModal = document.getElementById('addRecordModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const addStudentForm = document.getElementById('addStudentForm');
+// Teacher invitation elements
+const addTeacherBtn = document.getElementById('addTeacherBtn');
+const addTeacherModal = document.getElementById('addTeacherModal');
+const closeAddTeacherModalBtn = document.getElementById('closeAddTeacherModalBtn');
+const addTeacherForm = document.getElementById('addTeacherForm');
+const teacherEmailInput = document.getElementById('teacherEmailInput');
 const addAnecdoteBtn = document.getElementById('add-anecdote-btn');
 // Bulk anecdote elements
 const bulkAddAnecdoteBtn = document.getElementById('bulk-add-anecdote-btn');
@@ -1255,6 +1261,19 @@ onAuthStateChanged(auth, async (user) => {
                  currentUserRole = 'guest';
             }
         }
+        // Step 3b: If still guest, check invited-teacher list (callable)
+        if (currentUserRole === 'guest' && user.email) {
+            try {
+                const checkIfInvitedTeacher = httpsCallable(functions, 'checkIfInvitedTeacher');
+                const result = await checkIfInvitedTeacher();
+                if (result?.data?.isInvited && result?.data?.schoolId) {
+                    currentUserRole = 'teacher';
+                    currentUserSchoolId = result.data.schoolId;
+                }
+            } catch (err) {
+                console.error('Error checking invited teacher status:', err);
+            }
+        }
         console.log(`User logged in. Final role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
         // Step 4: App Setup
@@ -1307,6 +1326,9 @@ onAuthStateChanged(auth, async (user) => {
 
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
+        if (addTeacherBtn) {
+            addTeacherBtn.classList.toggle('hidden', currentUserRole !== 'schoolAdmin');
+        }
         // Bulk anecdote button visible to teachers and school admins
         if (bulkAddAnecdoteBtn) {
             const canBulkAnecdote = ['teacher', 'schoolAdmin'].includes(currentUserRole);
@@ -2760,6 +2782,42 @@ addRecordBtn.addEventListener('click', () => {
     addRecordModal.classList.remove('hidden');
 });
 closeModalBtn.addEventListener('click', () => addRecordModal.classList.add('hidden'));
+
+// Add Teacher modal handlers
+if (addTeacherBtn) {
+    addTeacherBtn.addEventListener('click', () => {
+        if (currentUserRole !== 'schoolAdmin') return;
+        addTeacherModal?.classList.remove('hidden');
+    });
+}
+if (closeAddTeacherModalBtn) {
+    closeAddTeacherModalBtn.addEventListener('click', () => addTeacherModal.classList.add('hidden'));
+}
+if (addTeacherForm) {
+    addTeacherForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = (teacherEmailInput?.value || '').trim().toLowerCase();
+        if (!email) { showMessage('Please enter a teacher email.'); return; }
+        if (!currentUserSchoolId) { showMessage('Cannot identify your school.'); return; }
+        loadingOverlay.classList.remove('hidden');
+        try {
+            await addDoc(collection(db, 'schools', currentUserSchoolId, 'invitedTeachers'), {
+                email,
+                invitedBy: auth.currentUser?.uid || null,
+                invitedAt: serverTimestamp(),
+                status: 'pending'
+            });
+            showMessage('Teacher invited. They will gain access on next login.', false);
+            addTeacherForm.reset();
+            addTeacherModal.classList.add('hidden');
+        } catch (err) {
+            console.error('Error adding teacher invite:', err);
+            showMessage('Failed to add teacher. Please try again.');
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
+}
 
 addAnecdoteBtn.addEventListener('click', () => {
     // Populate core skills dropdown

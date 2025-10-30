@@ -267,6 +267,35 @@ exports.checkIfParent = functions.https.onCall(async (data, context) => {
     }
 });
 
+// Checks if a user's email is invited as a teacher and assigns role (Callable)
+exports.checkIfInvitedTeacher = functions.https.onCall(async (data, context) => {
+  console.log('[checkIfInvitedTeacher] Function called.');
+  if (!context.auth) { throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); }
+  const uid = context.auth.uid;
+  const email = context.auth.token.email;
+  if (!email) { throw new functions.https.HttpsError('invalid-argument', 'User email not found in token.'); }
+  try {
+    const snap = await db.collectionGroup('invitedTeachers').where('email', '==', email.toLowerCase()).limit(1).get();
+    if (snap.empty) {
+      return { isInvited: false };
+    }
+    const inviteDoc = snap.docs[0];
+    const schoolRef = inviteDoc.ref.parent.parent; // schools/{schoolId}
+    if (!schoolRef) {
+      console.error('[checkIfInvitedTeacher] invite has no parent school.');
+      return { isInvited: false };
+    }
+    const schoolId = schoolRef.id;
+    await db.collection('users').doc(uid).set({ role: 'teacher', schoolId }, { merge: true });
+    try { await inviteDoc.ref.update({ status: 'accepted' }); } catch (_) {}
+    console.log(`[checkIfInvitedTeacher] Promoted ${uid} to teacher for school ${schoolId}`);
+    return { isInvited: true, schoolId };
+  } catch (error) {
+    console.error('[checkIfInvitedTeacher] Error:', error);
+    throw new functions.https.HttpsError('internal', 'Could not check invited teacher status.');
+  }
+});
+
 /*
  * ===================================================================
  * LEARNING JOURNEY AI SUMMARY FUNCTION (Callable)
