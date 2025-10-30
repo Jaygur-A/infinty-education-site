@@ -76,6 +76,7 @@ const bulkMicroSkillSelect = document.getElementById('bulkMicroSkill');
 const addAnecdoteModal = document.getElementById('addAnecdoteModal');
 const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
 const addAnecdoteForm = document.getElementById('addAnecdoteForm');
+const assessmentTypeChartCanvas = document.getElementById('assessment-type-chart');
 const coreSkillSelect = document.getElementById('coreSkill');
 const microSkillSelect = document.getElementById('microSkill');
 const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
@@ -127,6 +128,7 @@ const parentViewSkillsGrid = document.getElementById('parent-view-skills-grid');
 const parentAnecdoteContainer = document.getElementById('parent-view-anecdote-container');
 const parentAnecdoteListTitle = document.getElementById('parent-anecdote-list-title');
 const parentAnecdoteChartCanvas = document.getElementById('parent-anecdote-chart');
+const studentAssessmentTypeChartCanvas = document.getElementById('student-assessment-type-chart');
 const parentCloseAnecdoteBtn = document.getElementById('parent-close-anecdote-display-btn');
 const continuumView = document.getElementById('continuum-view');
 const buildContinuumBtn = document.getElementById('build-continuum-btn');
@@ -232,7 +234,9 @@ let currentStudentId = null,
 let unsubscribeFromUsers, unsubscribeFromMessages, unsubscribeFromStudents, unsubscribeFromAnecdotes, unsubscribeFromMicroSkillAnecdotes, unsubscribeFromAllAnecdotes;
 let anecdoteChart = null,
     allSkillsChart = null,
-    messagesChart = null;
+    messagesChart = null,
+    assessmentTypeChart = null,
+    studentAssessmentTypeChart = null;
 let selectedJourneyAnecdotes = [];
 
 // --- Journey Selection Persistence ---
@@ -1307,6 +1311,7 @@ onAuthStateChanged(auth, async (user) => {
             }
             listenForStudentRecords();
             listenForAllAnecdotes();
+            listenForAssessmentTypeDistribution();
         } else if (currentUserRole === 'parent') {
             showView(parentDashboardView);
             const q1 = query(collection(db, "students"), where("parent1Email", "==", user.email));
@@ -1611,6 +1616,9 @@ async function showStudentDetailPage(studentId) {
             alignedSkillsGrid.appendChild(skillCard);
         });
     }
+
+    // Start/refresh the student assessment type chart listener
+    listenForStudentAssessmentTypes(studentId);
 }
 
 // --- UPDATED `listenForAnecdotes` ---
@@ -2361,7 +2369,7 @@ function renderMessagesChart(data) {
 
     const options = {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
         scales: {
             x: {
                 grid: { display: false },
@@ -2742,6 +2750,94 @@ if (bulkAddAnecdoteBtn) {
     });
 }
 
+// Listen for assessment type distribution across the school (dashboard pie chart)
+function listenForAssessmentTypeDistribution() {
+    if (!currentUserSchoolId || !assessmentTypeChartCanvas) return;
+    const q = query(collection(db, 'anecdotes'), where('schoolId', '==', currentUserSchoolId));
+    onSnapshot(q, (snapshot) => {
+        const counts = { As: 0, Of: 0, For: 0 };
+        snapshot.forEach(docSnap => {
+            const t = docSnap.data().assessmentType;
+            if (t && Object.prototype.hasOwnProperty.call(counts, t)) counts[t]++;
+        });
+        renderAssessmentTypeChart(assessmentTypeChartCanvas, counts, 'school');
+    }, (error) => console.error('Error listening for assessment types:', error));
+}
+
+// Listen for assessment type distribution for a specific student (student detail pie chart)
+function listenForStudentAssessmentTypes(studentId) {
+    if (!studentId || !studentAssessmentTypeChartCanvas) return;
+    const q = query(collection(db, 'anecdotes'), where('studentId', '==', studentId));
+    onSnapshot(q, (snapshot) => {
+        const counts = { As: 0, Of: 0, For: 0 };
+        snapshot.forEach(docSnap => {
+            const t = docSnap.data().assessmentType;
+            if (t && Object.prototype.hasOwnProperty.call(counts, t)) counts[t]++;
+        });
+        renderAssessmentTypeChart(studentAssessmentTypeChartCanvas, counts, 'student');
+    }, (error) => console.error('Error listening for student assessment types:', error));
+}
+
+function createPieColors(ctx, colorValue) {
+    const base = parseCssColor(colorValue || '#4caf50');
+    const c1 = rgbaString(withAlpha(lightenColor(base, 0.10), 0.95));
+    const c2 = rgbaString(withAlpha(base, 0.95));
+    const c3 = rgbaString(withAlpha(darkenColor(base, 0.18), 0.95));
+    return [c1, c2, c3];
+}
+
+function renderAssessmentTypeChart(canvas, counts, scope) {
+    if (!canvas) return;
+    const labels = ['As', 'Of', 'For'];
+    const data = labels.map(l => counts[l] || 0);
+    const total = data.reduce((a, b) => a + b, 0);
+
+    const ctx = canvas.getContext('2d');
+    const style = getComputedStyle(document.body);
+    const baseColor = style.getPropertyValue('--chart-color-1').trim() || '#4caf50';
+    const colors = createPieColors(ctx, baseColor);
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true, position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const value = context.parsed || 0;
+                        const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                        return `${context.label}: ${value} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    // Destroy previous chart instance
+    if (scope === 'school' && assessmentTypeChart) { destroyChartInstance(assessmentTypeChart); assessmentTypeChart = null; }
+    if (scope === 'student' && studentAssessmentTypeChart) { destroyChartInstance(studentAssessmentTypeChart); studentAssessmentTypeChart = null; }
+
+    const cfg = {
+        type: 'pie',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors,
+                borderColor: colors.map(() => 'rgba(0,0,0,0.08)'),
+                borderWidth: 1
+            }]
+        },
+        options
+    };
+
+    if (scope === 'school') {
+        assessmentTypeChart = new Chart(ctx, cfg);
+    } else {
+        studentAssessmentTypeChart = new Chart(ctx, cfg);
+    }
+}
 // Returns intrinsic width/height for a given image data URL
 async function getImageDimensionsFromDataURL(dataUrl) {
     return new Promise((resolve) => {
@@ -2791,6 +2887,8 @@ if (bulkAddAnecdoteForm) {
         const microSkill = bulkMicroSkillSelect.value;
         if (!coreSkill || !microSkill) { showMessage('Please select a core and micro skill.'); return; }
         const text = document.getElementById('bulkAnecdoteText').value;
+        const assessmentType = (document.getElementById('bulkAssessmentType')?.value || '').trim();
+        if (!assessmentType) { showMessage('Please select a Type of Assessment.'); return; }
         const imageFile = document.getElementById('bulkAnecdoteImage').files[0];
         const selected = Array.from(bulkStudentList.querySelectorAll('.bulk-student-checkbox'))
             .filter(cb => cb.checked)
@@ -2812,6 +2910,7 @@ if (bulkAddAnecdoteForm) {
                     coreSkill,
                     microSkill,
                     text,
+                    assessmentType,
                     createdAt: serverTimestamp(),
                     createdBy: auth.currentUser.uid,
                     imageUrl: sharedImageUrl,
@@ -2889,6 +2988,7 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
         coreSkill: coreSkillSelect.value,
         microSkill: microSkillSelect.value,
         text: document.getElementById('anecdoteText').value,
+        assessmentType: (document.getElementById('assessmentType')?.value || '').trim(),
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid,
         imageUrl: null,
@@ -2897,6 +2997,11 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
 
     if(!anecdoteData.coreSkill || !anecdoteData.microSkill) {
         showMessage("Please select a core and micro skill.");
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+    if(!anecdoteData.assessmentType) {
+        showMessage("Please select a Type of Assessment.");
         loadingOverlay.classList.add('hidden');
         return;
     }
@@ -3216,7 +3321,17 @@ microSkillAnecdoteList.addEventListener('click', (e) => {
         const anecdoteText = anecdoteCard.querySelector('.anecdote-text-content').textContent;
         document.getElementById('editAnecdoteText').value = anecdoteText;
         editAnecdoteModal.dataset.id = anecdoteId;
-        editAnecdoteModal.classList.remove('hidden');
+        // Fetch current assessmentType from Firestore for accuracy
+        (async () => {
+            try {
+                const snap = await getDoc(doc(db, 'anecdotes', anecdoteId));
+                const data = snap.exists() ? snap.data() : {};
+                const currentType = (data.assessmentType || 'As');
+                const sel = document.getElementById('editAssessmentType');
+                if (sel) sel.value = ['As','Of','For'].includes(currentType) ? currentType : 'As';
+            } catch (_) { /* ignore */ }
+            editAnecdoteModal.classList.remove('hidden');
+        })();
     }
     if (deleteButton) {
         const anecdoteId = deleteButton.dataset.id;
@@ -3233,14 +3348,14 @@ editAnecdoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const anecdoteId = editAnecdoteModal.dataset.id;
     const newText = document.getElementById('editAnecdoteText').value;
+    const newType = (document.getElementById('editAssessmentType')?.value || '').trim();
     if (!anecdoteId || !newText.trim()) return;
     loadingOverlay.classList.remove('hidden');
     const anecdoteRef = doc(db, "anecdotes", anecdoteId);
     try {
-        await updateDoc(anecdoteRef, {
-            text: newText,
-            editedAt: serverTimestamp()
-        });
+        const updatePayload = { text: newText, editedAt: serverTimestamp() };
+        if (newType) updatePayload.assessmentType = newType;
+        await updateDoc(anecdoteRef, updatePayload);
         showMessage("Anecdote updated successfully!", false);
         editAnecdoteModal.classList.add('hidden');
     } catch (error) {

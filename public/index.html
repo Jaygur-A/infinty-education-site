@@ -95,6 +95,10 @@
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Total Anecdote Counts by Core Skill</h2>
                 <canvas id="all-skills-chart"></canvas>
              </div>
+             <div class="bg-white p-8 rounded-lg shadow mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Assessment Types Distribution</h2>
+                <canvas id="assessment-type-chart"></canvas>
+             </div>
         </main>
         
 		<main id="parent-dashboard-view" class="hidden container mx-auto p-8">
@@ -142,6 +146,10 @@
                 <button id="delete-account-btn" class="mt-4 bg-red-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-700">
                     Delete My Account
                 </button>
+            </div>
+            <div class="bg-white p-8 rounded-lg shadow mt-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Assessment Types for Student</h2>
+                <canvas id="student-assessment-type-chart"></canvas>
             </div>
         </main>
 
@@ -498,6 +506,15 @@
                     <select id="microSkill" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5"></select>
                 </div>
                 <div class="mb-6"><label for="anecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label><textarea id="anecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
+                <div class="mb-5">
+                    <label for="assessmentType" class="block mb-2 text-sm font-medium">Type of Assessment</label>
+                    <select id="assessmentType" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+                        <option value="" disabled selected>Select Type</option>
+                        <option value="As">As</option>
+                        <option value="Of">Of</option>
+                        <option value="For">For</option>
+                    </select>
+                </div>
                 <div class="mb-6">
                     <label for="anecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
                     <input type="file" id="anecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
@@ -538,6 +555,15 @@
                         <label for="bulkAnecdoteText" class="block mb-2 text-sm font-medium">Anecdote</label>
                         <textarea id="bulkAnecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea>
                     </div>
+                    <div class="mb-5">
+                        <label for="bulkAssessmentType" class="block mb-2 text-sm font-medium">Type of Assessment</label>
+                        <select id="bulkAssessmentType" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+                            <option value="" disabled selected>Select Type</option>
+                            <option value="As">As</option>
+                            <option value="Of">Of</option>
+                            <option value="For">For</option>
+                        </select>
+                    </div>
                     <div class="mb-6">
                         <label for="bulkAnecdoteImage" class="block mb-2 text-sm font-medium">Attach Image (Optional)</label>
                         <input type="file" id="bulkAnecdoteImage" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" accept="image/*">
@@ -552,6 +578,14 @@
             <div class="flex justify-between items-center p-5 border-b"><h3 class="text-2xl font-semibold">Edit Anecdote</h3><button id="closeEditAnecdoteModalBtn" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button></div>
             <div class="p-6"><form id="editAnecdoteForm">
                 <div class="mb-6"><label for="editAnecdoteText" class="block mb-2 text-sm font-medium">Anecdote Text</label><textarea id="editAnecdoteText" rows="4" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required></textarea></div>
+                <div class="mb-5">
+                    <label for="editAssessmentType" class="block mb-2 text-sm font-medium">Type of Assessment</label>
+                    <select id="editAssessmentType" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+                        <option value="As">As</option>
+                        <option value="Of">Of</option>
+                        <option value="For">For</option>
+                    </select>
+                </div>
                 <button type="submit" class="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Save Changes</button>
             </form></div>
         </div>
