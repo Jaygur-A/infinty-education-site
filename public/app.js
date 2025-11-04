@@ -152,6 +152,7 @@ const journeySelectionCounter = document.getElementById('journey-selection-count
 const generateJourneySummaryBtn = document.getElementById('generate-journey-summary-btn');
 const journeyEditorView = document.getElementById('journey-editor-view');
 const journeyEditorTitle = document.getElementById('journey-editor-title');
+const journeyTitleInput = document.getElementById('journey-title-input');
 const backToJourneyBuilderBtn = document.getElementById('back-to-journey-builder-btn');
 const journeySummaryTextarea = document.getElementById('journey-summary-textarea');
 const downloadJourneyPdfBtn = document.getElementById('download-journey-pdf-btn');
@@ -245,6 +246,7 @@ let anecdoteChart = null,
     assessmentTypeChart = null,
     studentAssessmentTypeChart = null;
 let selectedJourneyAnecdotes = [];
+let currentJourneyStudentName = '';
 
 // --- Journey Selection Persistence ---
 // Runtime mode: 'firestore' | 'local' (set to 'local' after first permission-denied)
@@ -3564,7 +3566,11 @@ generateJourneySummaryBtn.addEventListener('click', async () => {
             anecdoteIds: selectedJourneyAnecdotes
         });
 
+        currentJourneyStudentName = studentName;
         journeyEditorTitle.textContent = `Learning Journey Draft for ${studentName}`;
+        if (journeyTitleInput) {
+            journeyTitleInput.value = `Learning Journey for ${studentName}`;
+        }
         journeySummaryTextarea.value = result.data.summary;
         showView(journeyEditorView);
 
@@ -3581,7 +3587,7 @@ backToJourneyBuilderBtn.addEventListener('click', () => {
 });
 
 downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
-    const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
+    const title = (journeyTitleInput && journeyTitleInput.value ? journeyTitleInput.value.trim() : '') || `Learning Journey for ${currentJourneyStudentName}`;
     const summaryText = journeySummaryTextarea.value;
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
@@ -3603,7 +3609,7 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
 
     const margin = 20;
     pdf.setFontSize(18);
-    pdf.text(`Learning Journey for ${studentName}`, margin, 28);
+    pdf.text(title, margin, 28);
 
     pdf.setFontSize(12);
     pdf.setLineHeightFactor(1.35);
@@ -3674,16 +3680,17 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
         console.error('Failed to append anecdote images to PDF:', e);
     }
 
-    pdf.save(`Learning-Journey-${studentName.replace(/\s+/g, '-')}.pdf`);
+    const nameForFile = (currentJourneyStudentName && currentJourneyStudentName.trim()) ? currentJourneyStudentName : 'Student';
+    pdf.save(`Learning-Journey-${nameForFile.replace(/\s+/g, '-')}.pdf`);
 });
 
 downloadJourneyDocxBtn.addEventListener('click', async () => {
         const { Document, Packer, Paragraph, HeadingLevel, ImageRun } = docx;
 
-        const studentName = journeyEditorTitle.textContent.replace('Learning Journey Draft for ', '');
+        const titleText = (journeyTitleInput && journeyTitleInput.value ? journeyTitleInput.value.trim() : '') || `Learning Journey for ${currentJourneyStudentName}`;
         const summaryText = journeySummaryTextarea.value;
-        const titleText = `Learning Journey for ${studentName}`;
-        const fileName = `Learning-Journey-${studentName.replace(/\s+/g, '-')}.docx`;
+        const nameForFile = (currentJourneyStudentName && currentJourneyStudentName.trim()) ? currentJourneyStudentName : 'Student';
+        const fileName = `Learning-Journey-${nameForFile.replace(/\s+/g, '-')}.docx`;
 
         try {
             const docChildren = [
