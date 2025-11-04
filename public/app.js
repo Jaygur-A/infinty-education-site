@@ -3640,7 +3640,7 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
     // Draw summary paragraphs, placing images beside the AI text
     const lineHeight = 6; // approx line height in mm
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgTargetW = Math.min(60, usableWidth * 0.45); // mm
+    const imgTargetW = Math.min(40, usableWidth * 0.35); // mm (smaller image)
     const gap = 5; // mm between text and image
     let y = bodyY;
 
@@ -3785,7 +3785,7 @@ downloadJourneyDocxBtn.addEventListener('click', async () => {
                 if (images.length) {
                     const { bytes, dims } = images.shift();
                     // target width to allow wrapping
-                    const targetWidthPx = 180;
+                    const targetWidthPx = 140; // smaller image beside text
                     const scale = Math.min(targetWidthPx / dims.width, 1);
                     const outW = Math.max(1, Math.round(dims.width * scale));
                     const outH = Math.max(1, Math.round(dims.height * scale));
