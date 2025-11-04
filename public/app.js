@@ -208,6 +208,10 @@ const skillsView = document.getElementById('skills-view');
 const skillsLink = document.getElementById('skills-link');
 const skillsListContainer = document.getElementById('skills-list-container');
 const addCoreSkillBtn = document.getElementById('add-core-skill-btn');
+const getOriginalTemplateBtn = document.getElementById('get-original-template-btn');
+const resetSkillsConfirmModal = document.getElementById('reset-skills-confirm-modal');
+const confirmResetSkillsBtn = document.getElementById('confirm-reset-skills-btn');
+const cancelResetSkillsBtn = document.getElementById('cancel-reset-skills-btn');
 const editSkillModal = document.getElementById('edit-skill-modal');
 const closeEditSkillModalBtn = document.getElementById('close-edit-skill-modal-btn');
 const cancelEditSkillBtn = document.getElementById('cancel-edit-skill-btn');
@@ -4112,6 +4116,7 @@ function showSkillsPage() {
 async function renderSkillsList() {
     skillsListContainer.innerHTML = '<p class="text-gray-500">Loading skills...</p>';
     const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole); // Check if user can edit
+    if (getOriginalTemplateBtn) { getOriginalTemplateBtn.classList.toggle('hidden', !isAdmin); }
 
     try {
         // Fetch CONTINUUMS (Core Skills)
@@ -4154,6 +4159,7 @@ async function renderSkillsList() {
             skillsListContainer.innerHTML = '<p class="text-gray-500">No core skills found. Add a new skill to get started.</p>';
             skillsListContainer.className = 'space-y-6'; // Reset class if empty
             addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
+            if (getOriginalTemplateBtn) { getOriginalTemplateBtn.classList.toggle('hidden', !isAdmin); }
             return;
         }
 
@@ -4192,6 +4198,7 @@ async function renderSkillsList() {
         });
 
         addCoreSkillBtn.classList.toggle('hidden', !isAdmin);
+        if (getOriginalTemplateBtn) { getOriginalTemplateBtn.classList.toggle('hidden', !isAdmin); }
 
     } catch (error) {
         console.error("Error rendering skills list:", error);
@@ -4923,6 +4930,60 @@ editSkillForm.addEventListener('submit', async (e) => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
+// --- RESET SKILLS TO ORIGINAL TEMPLATE ---
+async function performSkillsReset() {
+    loadingOverlay.classList.remove('hidden');
+    try {
+        // Delete school-owned rubrics
+        const rubricsRef = collection(db, 'rubrics');
+        const rubricsSnap = await getDocs(query(rubricsRef, where('schoolId', '==', currentUserSchoolId)));
+        for (const d of rubricsSnap.docs) {
+            await deleteDoc(doc(db, 'rubrics', d.id));
+        }
+
+        // Delete school-owned continuums (core skills)
+        const contRef = collection(db, 'continuums');
+        const contSnap = await getDocs(query(contRef, where('schoolId', '==', currentUserSchoolId)));
+        for (const d of contSnap.docs) {
+            await deleteDoc(doc(db, 'continuums', d.id));
+        }
+
+        await fetchSchoolSkills();
+        await renderSkillsList();
+        showMessage('Skills restored to original template.', false);
+    } catch (err) {
+        console.error('Failed to reset to original template:', err);
+        showMessage('Failed to restore original template.');
+    } finally {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+if (getOriginalTemplateBtn) {
+    getOriginalTemplateBtn.addEventListener('click', () => {
+        const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        if (!isAdmin) { showMessage('You do not have permission to perform this action.'); return; }
+        if (!currentUserSchoolId) { showMessage('Cannot identify your school.'); return; }
+        if (resetSkillsConfirmModal) resetSkillsConfirmModal.classList.remove('hidden');
+    });
+}
+
+if (cancelResetSkillsBtn) {
+    cancelResetSkillsBtn.addEventListener('click', () => {
+        if (resetSkillsConfirmModal) resetSkillsConfirmModal.classList.add('hidden');
+    });
+}
+
+if (confirmResetSkillsBtn) {
+    confirmResetSkillsBtn.addEventListener('click', async () => {
+        if (resetSkillsConfirmModal) resetSkillsConfirmModal.classList.add('hidden');
+        const isAdmin = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        if (!isAdmin) { showMessage('You do not have permission to perform this action.'); return; }
+        if (!currentUserSchoolId) { showMessage('Cannot identify your school.'); return; }
+        await performSkillsReset();
+    });
+}
 
 skillsListContainer.addEventListener('click', async (e) => {
     const editButton = e.target.closest('.edit-skill-btn');

@@ -468,10 +468,13 @@
 	
 	<main id="skills-view" class="hidden container mx-auto p-8">
 		<div class="bg-white p-8 rounded-lg shadow">
-			<div class="flex justify-between items-center mb-6">
-				<h2 class="text-3xl font-bold text-gray-800">Manage Skills Framework</h2>
-				<button id="add-core-skill-btn" class="btn btn-secondary">Add New Core Skill</button>
-			</div>
+				<div class="flex justify-between items-center mb-6">
+					<h2 class="text-3xl font-bold text-gray-800">Manage Skills Framework</h2>
+					<div class="flex items-center space-x-2">
+						<button id="get-original-template-btn" class="btn btn-neutral" title="Replace your custom skills with the default template">Get Original Template</button>
+						<button id="add-core-skill-btn" class="btn btn-secondary">Add New Core Skill</button>
+					</div>
+				</div>
 			<div id="skills-list-container" class="space-y-6">
 				</div>
 		</div>
@@ -794,6 +797,19 @@
 			</div>
 		</div>
 	</div>
-	
+
+    <div id="reset-skills-confirm-modal" class="modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="p-6 text-center">
+                <h3 class="text-2xl font-semibold mb-4">Restore Original Template</h3>
+                <p class="text-gray-600 mb-6">Are you sure you want to restore the original template? This will remove your school's custom Core Skills and Rubrics and cannot be undone.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-reset-skills-btn" class="btn btn-neutral">Cancel</button>
+                    <button id="confirm-reset-skills-btn" class="btn btn-primary bg-red-600 hover:bg-red-700">Yes, Restore</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
