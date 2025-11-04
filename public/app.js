@@ -2893,9 +2893,8 @@ function renderAssessmentTypeChart(canvas, counts, scope) {
     const total = data.reduce((a, b) => a + b, 0);
 
     const ctx = canvas.getContext('2d');
-    const style = getComputedStyle(document.body);
-    const baseColor = style.getPropertyValue('--chart-color-1').trim() || '#4caf50';
-    const colors = createPieColors(ctx, baseColor);
+    // Use distinct, high-contrast colors per slice
+    const colors = ['#4caf50', '#2196f3', '#ff9800']; // green, blue, orange
 
     // Ensure a bounded height to prevent infinite growth
     try {
@@ -2973,9 +2972,8 @@ function renderContentTypeChart(canvas, counts) {
     const total = data.reduce((a, b) => a + b, 0);
 
     const ctx = canvas.getContext('2d');
-    const style = getComputedStyle(document.body);
-    const baseColor = style.getPropertyValue('--chart-color-2').trim() || '#2196f3';
-    const colors = createPieColors(ctx, baseColor);
+    // Use distinct, high-contrast colors per slice
+    const colors = ['#9c27b0', '#03a9f4', '#8bc34a']; // purple, light blue, light green
 
     try {
         const containerWidth = resolveChartContainerWidth({ canvas });
