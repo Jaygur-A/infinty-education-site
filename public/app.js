@@ -3616,91 +3616,98 @@ downloadJourneyPdfBtn.addEventListener('click', async () => { // <-- Made async
     const pageWidth = pdf.internal.pageSize.getWidth();
     const usableWidth = pageWidth - margin * 2;
     const bodyY = 40;
-    const content = summaryText.trim().length ? summaryText.trim() : " ";
-    const splitText = pdf.splitTextToSize(content, usableWidth);
-    pdf.text(splitText, margin, bodyY);
 
-    // Append selected anecdote images inline, with text wrapping beside
+    // Prepare images from selected anecdotes (but do not include anecdote text)
+    let images = [];
     try {
         if (selectedJourneyAnecdotes && selectedJourneyAnecdotes.length) {
-            // Compute Y after summary
-            const lineHeight = 6; // ~mm per line (approximation)
-            let y = bodyY + lineHeight * Math.max(1, splitText.length) + 8;
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const imgTargetW = Math.min(60, usableWidth * 0.45); // mm
-            const gap = 5; // mm between text and image
-
-            // Fetch selected anecdotes
-            const anecdoteSnaps = await Promise.all(
-                selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id)))
-            );
-            const anecdotesWithImages = anecdoteSnaps
-                .filter(s => s.exists())
-                .map(s => ({ id: s.id, ...s.data() }))
-                .filter(a => a && a.imageUrl);
-
-            for (const a of anecdotesWithImages) {
+            const snaps = await Promise.all(selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id))));
+            const withUrls = snaps.filter(s => s.exists()).map(s => s.data()).filter(a => a && a.imageUrl);
+            for (const a of withUrls) {
                 try {
                     const dataUrl = await fetchImageAsDataURL(a.imageUrl);
                     if (!dataUrl) continue;
                     const dims = await getImageDimensionsFromDataURL(dataUrl);
                     if (!dims.width || !dims.height) continue;
-
-                    // Scale image to target width
-                    const scale = imgTargetW / dims.width;
-                    const drawW = imgTargetW;
-                    const drawH = dims.height * scale;
-
-                    // Prepare text
-                    pdf.setFontSize(12);
-                    const text = a.text || '';
-                    const textW = usableWidth - drawW - gap;
-                    const lines = pdf.splitTextToSize(text, Math.max(30, textW));
-                    const maxBesideLines = Math.max(0, Math.floor(drawH / lineHeight));
-                    const firstLines = maxBesideLines > 0 ? lines.slice(0, maxBesideLines) : [];
-                    const restLines = maxBesideLines > 0 ? lines.slice(maxBesideLines) : lines;
-
-                    // Page break if needed for block
-                    const blockHeight = Math.max(drawH, lineHeight * Math.max(1, firstLines.length)) + (restLines.length ? (4 + lineHeight * restLines.length) : 0) + 8;
-                    if (y + blockHeight > pageHeight - margin) {
-                        pdf.addPage();
-                        y = margin;
-                    }
-
-                    // Draw image on right
-                    const imgX = margin + usableWidth - drawW;
-                    const imgY = y;
-                    const fmt = dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
-                    pdf.addImage(dataUrl, fmt, imgX, imgY, drawW, drawH);
-
-                    // Draw text beside image
-                    let cursorY = y + 4; // slight top padding for text
-                    if (firstLines.length) {
-                        pdf.text(firstLines, margin, cursorY);
-                    }
-                    const besideHeight = Math.max(drawH, lineHeight * Math.max(1, firstLines.length));
-                    cursorY = y + besideHeight + 4;
-
-                    // Draw remaining text using full width
-                    if (restLines.length) {
-                        // Handle simple page break for the remaining lines
-                        const remainingHeight = lineHeight * restLines.length;
-                        if (cursorY + remainingHeight > pageHeight - margin) {
-                            pdf.addPage();
-                            cursorY = margin;
-                        }
-                        pdf.text(restLines, margin, cursorY);
-                        cursorY += remainingHeight;
-                    }
-
-                    y = cursorY + 8; // spacing before next anecdote
-                } catch (e) {
-                    console.error('Error adding anecdote image to PDF:', e);
-                }
+                    images.push({ dataUrl, dims });
+                } catch (_) { /* ignore */ }
             }
         }
     } catch (e) {
-        console.error('Failed to append anecdote images to PDF:', e);
+        console.error('Failed to prepare images for PDF:', e);
+    }
+
+    // Draw summary paragraphs, placing images beside the AI text
+    const lineHeight = 6; // approx line height in mm
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgTargetW = Math.min(60, usableWidth * 0.45); // mm
+    const gap = 5; // mm between text and image
+    let y = bodyY;
+
+    const paragraphs = summaryText
+        .split(/\n\s*\n/) // split on blank lines into paragraphs
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+    const safeParagraphs = paragraphs.length ? paragraphs : [summaryText.trim().length ? summaryText.trim() : ' '];
+
+    for (const para of safeParagraphs) {
+        // Page break if approaching bottom margin
+        if (y > pageHeight - margin - lineHeight * 2) {
+            pdf.addPage();
+            y = margin;
+        }
+
+        let useImage = images.length > 0;
+        let drawW = 0, drawH = 0, imgX = 0, imgY = 0, fmt = 'PNG';
+        let textW = usableWidth;
+        if (useImage) {
+            const { dataUrl, dims } = images.shift();
+            const scale = imgTargetW / dims.width;
+            drawW = imgTargetW;
+            drawH = dims.height * scale;
+            imgX = margin + usableWidth - drawW;
+            imgY = y;
+            fmt = (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) ? 'JPEG' : 'PNG';
+
+            // Ensure there's room for at least part of the block; if not, new page
+            const blockMin = Math.max(drawH, lineHeight * 3);
+            if (y + blockMin > pageHeight - margin) {
+                pdf.addPage();
+                y = margin;
+                imgY = y;
+            }
+
+            // Draw image first
+            pdf.addImage(dataUrl, fmt, imgX, imgY, drawW, drawH);
+            textW = usableWidth - drawW - gap;
+        }
+
+        // Text beside image (if any)
+        const lines = pdf.splitTextToSize(para, Math.max(30, textW));
+        const maxBesideLines = useImage ? Math.max(0, Math.floor(drawH / lineHeight)) : 0;
+        const firstLines = useImage ? lines.slice(0, maxBesideLines) : lines;
+        const restLines = useImage ? lines.slice(maxBesideLines) : [];
+
+        if (firstLines.length) {
+            pdf.text(firstLines, margin, y + 4);
+        }
+
+        let cursorY = y + (useImage ? Math.max(drawH, lineHeight * Math.max(1, firstLines.length)) : lineHeight * Math.max(1, firstLines.length));
+        cursorY += 4;
+
+        // Remaining lines at full width
+        if (restLines.length) {
+            const remainingHeight = lineHeight * restLines.length;
+            if (cursorY + remainingHeight > pageHeight - margin) {
+                pdf.addPage();
+                cursorY = margin;
+            }
+            pdf.text(restLines, margin, cursorY);
+            cursorY += remainingHeight;
+        }
+
+        y = cursorY + 6; // spacing before next paragraph
     }
 
     const nameForFile = (currentJourneyStudentName && currentJourneyStudentName.trim()) ? currentJourneyStudentName : 'Student';
@@ -3740,81 +3747,69 @@ downloadJourneyDocxBtn.addEventListener('click', async () => {
             }
             // --- END NEW LOGO LOGIC ---
 
-            // Split summary into neatly spaced paragraphs
-            const summaryLines = summaryText
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0);
-
-            if (summaryLines.length === 0 && summaryText.trim().length === 0) {
-                summaryLines.push(" ");
-            } else if (summaryLines.length === 0) {
-                summaryLines.push(summaryText.trim());
+            // Prepare images (bytes + dims) from selected anecdotes
+            let images = [];
+            if (selectedJourneyAnecdotes && selectedJourneyAnecdotes.length) {
+                try {
+                    const snaps = await Promise.all(
+                        selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id)))
+                    );
+                    const withUrls = snaps
+                        .filter(s => s.exists())
+                        .map(s => s.data())
+                        .filter(a => a && a.imageUrl);
+                    for (const a of withUrls) {
+                        try {
+                            const dimsUrl = await fetchImageAsDataURL(a.imageUrl);
+                            if (!dimsUrl) continue;
+                            const dims = await getImageDimensionsFromDataURL(dimsUrl);
+                            if (!dims.width || !dims.height) continue;
+                            const bytes = await fetchImageAsArrayBuffer(a.imageUrl);
+                            if (!bytes) continue;
+                            images.push({ bytes, dims });
+                        } catch (_) { /* ignore */ }
+                    }
+                } catch (e) {
+                    console.error('Failed to prepare images for DOCX:', e);
+                }
             }
 
-            const paragraphs = summaryLines.map(line => new Paragraph({
-                text: line,
-                spacing: { after: 200 },
-            }));
-            docChildren.push(...paragraphs);
+            // Build AI summary paragraphs, floating one image (if available) beside each paragraph
+            const paragraphs = summaryText
+                .split(/\n\s*\n/)
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+            const safeParagraphs = paragraphs.length ? paragraphs : [summaryText.trim().length ? summaryText.trim() : ' '];
 
-            // Append anecdote images inline next to their text (wrapped)
-            if (selectedJourneyAnecdotes && selectedJourneyAnecdotes.length) {
-                const anecdoteSnaps = await Promise.all(
-                    selectedJourneyAnecdotes.map(id => getDoc(doc(db, 'anecdotes', id)))
-                );
-                const anecdotesWithImages = anecdoteSnaps
-                    .filter(s => s.exists())
-                    .map(s => ({ id: s.id, ...s.data() }))
-                    .filter(a => a && a.imageUrl);
+            for (const p of safeParagraphs) {
+                if (images.length) {
+                    const { bytes, dims } = images.shift();
+                    // target width to allow wrapping
+                    const targetWidthPx = 180;
+                    const scale = Math.min(targetWidthPx / dims.width, 1);
+                    const outW = Math.max(1, Math.round(dims.width * scale));
+                    const outH = Math.max(1, Math.round(dims.height * scale));
 
-                for (const a of anecdotesWithImages) {
-                    try {
-                        const dataUrl = await fetchImageAsDataURL(a.imageUrl);
-                        if (!dataUrl) continue;
-                        const dims = await getImageDimensionsFromDataURL(dataUrl);
-                        if (!dims.width || !dims.height) continue;
-
-                        const imgBytes = await fetchImageAsArrayBuffer(a.imageUrl);
-                        if (!imgBytes) continue;
-
-                        // Scale to a smaller width so text can wrap beside it
-                        const targetWidthPx = 180; // px within docx layout
-                        const scale = Math.min(targetWidthPx / dims.width, 1);
-                        const outW = Math.max(1, Math.round(dims.width * scale));
-                        const outH = Math.max(1, Math.round(dims.height * scale));
-
-                        // Float image to the right with square wrapping so paragraph text flows beside it
-                        docChildren.push(new Paragraph({
-                            children: [
-                                new ImageRun({
-                                    data: imgBytes,
-                                    transformation: { width: outW, height: outH },
-                                    floating: {
-                                        horizontalPosition: { align: docx.HorizontalPositionAlign.RIGHT },
-                                        verticalPosition: { align: docx.VerticalPositionAlign.TOP },
-                                        wrap: {
-                                            type: docx.TextWrappingType.SQUARE,
-                                            side: docx.TextWrappingSide.BOTH,
-                                        },
+                    docChildren.push(new Paragraph({
+                        children: [
+                            new ImageRun({
+                                data: bytes,
+                                transformation: { width: outW, height: outH },
+                                floating: {
+                                    horizontalPosition: { align: docx.HorizontalPositionAlign.RIGHT },
+                                    verticalPosition: { align: docx.VerticalPositionAlign.TOP },
+                                    wrap: {
+                                        type: docx.TextWrappingType.SQUARE,
+                                        side: docx.TextWrappingSide.BOTH,
                                     },
-                                }),
-                            ],
-                        }));
-
-                        // Anecdote paragraph that will wrap around the floated image
-                        if (a.text) {
-                            docChildren.push(new Paragraph({
-                                text: a.text,
-                                spacing: { after: 200 },
-                            }));
-                        }
-
-                        // Spacer paragraph to ensure next content starts after the floated image
-                        docChildren.push(new Paragraph({ spacing: { after: 200 } }));
-                    } catch (e) {
-                        console.error('Error adding anecdote image to DOCX:', e);
-                    }
+                                },
+                            }),
+                            new docx.TextRun({ text: p })
+                        ],
+                        spacing: { after: 200 },
+                    }));
+                } else {
+                    docChildren.push(new Paragraph({ text: p, spacing: { after: 200 } }));
                 }
             }
 
