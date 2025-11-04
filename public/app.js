@@ -84,6 +84,7 @@ const addAnecdoteModal = document.getElementById('addAnecdoteModal');
 const closeAnecdoteModalBtn = document.getElementById('closeAnecdoteModalBtn');
 const addAnecdoteForm = document.getElementById('addAnecdoteForm');
 const assessmentTypeChartCanvas = document.getElementById('assessment-type-chart');
+const contentTypeChartCanvas = document.getElementById('content-type-chart');
 const coreSkillSelect = document.getElementById('coreSkill');
 const microSkillSelect = document.getElementById('microSkill');
 const anecdoteDisplayContainer = document.getElementById('anecdote-display-container');
@@ -244,7 +245,8 @@ let anecdoteChart = null,
     allSkillsChart = null,
     messagesChart = null,
     assessmentTypeChart = null,
-    studentAssessmentTypeChart = null;
+    studentAssessmentTypeChart = null,
+    contentTypeChart = null;
 let selectedJourneyAnecdotes = [];
 let currentJourneyStudentName = '';
 
@@ -1348,6 +1350,7 @@ onAuthStateChanged(auth, async (user) => {
             listenForStudentRecords();
             listenForAllAnecdotes();
             listenForAssessmentTypeDistribution();
+            listenForContentTypeDistribution();
         } else if (currentUserRole === 'parent') {
             showView(parentDashboardView);
             const q1 = query(collection(db, "students"), where("parent1Email", "==", user.email));
@@ -2949,6 +2952,78 @@ function renderAssessmentTypeChart(canvas, counts, scope) {
     }
 }
 
+// Listen for content type distribution across the school (dashboard pie chart)
+function listenForContentTypeDistribution() {
+    if (!currentUserSchoolId || !contentTypeChartCanvas) return;
+    const q = query(collection(db, 'anecdotes'), where('schoolId', '==', currentUserSchoolId));
+    onSnapshot(q, (snapshot) => {
+        const counts = { picture: 0, product: 0, comment: 0 };
+        snapshot.forEach(docSnap => {
+            const t = (docSnap.data().contentType || '').toLowerCase();
+            if (t && Object.prototype.hasOwnProperty.call(counts, t)) counts[t]++;
+        });
+        renderContentTypeChart(contentTypeChartCanvas, counts);
+    }, (error) => console.error('Error listening for content types:', error));
+}
+
+function renderContentTypeChart(canvas, counts) {
+    if (!canvas) return;
+    const labels = ['picture', 'product', 'comment'];
+    const data = labels.map(l => counts[l] || 0);
+    const total = data.reduce((a, b) => a + b, 0);
+
+    const ctx = canvas.getContext('2d');
+    const style = getComputedStyle(document.body);
+    const baseColor = style.getPropertyValue('--chart-color-2').trim() || '#2196f3';
+    const colors = createPieColors(ctx, baseColor);
+
+    try {
+        const containerWidth = resolveChartContainerWidth({ canvas });
+        const targetHeight = computeResponsiveChartHeight(containerWidth);
+        const clamped = Math.max(260, Math.min(targetHeight, 420));
+        canvas.style.height = `${clamped}px`;
+        if (canvas.parentNode && canvas.parentNode.style) {
+            canvas.parentNode.style.height = `${clamped}px`;
+        }
+    } catch (_) { /* ignore sizing errors */ }
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true, position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const value = context.parsed || 0;
+                        const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                        return `${context.label}: ${value} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    if (contentTypeChart) { destroyChartInstance(contentTypeChart); contentTypeChart = null; }
+
+    const cfg = {
+        type: 'pie',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors,
+                borderColor: colors.map(() => 'rgba(0,0,0,0.08)'),
+                borderWidth: 1
+            }]
+        },
+        options
+    };
+
+    contentTypeChart = new Chart(ctx, cfg);
+    attachResponsivePieHandler(contentTypeChart);
+}
+
 // Keep pie charts responsive but bounded, similar to bar charts
 function attachResponsivePieHandler(chart) {
     if (!chart) return;
@@ -3121,6 +3196,7 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
         microSkill: microSkillSelect.value,
         text: document.getElementById('anecdoteText').value,
         assessmentType: (document.getElementById('assessmentType')?.value || '').trim(),
+        contentType: (document.getElementById('contentType')?.value || '').trim(),
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser.uid,
         imageUrl: null,
@@ -3134,6 +3210,11 @@ addAnecdoteForm.addEventListener('submit', async (e) => {
     }
     if(!anecdoteData.assessmentType) {
         showMessage("Please select a Type of Assessment.");
+        loadingOverlay.classList.add('hidden');
+        return;
+    }
+    if(!anecdoteData.contentType) {
+        showMessage("Please select a Content Type.");
         loadingOverlay.classList.add('hidden');
         return;
     }
