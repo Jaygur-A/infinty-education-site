@@ -4810,7 +4810,8 @@ function goToCheckout(priceId) {
 
     createCheckoutSession({ priceId: priceId })
         .then(result => {
-            const stripe = Stripe('pk_test_51NBdbQKlr4wm1W93LWadLvepbsPkXhRsEp9KauHIu3oZC9eDJHZOJrGxQPnoY9m9M9lUo9u2m4dc3h2YSNG9JIEp00IzlBS0pT'); 
+            const pk = (window.__CONFIG && window.__CONFIG.STRIPE_PUBLISHABLE_KEY) || 'pk_test_51NBdbQKlr4wm1W93LWadLvepbsPkXhRsEp9KauHIu3oZC9eDJHZOJrGxQPnoY9m9M9lUo9u2m4dc3h2YSNG9JIEp00IzlBS0pT';
+            const stripe = Stripe(pk);
             return stripe.redirectToCheckout({ sessionId: result.data.id });
         })
         .catch(error => {
@@ -4828,14 +4829,14 @@ if (closeSubscriptionModalBtn) {
 
 if (selectMonthlyPlanBtn) {
     selectMonthlyPlanBtn.addEventListener('click', () => {
-        const monthlyPriceId = 'price_1SGKkvKlr4wm1W93e1TWXgPH'; 
+        const monthlyPriceId = (window.__CONFIG && window.__CONFIG.STRIPE_PRICE_MONTHLY) || 'price_1SGKkvKlr4wm1W93e1TWXgPH';
         goToCheckout(monthlyPriceId);
     });
 }
 
 if (selectYearlyPlanBtn) {
     selectYearlyPlanBtn.addEventListener('click', () => {
-        const yearlyPriceId = 'price_1SGkBFKlr4wm1W939grYlueR'; 
+        const yearlyPriceId = (window.__CONFIG && window.__CONFIG.STRIPE_PRICE_YEARLY) || 'price_1SGkBFKlr4wm1W939grYlueR';
         goToCheckout(yearlyPriceId);
     });
 }
