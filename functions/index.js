@@ -1,14 +1,20 @@
-require('dotenv').config(); // Loads .env file
+require('dotenv').config(); // Loads .env file when present (local/dev)
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const stripe = require("stripe")(process.env.STRIPE_SECRET); // Uses key from .env
 const { OpenAI } = require("openai");
+
+// Prefer environment variables; fall back to Firebase Functions config
+const stripeSecret = process.env.STRIPE_SECRET || (functions.config().stripe && functions.config().stripe.secret);
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || (functions.config().stripe && functions.config().stripe.webhook_secret);
+const openaiKey = process.env.OPENAI_KEY || (functions.config().openai && functions.config().openai.key);
+
+const stripe = require("stripe")(stripeSecret);
 
 admin.initializeApp();
 const db = admin.firestore();
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_KEY, // Uses key from .env
+  apiKey: openaiKey,
 });
 
 // Helper function to delay execution
@@ -56,7 +62,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
     console.log("[fulfillSubscription] Webhook received.");
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = webhookSecret;
     let event;
 
     try {
@@ -139,7 +145,7 @@ exports.fulfillSubscription = functions.https.onRequest(async (req, res) => {
 exports.handleSubscriptionChange = functions.https.onRequest(async (req, res) => {
     console.log("[handleSubscriptionChange] Webhook received.");
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = webhookSecret;
     let event;
     try {
         event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);

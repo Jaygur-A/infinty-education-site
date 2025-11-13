@@ -29,7 +29,8 @@ const auth = getAuth(app);
 window.auth = auth;
 const db = getFirestore(app);
 const storage = getStorage(app);
-const functions = getFunctions(app);
+// Explicitly set functions region to avoid mismatch
+const functions = getFunctions(app, 'us-central1');
 
 // --- DOM Elements (Complete List) ---
 const loadingOverlay = document.getElementById('loading-overlay');
