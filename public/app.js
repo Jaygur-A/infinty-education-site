@@ -28,6 +28,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 window.auth = auth;
 const db = getFirestore(app);
+// Shared Google provider + popup guard
+const googleProvider = new GoogleAuthProvider();
+let isAuthPopupOpen = false;
 const storage = getStorage(app);
 // Explicitly set functions region to avoid mismatch
 const functions = getFunctions(app, 'us-central1');
@@ -4784,7 +4787,7 @@ if (subscribeBtn) {
         } else {
             sessionStorage.setItem('isSubscribing', 'true');
             showMessage("Please sign in with Google to subscribe.");
-            signInWithPopup(auth, new GoogleAuthProvider());
+            if (!isAuthPopupOpen) { isAuthPopupOpen = true; signInWithPopup(auth, googleProvider).catch(err => { if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') { console.error('Sign-in popup error:', err); } }).finally(() => { isAuthPopupOpen = false; }); }
         }
     });
 }
@@ -4799,7 +4802,7 @@ if (subscribeBtnInWelcome) {
         } else {
             sessionStorage.setItem('isSubscribing', 'true');
             showMessage("Please sign in with Google to subscribe.");
-            signInWithPopup(auth, new GoogleAuthProvider());
+            if (!isAuthPopupOpen) { isAuthPopupOpen = true; signInWithPopup(auth, googleProvider).catch(err => { if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') { console.error('Sign-in popup error:', err); } }).finally(() => { isAuthPopupOpen = false; }); }
         }
     });
 }
@@ -5111,3 +5114,4 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
