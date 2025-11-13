@@ -1329,7 +1329,12 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // Step 6: Fetch Skills & Route
-        await fetchSchoolSkills();
+        // Only fetch school-scoped skills when we actually know the school.
+        if (currentUserSchoolId) {
+            await fetchSchoolSkills();
+        } else {
+            console.log("Skipping skills fetch: no schoolId (role:", currentUserRole, ")");
+        }
 
         const isAdminType = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         usersLink.classList.toggle('hidden', !isAdminType);
@@ -4820,7 +4825,11 @@ function goToCheckout(priceId) {
         })
         .catch(error => {
             console.error("Error redirecting to checkout:", error);
-            showMessage("Could not initiate subscription. Please try again.");
+            // Surface more actionable context to help diagnose env mismatches
+            const pk = (window.__CONFIG && window.__CONFIG.STRIPE_PUBLISHABLE_KEY) || '';
+            const modeHint = pk.startsWith('pk_live_') ? 'live' : (pk.startsWith('pk_test_') ? 'test' : 'unknown');
+            console.warn("Stripe publishable key mode:", modeHint, " priceId:", priceId);
+            showMessage("Could not initiate subscription. Please try again or contact support.");
             loadingOverlay.classList.add('hidden');
         });
 }

@@ -33,6 +33,13 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
     console.error("Authentication check failed.");
     throw new functions.https.HttpsError("unauthenticated", "You must be logged in to subscribe.");
   }
+  if (!stripeSecret) {
+    console.error("Stripe secret is not configured (stripe.secret env missing).");
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "Stripe is not configured. Please contact support."
+    );
+  }
   const { priceId } = data;
   const userId = context.auth.uid;
   if (!priceId) {
@@ -53,6 +60,14 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
     console.log("Stripe session created:", session.id);
     return { id: session.id };
   } catch (error) {
+    // Provide a more actionable message for common misconfigurations, without leaking internals
+    if (error && error.type === 'StripeInvalidRequestError') {
+      console.error("Stripe invalid request (likely price ID/account mismatch):", error.message);
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "Invalid Stripe price or account configuration."
+      );
+    }
     console.error("Stripe Checkout Error:", error);
     throw new functions.https.HttpsError("internal", "Unable to create checkout session.");
   }
