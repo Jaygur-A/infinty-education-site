@@ -2,11 +2,14 @@ require('dotenv').config(); // Loads .env file when present (local/dev)
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { OpenAI } = require("openai");
+const sgMail = require('@sendgrid/mail');
 
 // Prefer environment variables; fall back to Firebase Functions config
 const stripeSecret = process.env.STRIPE_SECRET || (functions.config().stripe && functions.config().stripe.secret);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || (functions.config().stripe && functions.config().stripe.webhook_secret);
 const openaiKey = process.env.OPENAI_KEY || (functions.config().openai && functions.config().openai.key);
+const sendgridKey = process.env.SENDGRID_API_KEY || (functions.config().sendgrid && functions.config().sendgrid.key);
+const sendgridFrom = process.env.SENDGRID_FROM || (functions.config().sendgrid && functions.config().sendgrid.from);
 
 const stripe = require("stripe")(stripeSecret);
 
@@ -16,6 +19,18 @@ const db = admin.firestore();
 const openai = new OpenAI({
   apiKey: openaiKey,
 });
+
+// Initialize SendGrid if available
+if (sendgridKey) {
+  try {
+    sgMail.setApiKey(sendgridKey);
+    console.log("SendGrid initialized.");
+  } catch (e) {
+    console.error("Failed to initialize SendGrid:", e);
+  }
+} else {
+  console.log("SendGrid key not configured; mail queue processor will be a no-op.");
+}
 
 // Helper function to delay execution
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -384,3 +399,59 @@ exports.sendNewMessageNotification = functions.firestore.document("chats/{chatId
     }
     return null;
 });
+
+/*
+ * ===================================================================
+ * EMAIL SENDING (Processes Firestore 'mail' queue via SendGrid)
+ * ===================================================================
+ */
+
+exports.processOutgoingMail = functions.firestore
+  .document('mail/{docId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data() || {};
+    if (!sendgridKey) {
+      console.warn('[processOutgoingMail] SENDGRID_API_KEY not set; skipping send.');
+      return null;
+    }
+
+    const msg = data.message || {};
+    const to = data.to || msg.to;
+    const subject = msg.subject || data.subject || '(no subject)';
+    const text = msg.text || data.text;
+    const html = msg.html || data.html;
+    const from = data.from || msg.from || sendgridFrom;
+
+    if (!to || !from) {
+      console.error('[processOutgoingMail] Missing required fields.', { hasTo: !!to, hasFrom: !!from });
+      try {
+        await snap.ref.update({
+          status: 'error',
+          error: 'Missing required fields: to/from',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
+      return null;
+    }
+
+    try {
+      await sgMail.send({ to, from, subject, text, html });
+      await snap.ref.update({
+        status: 'sent',
+        deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`[processOutgoingMail] Sent email to ${Array.isArray(to) ? to.join(', ') : to}`);
+    } catch (err) {
+      console.error('[processOutgoingMail] SendGrid send failed:', err);
+      try {
+        await snap.ref.update({
+          status: 'error',
+          error: err && (err.message || err.toString()),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (_) {}
+    }
+    return null;
+  });
+
+// (Temporary test endpoints were removed after verification)
