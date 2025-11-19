@@ -229,6 +229,7 @@ const deleteSkillConfirmModal = document.getElementById('delete-skill-confirm-mo
 const cancelDeleteSkillBtn = document.getElementById('cancel-delete-skill-btn');
 const confirmDeleteSkillBtn = document.getElementById('confirm-delete-skill-btn');
 const schoolLogoSettings = document.getElementById('school-logo-settings');
+const schoolThemeSettings = document.getElementById('school-theme-settings');
 const schoolLogoInput = document.getElementById('school-logo-input');
 const uploadSchoolLogoBtn = document.getElementById('upload-school-logo-btn');
 const schoolLogoPreviewContainer = document.getElementById('school-logo-preview-container');
@@ -1306,7 +1307,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // Step 5: Mandatory Onboarding / Inactive Check
-        if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
+        if ((currentUserRole === 'schoolAdmin' || currentUserRole === 'superAdmin') && currentUserSchoolId) {
             const schoolRef = doc(db, "schools", currentUserSchoolId);
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists()) {
@@ -4420,6 +4421,12 @@ async function showSettingsPage() {
     const user = auth.currentUser;
     if (!user) return;
 
+    // Ensure School Theme section is visible for schoolAdmin and superAdmin
+    if (schoolThemeSettings) {
+        const canManageTheme = ['schoolAdmin', 'superAdmin'].includes(currentUserRole) && !!currentUserSchoolId;
+        schoolThemeSettings.classList.toggle('hidden', !canManageTheme);
+    }
+
     const userRef = doc(db, "users", user.uid);
     const docSnap = await getDoc(userRef);
 
@@ -4517,7 +4524,8 @@ function applyTheme(themeName, customThemeConfig = null, options = {}) {
  * @param {string} themeName - The name of the theme to save
  */
 async function saveThemePreference(themeName, customThemeConfig = null) {
-    if (!currentUserSchoolId || currentUserRole !== 'schoolAdmin') {
+    const canManageTheme = ['schoolAdmin', 'superAdmin'].includes(currentUserRole);
+    if (!currentUserSchoolId || !canManageTheme) {
         return;
     }
     if (!themeName) return;
