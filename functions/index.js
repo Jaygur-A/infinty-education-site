@@ -379,9 +379,19 @@ exports.generateJourneySummary = functions.https.onCall(async (data, context) =>
  * NOTIFICATION FUNCTIONS (Firestore Triggers)
  * ===================================================================
  */
-
 exports.sendNewMessageNotification = functions.firestore.document("chats/{chatId}/messages/{messageId}").onCreate(async (snap, context) => {
-    const message = snap.data();
+    const message = snap.data() || {};
+    const chatId = context.params.chatId;
+    try {
+        const chatRef = db.collection('chats').doc(chatId);
+        await chatRef.set({
+            participants: [message.senderId, message.recipientId].filter(Boolean),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    } catch (err) {
+        console.error('[sendNewMessageNotification] Failed ensuring chat doc:', err);
+        // Continue; notification is best-effort
+    }
     if (message.senderId === message.recipientId) { return null; }
     
     const recipientSnap = await db.collection("users").doc(message.recipientId).get();
