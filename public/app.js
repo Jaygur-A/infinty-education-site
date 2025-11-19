@@ -184,6 +184,8 @@ const messageModalStudentName = document.getElementById('message-modal-student-n
 const messageOptionsContainer = document.getElementById('message-options-container');
 const settingsLink = document.getElementById('settings-link');
 const settingsView = document.getElementById('settings-view');
+const superadminSchoolPicker = document.getElementById('superadmin-school-picker');
+const superadminSchoolSelect = document.getElementById('superadmin-school-select');
 const messageEmailsToggle = document.getElementById('message-emails-toggle');
 const continuumTableContainer = document.getElementById('continuum-table-container');
 const rubricView = document.getElementById('rubric-view');
@@ -455,6 +457,12 @@ function updateBulkMicroSkillsDropdown(selectedCoreSkill) {
 let currentUserRole = null;
 let currentUserClassroomId = null;
 let currentUserSchoolId = null;
+let selectedSchoolId = null; // SuperAdmin-selected school context
+
+function getActiveSchoolId() {
+    if (currentUserRole === 'superAdmin' && selectedSchoolId) return selectedSchoolId;
+    return currentUserSchoolId;
+}
 let teachers = []; // Cache for teacher list
 let schoolCoreSkills = [];
 let schoolMicroSkills = [];
@@ -1247,7 +1255,7 @@ const updateMicroSkillsDropdown = (selectedCoreSkill) => {
 onAuthStateChanged(auth, async (user) => {
     console.log("onAuthStateChanged fired. User:", user ? user.email : "none");
     loadingOverlay.classList.remove('hidden');
-    currentUserRole = null; currentUserClassroomId = null; currentUserSchoolId = null;
+    currentUserRole = null; currentUserClassroomId = null; currentUserSchoolId = null; selectedSchoolId = null;
 
     if (user) {
         // Step 1: Force Token Refresh
@@ -1307,8 +1315,8 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // Step 5: Mandatory Onboarding / Inactive Check
-        if ((currentUserRole === 'schoolAdmin' || currentUserRole === 'superAdmin') && currentUserSchoolId) {
-            const schoolRef = doc(db, "schools", currentUserSchoolId);
+        if ((currentUserRole === 'schoolAdmin' || currentUserRole === 'superAdmin') && getActiveSchoolId()) {
+            const schoolRef = doc(db, "schools", getActiveSchoolId());
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists()) {
 				const schoolData = schoolSnap.data();
@@ -2685,10 +2693,11 @@ skillsLink.addEventListener('click', (e) => {
 let schoolLogoUrlCache = null; 
 async function getSchoolLogoUrl() {
     if (schoolLogoUrlCache) return schoolLogoUrlCache; // Use cache if available
-    if (!currentUserSchoolId) return null;
+    const activeId = getActiveSchoolId();
+    if (!activeId) return null;
 
     try {
-        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        const schoolRef = doc(db, "schools", activeId);
         const schoolSnap = await getDoc(schoolRef);
         if (schoolSnap.exists() && schoolSnap.data().logoUrl) {
             schoolLogoUrlCache = schoolSnap.data().logoUrl; // Save to cache
@@ -2807,6 +2816,43 @@ if (addTeacherBtn) {
     addTeacherBtn.addEventListener('click', () => {
         if (currentUserRole !== 'schoolAdmin') return;
         addTeacherModal?.classList.remove('hidden');
+    });
+}
+
+async function populateSuperadminSchoolSelect() {
+    if (!superadminSchoolSelect) return;
+    superadminSchoolSelect.innerHTML = '<option value="" disabled selected>Select a school…</option>';
+    try {
+        const schoolsSnap = await getDocs(collection(db, 'schools'));
+        schoolsSnap.forEach(docSnap => {
+            const data = docSnap.data() || {};
+            const opt = document.createElement('option');
+            opt.value = docSnap.id;
+            opt.textContent = data.name || `(unnamed) ${docSnap.id}`;
+            superadminSchoolSelect.appendChild(opt);
+        });
+    } catch (e) {
+        console.error('Failed loading schools for superadmin:', e);
+    }
+}
+
+if (superadminSchoolSelect) {
+    superadminSchoolSelect.addEventListener('change', async (e) => {
+        selectedSchoolId = e.target.value || null;
+        schoolLogoUrlCache = null;
+        if (selectedSchoolId) {
+            try {
+                const schoolSnap = await getDoc(doc(db, 'schools', selectedSchoolId));
+                if (schoolSnap.exists()) {
+                    const data = schoolSnap.data();
+                    applyTheme(data.theme, data.customTheme);
+                }
+            } catch (err) {
+                console.error('Error loading selected school theme:', err);
+            }
+        }
+        // Update settings visibility based on selection
+        showSettingsPage();
     });
 }
 if (closeAddTeacherModalBtn) {
@@ -3948,7 +3994,8 @@ async function showUsersPage() {
         }
         
         snapshot.forEach(doc => {
-            const user = doc.data();
+            const raw = doc.data();
+            const user = { ...raw, uid: raw.uid || doc.id };
             const tr = document.createElement('tr');
 
             const isSelf = (auth.currentUser && user.uid === auth.currentUser.uid);
@@ -3966,6 +4013,7 @@ async function showUsersPage() {
                         <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Teacher</option>
                         <option value="schoolAdmin" ${user.role === 'schoolAdmin' ? 'selected' : ''}>School Admin</option>
                         ${currentUserRole === 'superAdmin' ? `<option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>` : ''}
+                        ${currentUserRole === 'superAdmin' ? `<option value=\"superAdmin\" ${user.role === 'superAdmin' ? 'selected' : ''}>Super Admin</option>` : ''}
                     </select>
                 </td>
             `;;
@@ -3981,6 +4029,11 @@ async function updateUserRole(userId, newRole) {
     // Prevent self-modification of role
     if (auth.currentUser && userId === auth.currentUser.uid) {
         showMessage("You cannot change your own role.");
+        return;
+    }
+    // Simple client-side guard: only superAdmin may assign admin/superAdmin
+    if (['admin','superAdmin'].includes(newRole) && currentUserRole !== 'superAdmin') {
+        showMessage("Only Super Admin can assign admin roles.");
         return;
     }
     const userRef = doc(db, "users", userId);
@@ -4017,8 +4070,8 @@ async function populateTeacherDropdown(dropdownElement) {
     dropdownElement.innerHTML = '<option value="">Select a teacher</option>';
 
     // Log the school ID being used for the query
-    console.log("Querying teachers for schoolId:", currentUserSchoolId); // New Log
-    if (!currentUserSchoolId) {
+    console.log("Querying teachers for schoolId:", getActiveSchoolId()); // New Log
+    if (!getActiveSchoolId()) {
         console.error("Cannot populate teachers: currentUserSchoolId is missing."); // New Log
         dropdownElement.innerHTML = '<option value="">Could not find school ID</option>';
         return;
@@ -4026,7 +4079,7 @@ async function populateTeacherDropdown(dropdownElement) {
 
     const usersRef = collection(db, "users");
     // Ensure this query includes 'schoolAdmin'
-    const q = query(usersRef, where("schoolId", "==", currentUserSchoolId), where("role", "in", ["teacher", "admin", "superAdmin", "schoolAdmin"]));
+    const q = query(usersRef, where("schoolId", "==", getActiveSchoolId()), where("role", "in", ["teacher", "admin", "superAdmin", "schoolAdmin"]));
 
     try {
         const snapshot = await getDocs(q);
@@ -4398,10 +4451,12 @@ messageOptionsContainer.addEventListener('click', (e) => {
 });
 
 function showSchoolLogoSettings() {
-    if (currentUserRole === 'schoolAdmin' && currentUserSchoolId) {
+    const activeId = getActiveSchoolId();
+    const canManageBranding = ['schoolAdmin', 'superAdmin'].includes(currentUserRole) && !!activeId;
+    if (canManageBranding) {
         schoolLogoSettings.classList.remove('hidden');
         // Check if a logo already exists and show it
-        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        const schoolRef = doc(db, "schools", activeId);
         getDoc(schoolRef).then(schoolSnap => {
             if (schoolSnap.exists() && schoolSnap.data().logoUrl) {
                 schoolLogoPreview.src = schoolSnap.data().logoUrl;
@@ -4421,9 +4476,14 @@ async function showSettingsPage() {
     const user = auth.currentUser;
     if (!user) return;
 
-    // Ensure School Theme section is visible for schoolAdmin and superAdmin
+    // SuperAdmin school picker visibility
+    if (superadminSchoolPicker) {
+        superadminSchoolPicker.classList.toggle('hidden', currentUserRole !== 'superAdmin');
+    }
+
+    // Ensure School Theme section is visible for schoolAdmin and superAdmin when an active school is set
     if (schoolThemeSettings) {
-        const canManageTheme = ['schoolAdmin', 'superAdmin'].includes(currentUserRole) && !!currentUserSchoolId;
+        const canManageTheme = ['schoolAdmin', 'superAdmin'].includes(currentUserRole) && !!getActiveSchoolId();
         schoolThemeSettings.classList.toggle('hidden', !canManageTheme);
     }
 
@@ -4436,6 +4496,10 @@ async function showSettingsPage() {
     }
 
     initializeThemeControls();
+    // Also update branding panel visibility based on role and active school selection
+    if (typeof showSchoolLogoSettings === 'function') {
+        showSchoolLogoSettings();
+    }
 
     if (currentTheme === 'custom') {
         const config = normalizeCustomThemeConfig(currentCustomTheme || getCustomThemeFromInputs() || savedCustomTheme || defaultCustomThemeConfig);
@@ -4525,7 +4589,8 @@ function applyTheme(themeName, customThemeConfig = null, options = {}) {
  */
 async function saveThemePreference(themeName, customThemeConfig = null) {
     const canManageTheme = ['schoolAdmin', 'superAdmin'].includes(currentUserRole);
-    if (!currentUserSchoolId || !canManageTheme) {
+    const activeId = getActiveSchoolId();
+    if (!activeId || !canManageTheme) {
         return;
     }
     if (!themeName) return;
@@ -4547,7 +4612,7 @@ async function saveThemePreference(themeName, customThemeConfig = null) {
     setThemeSaveInProgress(true);
     loadingOverlay.classList.remove('hidden');
     try {
-        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        const schoolRef = doc(db, "schools", activeId);
         const payload = themeName === 'custom'
             ? { theme: themeName, customTheme: normalizedConfig }
             : { theme: themeName, customTheme: deleteField() };
@@ -5097,7 +5162,7 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         showMessage("Please select an image file first.");
         return;
     }
-    if (!currentUserSchoolId) {
+    if (!getActiveSchoolId()) {
         showMessage("Could not find your school ID.");
         return;
     }
@@ -5105,7 +5170,7 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
     loadingOverlay.classList.remove('hidden');
     try {
         // 1. Define storage path
-        const storageRef = ref(storage, `schools/${currentUserSchoolId}/logo/school-logo.${file.name.split('.').pop()}`);
+        const storageRef = ref(storage, `schools/${getActiveSchoolId()}/logo/school-logo.${file.name.split('.').pop()}`);
         
         // 2. Upload the file
         const uploadResult = await uploadBytes(storageRef, file);
@@ -5114,7 +5179,7 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         const downloadURL = await getDownloadURL(uploadResult.ref);
         
         // 4. Save URL to school's Firestore document
-        const schoolRef = doc(db, "schools", currentUserSchoolId);
+        const schoolRef = doc(db, "schools", getActiveSchoolId());
         await setDoc(schoolRef, { logoUrl: downloadURL }, { merge: true });
         schoolLogoUrlCache = downloadURL; // Ensure future exports use the new logo immediately
         if (navSchoolLogo) navSchoolLogo.src = downloadURL; // Update header logo immediately
