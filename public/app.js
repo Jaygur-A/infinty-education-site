@@ -2150,11 +2150,10 @@ function renderAllSkillsChart(data) {
     const hasValues = values.some(value => value > 0);
     const ctx = allSkillsChartCanvas.getContext('2d');
     const style = getComputedStyle(document.body);
-    const chartColor = style.getPropertyValue('--chart-color-1').trim();
-    const visuals = createBarVisuals(ctx, chartColor);
     const options = createBaseBarOptions(style);
     const suggestedMax = getSuggestedYAxisMax(values);
     const valueStep = values.length ? Math.max(1, Math.ceil(suggestedMax / 6)) : 1;
+    const retroBarColor = '#93A2B9';
 
     options.scales.y.suggestedMax = suggestedMax;
     options.scales.y.ticks.stepSize = valueStep;
@@ -2190,10 +2189,10 @@ function renderAllSkillsChart(data) {
             datasets: [{
                 label: 'Total Anecdotes',
                 data: values,
-                backgroundColor: visuals.background,
-                borderColor: visuals.border,
-                hoverBackgroundColor: visuals.hoverBackground,
-                hoverBorderColor: visuals.hoverBorder,
+                backgroundColor: retroBarColor,
+                borderColor: retroBarColor,
+                hoverBackgroundColor: retroBarColor,
+                hoverBorderColor: retroBarColor,
                 borderWidth: 2,
                 borderRadius: 12,
                 borderSkipped: false,
@@ -2946,6 +2945,8 @@ function createPieColors(ctx, colorValue) {
     return [c1, c2, c3];
 }
 
+const RETRO_PIE_COLORS = ['#A85D26', '#93A2B9', '#7C8456'];
+
 function renderAssessmentTypeChart(canvas, counts, scope) {
     if (!canvas) return;
     const labels = ['As', 'Of', 'For'];
@@ -2953,8 +2954,7 @@ function renderAssessmentTypeChart(canvas, counts, scope) {
     const total = data.reduce((a, b) => a + b, 0);
 
     const ctx = canvas.getContext('2d');
-    // Use distinct, high-contrast colors per slice
-    const colors = ['#4caf50', '#2196f3', '#ff9800']; // green, blue, orange
+    const colors = RETRO_PIE_COLORS;
 
     // Ensure a bounded height to prevent infinite growth
     try {
@@ -3032,8 +3032,7 @@ function renderContentTypeChart(canvas, counts) {
     const total = data.reduce((a, b) => a + b, 0);
 
     const ctx = canvas.getContext('2d');
-    // Use distinct, high-contrast colors per slice
-    const colors = ['#9c27b0', '#03a9f4', '#8bc34a']; // purple, light blue, light green
+    const colors = RETRO_PIE_COLORS;
 
     try {
         const containerWidth = resolveChartContainerWidth({ canvas });
