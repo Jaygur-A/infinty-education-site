@@ -1640,16 +1640,27 @@ async function showStudentDetailPage(studentId) {
         console.error("CRITICAL: aligned-skills-grid element not found!");
         return;
     }
+    alignedSkillsGrid.className = 'flex flex-col space-y-6';
     alignedSkillsGrid.innerHTML = '';
     
     if (schoolCoreSkills.length === 0) {
-        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 col-span-full">No skills framework found.</p>';
+        alignedSkillsGrid.innerHTML = '<p class="text-gray-500 text-center italic">No skills framework found.</p>';
     } else {
+        const retroSkillColors = {
+            'Vitality': '#B5C4A1',
+            'Integrity': '#A95C2E',
+            'Curiosity': '#D9932E',
+            'Critical Thinking': '#726A36',
+            'Fields of Knowledge': '#9BADBF'
+        };
+
         schoolCoreSkills.forEach(coreSkill => {
             const skillCard = document.createElement('div');
-            skillCard.className = 'skill-card p-4 border rounded-lg text-center cursor-pointer';
+            const backgroundColor = retroSkillColors[coreSkill.name] || '#6B5E36';
+            skillCard.className = 'w-full max-w-4xl mx-auto rounded-xl p-5 text-white uppercase font-bold italic text-center tracking-wide shadow-lg cursor-pointer transform transition-transform duration-150 hover:scale-[1.01]';
+            skillCard.style.backgroundColor = backgroundColor;
             skillCard.dataset.skill = coreSkill.name;
-            skillCard.innerHTML = `<h3 class="font-bold">${coreSkill.name}</h3>`;
+            skillCard.textContent = coreSkill.name;
             skillCard.addEventListener('click', () => {
                  listenForAnecdotes(currentStudentId, coreSkill.name, anecdoteChartCanvas, anecdoteListTitle, anecdoteDisplayContainer);
             });
