@@ -246,6 +246,8 @@ const customThemePreviewPrimary = customThemePreview ? customThemePreview.queryS
 const customThemePreviewSecondary = customThemePreview ? customThemePreview.querySelector('[data-preview="secondary"]') : null;
 const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
 const saveThemeSelectionBtn = document.getElementById('save-theme-selection-btn');
+const dashboardLeftStudentGrid = document.getElementById('dashboard-left-student-grid');
+const retroHeaderText = document.querySelector('.retro-header-text');
 
 // App State
 let currentStudentId = null,
@@ -1297,6 +1299,19 @@ onAuthStateChanged(auth, async (user) => {
         }
         console.log(`User logged in. Final role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
 
+		if (retroHeaderText) {
+            // If teacher, show their name. If Admin, show "School Admin" or School Name
+            if(currentUserRole === 'teacher') {
+                retroHeaderText.textContent = userData.displayName || "Teacher";
+            } else if (['schoolAdmin', 'superAdmin', 'admin'].includes(currentUserRole)) {
+                retroHeaderText.textContent = "Administrator"; 
+                // Or fetch school name if preferred:
+                // retroHeaderText.textContent = schoolSnap.data().name; 
+            } else {
+                retroHeaderText.textContent = "Dashboard";
+            }
+        }
+		
         // Step 4: App Setup
         document.body.classList.remove('login-background', 'bg-overlay');
         appContainer.classList.remove('hidden');
@@ -1532,15 +1547,33 @@ function listenForStudentRecords() {
 
     // We must have a schoolId to fetch school-specific data.
     if (!currentUserSchoolId) {
-        studentGrid.innerHTML = '';
-        noStudentsMessage.classList.remove('hidden');
-        noStudentsMessage.querySelector('p').textContent = "Could not identify your school.";
+        if(dashboardLeftStudentGrid) dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">School not identified.</p>';
         return;
     }
 
     const studentsRef = collection(db, "students");
 
-    // Teachers: show single grid with only their classroom
+    // Helper to render a single student card in Retro style
+    const createRetroStudentCard = (student, docId) => {
+        const div = document.createElement('div');
+        div.className = 'student-grade-wrapper group'; // Uses the wrapper class from CSS
+        
+        // Parse Grade: "Grade 5" -> "5", "K" -> "K"
+        let gradeDisplay = student.grade ? student.grade.replace(/grade/i, '').trim() : '?';
+        if(gradeDisplay === '') gradeDisplay = '?';
+
+        div.innerHTML = `
+            <div class="student-grade-circle group-hover:bg-red-700 transition-colors">
+                ${gradeDisplay}
+            </div>
+            <span class="student-name-retro group-hover:text-red-800">${student.name || 'Unnamed'}</span>
+        `;
+        
+        div.addEventListener('click', () => showStudentDetailPage(docId));
+        return div;
+    };
+
+    // --- TEACHER VIEW ---
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
         const q = query(
             studentsRef,
@@ -1548,106 +1581,42 @@ function listenForStudentRecords() {
             where("classroomId", "==", currentUserClassroomId)
         );
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
-            studentGrid.innerHTML = '';
-            noStudentsMessage.classList.toggle('hidden', !snapshot.empty);
-            snapshot.forEach(doc => {
-                const student = doc.data();
-                const studentCard = document.createElement('div');
-                studentCard.className = 'flex flex-col items-center text-center cursor-pointer group';
-                studentCard.innerHTML = `<div class=\"w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all\"><span class=\"text-2xl student-avatar-text\">${student.name ? student.name.charAt(0).toUpperCase() : '?'}<\/span><\/div><p class=\"font-medium text-gray-700 group-hover:text-green-600\">${student.name || 'Unnamed'}<\/p>`;
-                studentCard.addEventListener('click', () => showStudentDetailPage(doc.id));
-                studentGrid.appendChild(studentCard);
-            });
+            if(dashboardLeftStudentGrid) {
+                dashboardLeftStudentGrid.innerHTML = '';
+                if (snapshot.empty) {
+                    dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students found.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        dashboardLeftStudentGrid.appendChild(createRetroStudentCard(doc.data(), doc.id));
+                    });
+                }
+            }
         });
         return;
     }
 
-    // Admins: group students by classroom sections
+    // --- ADMIN VIEW (Aggregated) ---
     if (['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole)) {
-        const classroomsRef = collection(db, 'classrooms');
-        const classroomsQuery = query(
-            classroomsRef,
-            where('schoolId', '==', currentUserSchoolId),
-            orderBy('className')
-        );
-
-        unsubscribeFromClassrooms = onSnapshot(classroomsQuery, (classroomsSnap) => {
-            // Clear existing UI and per-class listeners
-            studentGrid.innerHTML = '';
-            for (const [cid, unsub] of classroomStudentUnsubs.entries()) {
-                try { unsub(); } catch (_) {}
-                classroomStudentUnsubs.delete(cid);
-            }
-
-            if (classroomsSnap.empty) {
-                noStudentsMessage.classList.remove('hidden');
-                noStudentsMessage.querySelector('p').textContent = 'No classrooms created yet.';
-                return;
-            } else {
-                noStudentsMessage.classList.add('hidden');
-            }
-
-            // Track counts per classroom to decide if there are students overall
-            const studentCountByClass = new Map();
-
-            classroomsSnap.forEach(cdoc => {
-                const classroom = cdoc.data();
-                const classroomId = cdoc.id;
-
-                // Section container for this classroom
-                const section = document.createElement('div');
-                section.className = 'mb-8 w-full';
-                const header = document.createElement('div');
-                header.className = 'flex items-center justify-between mb-4';
-                header.innerHTML = `
-                    <h3 class=\"text-2xl font-bold text-gray-800\">${classroom.className || 'Unnamed Classroom'}<\/h3>
-                    <p class=\"text-sm text-gray-500\">${classroom.teacherName ? 'Teacher: ' + classroom.teacherName : ''}<\/p>
-                `;
-                const grid = document.createElement('div');
-                grid.className = 'flex flex-row flex-wrap gap-x-12 gap-y-6 items-start';
-
-                section.appendChild(header);
-                section.appendChild(grid);
-                studentGrid.appendChild(section);
-
-                // Listen to students for this classroom
-                const sq = query(
-                    studentsRef,
-                    where('schoolId', '==', currentUserSchoolId),
-                    where('classroomId', '==', classroomId)
-                );
-
-                const unsub = onSnapshot(sq, (ssnap) => {
-                    grid.innerHTML = '';
-                    studentCountByClass.set(classroomId, ssnap.size || 0);
-                    ssnap.forEach(sdoc => {
-                        const s = sdoc.data();
-                        const card = document.createElement('div');
-                        card.className = 'flex flex-col items-center text-center cursor-pointer group';
-                        card.innerHTML = `<div class=\"w-16 h-16 student-avatar-bg rounded-full flex items-center justify-center mb-2 border-2 border-transparent group-hover:border-green-500 transition-all\"><span class=\"text-2xl student-avatar-text\">${s.name ? s.name.charAt(0).toUpperCase() : '?'}<\/span><\/div><p class=\"font-medium text-gray-700 group-hover:text-green-600\">${s.name || 'Unnamed'}<\/p>`;
-                        card.addEventListener('click', () => showStudentDetailPage(sdoc.id));
-                        grid.appendChild(card);
+        // Query ALL students in the school
+        const q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), orderBy("name"));
+        
+        unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
+             if(dashboardLeftStudentGrid) {
+                dashboardLeftStudentGrid.innerHTML = '';
+                if (snapshot.empty) {
+                    dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students in school.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                         dashboardLeftStudentGrid.appendChild(createRetroStudentCard(doc.data(), doc.id));
                     });
-
-                    // Recompute overall count across classrooms
-                    const totalStudents = Array.from(studentCountByClass.values()).reduce((a, b) => a + b, 0);
-                    if (totalStudents === 0) {
-                        noStudentsMessage.classList.remove('hidden');
-                        noStudentsMessage.querySelector('p').textContent = 'No students found.';
-                    } else {
-                        noStudentsMessage.classList.add('hidden');
-                    }
-                });
-
-                classroomStudentUnsubs.set(classroomId, unsub);
-            });
+                }
+             }
         });
         return;
     }
 
     // Fallback for roles without access
-    studentGrid.innerHTML = '';
-    noStudentsMessage.classList.remove('hidden');
+    if(dashboardLeftStudentGrid) dashboardLeftStudentGrid.innerHTML = '';
 }
 
 // --- UPDATED `showStudentDetailPage` ---

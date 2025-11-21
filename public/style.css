@@ -232,3 +232,97 @@ body {
     background-color: rgba(0, 0, 0, 0.4); /* 40% black overlay */
     z-index: 1; /* Sits above the background */
 }
+
+/* --- RETRO HEADER & BUTTONS --- */
+
+/* The specific retro colors */
+.btn-retro-orange { background-color: #D98C2D; color: white; }
+.btn-retro-orange:hover { background-color: #b87523; }
+
+.btn-retro-brown { background-color: #A85D26; color: white; }
+.btn-retro-brown:hover { background-color: #8a4b1e; }
+
+.btn-retro-olive { background-color: #7A7D37; color: white; }
+.btn-retro-olive:hover { background-color: #62642b; }
+
+/* The School Name Header with the curved hook */
+.retro-header-container {
+    position: relative;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    display: inline-block;
+    width: 100%;
+}
+
+.retro-header-text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 4rem;
+    color: #6B5E36; /* Dark Olive/Brown text */
+    line-height: 1;
+}
+
+/* The line that goes under and curves up */
+.retro-underline-hook {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 98%;
+    height: 20px;
+    border-bottom: 3px solid #8F8663;
+    border-right: 3px solid #8F8663;
+    border-bottom-right-radius: 20px;
+    pointer-events: none;
+}
+
+/* --- RETRO DASHBOARD UPDATES --- */
+
+/* 1. Grade Circle (Red/Brown) */
+.student-grade-circle {
+    width: 55px;
+    height: 55px;
+    background-color: #c04a43; /* Matches the 'Types of Assessment' brown */
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin: 0 auto 0.5rem auto; /* Center and add spacing below */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+/* Hover effect for interactivity */
+.student-grade-wrapper:hover .student-grade-circle {
+    transform: scale(1.1);
+    background-color: #a23d37;
+}
+
+/* 2. Student Name Text */
+.student-name-retro {
+    color: #c04a43;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: center;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+}
+
+/* 3. Wrapper for the grid item */
+.student-grade-wrapper {
+    display: flex;
+    flex-col;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* 4. Ensure the charts fit transparently */
+.chart-card-transparent {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
