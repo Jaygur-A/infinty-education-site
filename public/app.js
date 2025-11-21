@@ -1545,9 +1545,13 @@ function listenForStudentRecords() {
         classroomStudentUnsubs.delete(cid);
     }
 
+    // Helper to find the grid safely
+    const getStudentGrid = () => document.getElementById('dashboard-left-student-grid');
+
     // We must have a schoolId to fetch school-specific data.
     if (!currentUserSchoolId) {
-        if(dashboardLeftStudentGrid) dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">School not identified.</p>';
+        const grid = getStudentGrid();
+        if(grid) grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">School not identified.</p>';
         return;
     }
 
@@ -1556,7 +1560,7 @@ function listenForStudentRecords() {
     // Helper to render a single student card in Retro style
     const createRetroStudentCard = (student, docId) => {
         const div = document.createElement('div');
-        div.className = 'student-grade-wrapper group'; // Uses the wrapper class from CSS
+        div.className = 'student-grade-wrapper group'; 
         
         // Parse Grade: "Grade 5" -> "5", "K" -> "K"
         let gradeDisplay = student.grade ? student.grade.replace(/grade/i, '').trim() : '?';
@@ -1581,13 +1585,14 @@ function listenForStudentRecords() {
             where("classroomId", "==", currentUserClassroomId)
         );
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
-            if(dashboardLeftStudentGrid) {
-                dashboardLeftStudentGrid.innerHTML = '';
+            const grid = getStudentGrid();
+            if(grid) {
+                grid.innerHTML = '';
                 if (snapshot.empty) {
-                    dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students found.</p>';
+                    grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students found.</p>';
                 } else {
                     snapshot.forEach(doc => {
-                        dashboardLeftStudentGrid.appendChild(createRetroStudentCard(doc.data(), doc.id));
+                        grid.appendChild(createRetroStudentCard(doc.data(), doc.id));
                     });
                 }
             }
@@ -1601,13 +1606,14 @@ function listenForStudentRecords() {
         const q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), orderBy("name"));
         
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
-             if(dashboardLeftStudentGrid) {
-                dashboardLeftStudentGrid.innerHTML = '';
+             const grid = getStudentGrid();
+             if(grid) {
+                grid.innerHTML = '';
                 if (snapshot.empty) {
-                    dashboardLeftStudentGrid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students in school.</p>';
+                    grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students in school.</p>';
                 } else {
                     snapshot.forEach(doc => {
-                         dashboardLeftStudentGrid.appendChild(createRetroStudentCard(doc.data(), doc.id));
+                         grid.appendChild(createRetroStudentCard(doc.data(), doc.id));
                     });
                 }
              }
@@ -1615,8 +1621,9 @@ function listenForStudentRecords() {
         return;
     }
 
-    // Fallback for roles without access
-    if(dashboardLeftStudentGrid) dashboardLeftStudentGrid.innerHTML = '';
+    // Fallback
+    const grid = getStudentGrid();
+    if(grid) grid.innerHTML = '';
 }
 
 // --- UPDATED `showStudentDetailPage` ---
