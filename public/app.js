@@ -2577,19 +2577,32 @@ async function showJourneyBuilderPage(studentId) {
     for (const skillGroup in anecdotesBySkill) {
         const groupContainer = document.createElement('div');
         groupContainer.innerHTML = `<h3 class="font-bold text-lg text-gray-700 mb-2 border-b pb-2">${skillGroup}</h3>`;
-        
+
         anecdotesBySkill[skillGroup].forEach(anecdote => {
             const date = anecdote.createdAt?.toDate ? anecdote.createdAt.toDate().toLocaleDateString() : 'N/A';
             const anecdoteEl = document.createElement('div');
-            anecdoteEl.className = 'flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50';
             const isPrev = selectedJourneyAnecdotes.includes(anecdote.id);
             const checkedAttr = isPrev ? 'checked' : '';
-            const badge = isPrev ? '<span class="ml-2 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">Previously chosen</span>' : '';
+            const badge = isPrev ? '<span class="ml-2 text-xs px-2 py-0.5 rounded font-semibold" style="color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.12);">Previously chosen</span>' : '';
+            const checkboxId = `journey-anecdote-${anecdote.id}`;
+            const assessmentType = (anecdote.assessmentType || '').toString().toLowerCase();
+            let bubbleColor = '#A85D26'; // Fallback Rust
+            if (assessmentType === 'as') bubbleColor = '#D9932E';
+            else if (assessmentType === 'of') bubbleColor = '#726A36';
+            else if (assessmentType === 'for') bubbleColor = '#9BADBF';
+
             anecdoteEl.innerHTML = `
-                <input type="checkbox" ${checkedAttr} data-id="${anecdote.id}" class="journey-anecdote-checkbox mt-1 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
-                <label for="anecdote-${anecdote.id}" class="flex-1">
-                    <p class="text-gray-800">${anecdote.text} ${badge}</p>
-                    <p class="text-xs text-gray-400 mt-1">Logged on: ${date}</p>
+                <label for="${checkboxId}" class="block w-full cursor-pointer">
+                    <input id="${checkboxId}" type="checkbox" ${checkedAttr} data-id="${anecdote.id}" class="journey-anecdote-checkbox peer sr-only" style="position:absolute; opacity:0; width:1px; height:1px;">
+                    <div class="w-full rounded-xl p-5 mb-4 flex flex-col gap-2 transition transform hover:scale-[1.01] border-4 border-transparent peer-checked:border-white" style="background:${bubbleColor};">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-white font-bold italic leading-snug flex-1">${anecdote.text} ${badge}</p>
+                            <span class="h-7 w-7 flex items-center justify-center rounded-full border-2 border-white text-white text-sm font-bold opacity-0 peer-checked:opacity-100 transition-opacity" style="border-color: rgba(255,255,255,0.6);">&#10003;</span>
+                        </div>
+                        <div class="flex justify-end">
+                            <p class="text-xs text-white" style="opacity:0.8;">Logged on: ${date}</p>
+                        </div>
+                    </div>
                 </label>
             `;
             groupContainer.appendChild(anecdoteEl);
@@ -5183,4 +5196,5 @@ uploadSchoolLogoBtn.addEventListener('click', async () => {
         loadingOverlay.classList.add('hidden');
     }
 });
+
 
