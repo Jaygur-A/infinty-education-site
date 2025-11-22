@@ -275,6 +275,71 @@ body {
     pointer-events: none;
 }
 
+/* --- MANAGEMENT DASHBOARD VIEW --- */
+.management-view {
+    position: relative;
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(155, 173, 191, 0.15), rgba(167, 142, 108, 0.12));
+    padding: 3rem 1.5rem;
+}
+
+.management-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.management-header {
+    width: auto;
+    margin: 0 auto 10px auto;
+    text-align: center;
+}
+
+.management-header .retro-underline-hook {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+}
+
+.management-add-btn {
+    background-color: #9BADBF;
+    color: #fff;
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 1.1rem 3rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.management-add-btn:hover {
+    background-color: #8b9fb5;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.15);
+}
+
+.management-add-btn:active {
+    transform: translateY(0);
+}
+
+.management-footer-text {
+    position: absolute;
+    left: 1.5rem;
+    bottom: 1.5rem;
+    color: #A78E6c;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
 /* --- RETRO DASHBOARD UPDATES --- */
 
 /* 1. Grade Circle (Red/Brown) */

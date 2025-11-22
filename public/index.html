@@ -87,59 +87,80 @@
         </header>
         
         <main id="dashboard-view" class="container mx-auto p-8">
-			<div class="flex flex-col lg:flex-row justify-between items-end mb-12">
-				<div class="w-full lg:w-1/2">
-					<div class="retro-header-container">
-						<h1 class="retro-header-text">Teachers Name</h1>
+			<div class="flex justify-end mb-6">
+				<button id="dashboard-view-toggle-btn" class="btn btn-secondary italic uppercase hidden">
+					Switch to Analytics
+				</button>
+			</div>
+
+			<div id="dashboard-management-view" class="hidden management-view rounded-2xl">
+				<div class="management-content">
+					<div class="retro-header-container management-header">
+						<h1 id="management-school-name" class="retro-header-text text-center">School Name</h1>
 						<div class="retro-underline-hook"></div>
 					</div>
-				</div>
-
-				<div class="flex space-x-4 mb-4 lg:mb-0">
-					<button id="retro-add-student-btn" onclick="document.getElementById('addRecordBtn').click()" class="btn btn-retro-orange px-6 py-3 shadow-md italic uppercase">
-						Add Student
-					</button>
-					<button id="retro-messages-btn" onclick="document.getElementById('messages-btn').click()" class="btn btn-retro-brown px-6 py-3 shadow-md italic uppercase">
-						Messages
-					</button>
-					<button id="retro-add-anecdote-btn" onclick="document.getElementById('add-anecdote-btn').click()" class="btn btn-retro-olive px-6 py-3 shadow-md italic uppercase">
-						Add Anecdote
+					<button id="dashboard-add-classes-btn" class="management-add-btn">
+						ADD CLASSES
 					</button>
 				</div>
+				<p class="management-footer-text">SCHOOL OWNER DASHBOARD</p>
 			</div>
 
-			<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-				<div class="lg:col-span-3 pt-4">
-					<div id="dashboard-left-student-grid" class="grid grid-cols-3 gap-y-6 gap-x-2">
-						<p class="col-span-3 text-center text-gray-400 italic">Loading students...</p>
-					</div>
-				</div>
-
-				<div class="lg:col-span-6">
-					<div class="chart-card-transparent px-4">
-						<h3 class="chart-title-retro text-center mb-2" style="color: #c04a43; font-weight: 700;">Core Values</h3>
-						<canvas id="all-skills-chart"></canvas>
-					</div>
-				</div>
-
-				<div class="lg:col-span-3 flex flex-col space-y-8">
-					<div class="chart-card-transparent">
-						<h3 class="chart-title-retro text-center mb-2" style="color: #c04a43; font-weight: 700;">Types of Assessment</h3>
-						<div class="h-48">
-							<canvas id="assessment-type-chart"></canvas>
+			<div id="dashboard-analytics-view">
+				<div class="flex flex-col lg:flex-row justify-between items-end mb-12">
+					<div class="w-full lg:w-1/2">
+						<div class="retro-header-container">
+							<h1 id="analytics-header-text" class="retro-header-text">Teachers Name</h1>
+							<div class="retro-underline-hook"></div>
 						</div>
 					</div>
-					
-					<div class="chart-card-transparent mt-4">
-						<div class="h-48">
-							<canvas id="content-type-chart"></canvas>
+
+					<div class="flex space-x-4 mb-4 lg:mb-0">
+						<button id="retro-add-student-btn" onclick="document.getElementById('addRecordBtn').click()" class="btn btn-retro-orange px-6 py-3 shadow-md italic uppercase">
+							Add Student
+						</button>
+						<button id="retro-messages-btn" onclick="document.getElementById('messages-btn').click()" class="btn btn-retro-brown px-6 py-3 shadow-md italic uppercase">
+							Messages
+						</button>
+						<button id="retro-add-anecdote-btn" onclick="document.getElementById('add-anecdote-btn').click()" class="btn btn-retro-olive px-6 py-3 shadow-md italic uppercase">
+							Add Anecdote
+						</button>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+					<div class="lg:col-span-3 pt-4">
+						<div id="dashboard-left-student-grid" class="grid grid-cols-3 gap-y-6 gap-x-2">
+							<p class="col-span-3 text-center text-gray-400 italic">Loading students...</p>
+						</div>
+					</div>
+
+					<div class="lg:col-span-6">
+						<div class="chart-card-transparent px-4">
+							<h3 class="chart-title-retro text-center mb-2" style="color: #c04a43; font-weight: 700;">Core Values</h3>
+							<canvas id="all-skills-chart"></canvas>
+						</div>
+					</div>
+
+					<div class="lg:col-span-3 flex flex-col space-y-8">
+						<div class="chart-card-transparent">
+							<h3 class="chart-title-retro text-center mb-2" style="color: #c04a43; font-weight: 700;">Types of Assessment</h3>
+							<div class="h-48">
+								<canvas id="assessment-type-chart"></canvas>
+							</div>
+						</div>
+						
+						<div class="chart-card-transparent mt-4">
+							<div class="h-48">
+								<canvas id="content-type-chart"></canvas>
+							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-			<div class="fixed bottom-5 right-5 opacity-80 z-0 pointer-events-none">
-				 <img src="/images/InfinityEducation.webp" class="w-24 h-24 opacity-50">
+				<div class="fixed bottom-5 right-5 opacity-80 z-0 pointer-events-none">
+					 <img src="/images/InfinityEducation.webp" class="w-24 h-24 opacity-50">
+				</div>
 			</div>
 		</main>
         

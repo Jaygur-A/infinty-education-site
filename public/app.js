@@ -46,6 +46,11 @@ const dashboardBtn = document.getElementById('dashboard-btn');
 const messagesBtn = document.getElementById('messages-btn');
 const dashboardView = document.getElementById('dashboard-view');
 const parentDashboardView = document.getElementById('parent-dashboard-view');
+const dashboardManagementView = document.getElementById('dashboard-management-view');
+const dashboardAnalyticsView = document.getElementById('dashboard-analytics-view');
+const dashboardViewToggleBtn = document.getElementById('dashboard-view-toggle-btn');
+const managementSchoolName = document.getElementById('management-school-name');
+const analyticsHeaderText = document.getElementById('analytics-header-text');
 const profileView = document.getElementById('profile-view');
 const messagesView = document.getElementById('messages-view');
 const chatView = document.getElementById('chat-view');
@@ -247,7 +252,7 @@ const customThemePreviewSecondary = customThemePreview ? customThemePreview.quer
 const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
 const saveThemeSelectionBtn = document.getElementById('save-theme-selection-btn');
 const dashboardLeftStudentGrid = document.getElementById('dashboard-left-student-grid');
-const retroHeaderText = document.querySelector('.retro-header-text');
+const dashboardAddClassesBtn = document.getElementById('dashboard-add-classes-btn');
 
 // App State
 let currentStudentId = null,
@@ -479,6 +484,9 @@ let savedCustomTheme = null;
 let pendingThemeSelection = null;
 let pendingCustomTheme = null;
 let themeSaveInProgress = false;
+let activeDashboardSubview = 'analytics';
+let currentSchoolName = '';
+let cachedUserData = null;
 
 
 // --- Helper Functions ---
@@ -489,6 +497,38 @@ const showMessage = (message, isError = true) => {
     messageBox.className = `fixed top-5 right-5 text-white py-3 px-5 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
     messageBox.classList.remove('hidden');
     setTimeout(() => messageBox.classList.add('hidden'), 5000);
+};
+
+const refreshDashboardHeadings = () => {
+    if (analyticsHeaderText) {
+        if (currentUserRole === 'teacher') {
+            analyticsHeaderText.textContent = (cachedUserData?.displayName) || "Teacher";
+        } else if (['schoolAdmin', 'superAdmin', 'admin'].includes(currentUserRole)) {
+            analyticsHeaderText.textContent = "Administrator";
+        } else {
+            analyticsHeaderText.textContent = "Dashboard";
+        }
+    }
+
+    if (managementSchoolName) {
+        const nameToShow = currentSchoolName || cachedUserData?.schoolName || managementSchoolName.textContent || "School Name";
+        managementSchoolName.textContent = nameToShow;
+    }
+};
+
+const setDashboardSubview = (target = 'analytics') => {
+    if (!dashboardManagementView || !dashboardAnalyticsView) return;
+    const wantsManagement = target === 'management';
+    const canSeeManagement = ['schoolAdmin', 'superAdmin', 'admin'].includes(currentUserRole);
+    const showManagement = wantsManagement && canSeeManagement;
+
+    dashboardManagementView.classList.toggle('hidden', !showManagement);
+    dashboardAnalyticsView.classList.toggle('hidden', showManagement);
+    activeDashboardSubview = showManagement ? 'management' : 'analytics';
+
+    if (dashboardViewToggleBtn) {
+        dashboardViewToggleBtn.textContent = showManagement ? 'Switch to Analytics' : 'Switch to Management';
+    }
 };
 
 const getWeekDates = () => {
@@ -1270,6 +1310,7 @@ onAuthStateChanged(auth, async (user) => {
         const userData = userSnap.exists() ? userSnap.data() : {};
         currentUserRole = userData.role || 'guest';
         currentUserSchoolId = userData.schoolId || null;
+        cachedUserData = userData;
 
         // Step 3: Check if Guest is Parent
         if (currentUserRole === 'guest' && user.email) {
@@ -1298,19 +1339,7 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
         console.log(`User logged in. Final role: ${currentUserRole}, SchoolID: ${currentUserSchoolId}`);
-
-		if (retroHeaderText) {
-            // If teacher, show their name. If Admin, show "School Admin" or School Name
-            if(currentUserRole === 'teacher') {
-                retroHeaderText.textContent = userData.displayName || "Teacher";
-            } else if (['schoolAdmin', 'superAdmin', 'admin'].includes(currentUserRole)) {
-                retroHeaderText.textContent = "Administrator"; 
-                // Or fetch school name if preferred:
-                // retroHeaderText.textContent = schoolSnap.data().name; 
-            } else {
-                retroHeaderText.textContent = "Dashboard";
-            }
-        }
+        refreshDashboardHeadings();
 		
         // Step 4: App Setup
         document.body.classList.remove('login-background', 'bg-overlay');
@@ -1335,6 +1364,8 @@ onAuthStateChanged(auth, async (user) => {
             const schoolSnap = await getDoc(schoolRef);
             if (schoolSnap.exists()) {
 				const schoolData = schoolSnap.data();
+                currentSchoolName = schoolData.name || currentSchoolName;
+                refreshDashboardHeadings();
 				applyTheme(schoolData.theme, schoolData.customTheme);
                 console.log("School name:", schoolSnap.data().name, "Status:", schoolSnap.data().subscriptionStatus);
                 if (schoolSnap.data().name === "New School") {
@@ -1364,6 +1395,11 @@ onAuthStateChanged(auth, async (user) => {
         usersLink.classList.toggle('hidden', !isAdminType);
         classroomsLink.classList.toggle('hidden', !isAdminType);
         skillsLink.classList.toggle('hidden', !isAdminType);
+        const canUseManagementView = ['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
+        if (dashboardViewToggleBtn) {
+            dashboardViewToggleBtn.classList.toggle('hidden', !canUseManagementView);
+        }
+        setDashboardSubview(currentUserRole === 'schoolAdmin' ? 'management' : 'analytics');
 
         const canAddRecord = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
         addRecordBtn.classList.toggle('hidden', !canAddRecord);
@@ -1423,6 +1459,9 @@ onAuthStateChanged(auth, async (user) => {
         // --- Logout Logic ---
         currentUserRole = null;
         currentUserSchoolId = null;
+        cachedUserData = null;
+        currentSchoolName = '';
+        activeDashboardSubview = 'analytics';
         // Reset cached logo and header image on logout
         try { schoolLogoUrlCache = null; } catch (_) {}
         if (navSchoolLogo) navSchoolLogo.src = '/images/InfinityEducation.webp';
@@ -1430,6 +1469,8 @@ onAuthStateChanged(auth, async (user) => {
         document.body.classList.add('bg-overlay');
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
+        setDashboardSubview('analytics');
+        if (dashboardViewToggleBtn) dashboardViewToggleBtn.classList.add('hidden');
         if (unsubscribeFromUsers) unsubscribeFromUsers();
         if (unsubscribeFromMessages) unsubscribeFromMessages();
         if (unsubscribeFromStudents) unsubscribeFromStudents();
@@ -2626,6 +2667,19 @@ function updateJourneyCounter() {
 }
 
 // Event Listeners
+if (dashboardViewToggleBtn) {
+    dashboardViewToggleBtn.addEventListener('click', () => {
+        const nextView = activeDashboardSubview === 'management' ? 'analytics' : 'management';
+        setDashboardSubview(nextView);
+    });
+}
+
+if (dashboardAddClassesBtn) {
+    dashboardAddClassesBtn.addEventListener('click', () => {
+        showClassroomsPage();
+    });
+}
+
 dashboardBtn.addEventListener('click', () => {
     // Use the broader check that includes schoolAdmin
     const canAccessDashboard = ['admin', 'teacher', 'superAdmin', 'schoolAdmin'].includes(currentUserRole);
@@ -2844,6 +2898,8 @@ if (superadminSchoolSelect) {
                 const schoolSnap = await getDoc(doc(db, 'schools', selectedSchoolId));
                 if (schoolSnap.exists()) {
                     const data = schoolSnap.data();
+                    currentSchoolName = data.name || currentSchoolName;
+                    refreshDashboardHeadings();
                     applyTheme(data.theme, data.customTheme);
                 }
             } catch (err) {
