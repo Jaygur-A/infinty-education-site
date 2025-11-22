@@ -252,6 +252,7 @@ const customThemePreviewSecondary = customThemePreview ? customThemePreview.quer
 const customThemePreviewTertiary = customThemePreview ? customThemePreview.querySelector('[data-preview="tertiary"]') : null;
 const saveThemeSelectionBtn = document.getElementById('save-theme-selection-btn');
 const dashboardLeftStudentGrid = document.getElementById('dashboard-left-student-grid');
+const dashboardClassroomFilter = document.getElementById('dashboard-classroom-filter');
 const dashboardAddClassesBtn = document.getElementById('dashboard-add-classes-btn');
 
 // App State
@@ -267,6 +268,8 @@ let anecdoteChart = null,
     contentTypeChart = null;
 let selectedJourneyAnecdotes = [];
 let currentJourneyStudentName = '';
+let dashboardStudentsCache = [];
+let dashboardClassroomFilterBound = false;
 
 // --- Journey Selection Persistence ---
 // Runtime mode: 'firestore' | 'local' (set to 'local' after first permission-denied)
@@ -1585,6 +1588,7 @@ function listenForStudentRecords() {
         try { unsub(); } catch (_) {}
         classroomStudentUnsubs.delete(cid);
     }
+    dashboardStudentsCache = [];
 
     // Helper to find the grid safely
     const getStudentGrid = () => document.getElementById('dashboard-left-student-grid');
@@ -1643,21 +1647,77 @@ function listenForStudentRecords() {
 
     // --- ADMIN VIEW (Aggregated) ---
     if (['admin', 'superAdmin', 'schoolAdmin'].includes(currentUserRole)) {
+        let studentsLoaded = false;
+        const applyClassroomFilter = () => {
+            const grid = getStudentGrid();
+            if (!grid) return;
+            const selectedClassroomId = dashboardClassroomFilter ? dashboardClassroomFilter.value : 'all';
+            const studentsToRender = (selectedClassroomId && selectedClassroomId !== 'all')
+                ? dashboardStudentsCache.filter(student => student.classroomId === selectedClassroomId)
+                : dashboardStudentsCache;
+
+            grid.innerHTML = '';
+            if (!studentsLoaded && studentsToRender.length === 0) {
+                grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">Loading students...</p>';
+                return;
+            }
+            if (studentsToRender.length === 0) {
+                const emptyMessage = selectedClassroomId && selectedClassroomId !== 'all'
+                    ? 'No students in this classroom.'
+                    : 'No students in school.';
+                grid.innerHTML = `<p class="col-span-3 text-center text-gray-400 italic">${emptyMessage}</p>`;
+                return;
+            }
+
+            studentsToRender.forEach(student => {
+                grid.appendChild(createRetroStudentCard(student, student.id));
+            });
+        };
+
+        if (dashboardClassroomFilter && !dashboardClassroomFilterBound) {
+            dashboardClassroomFilter.addEventListener('change', applyClassroomFilter);
+            dashboardClassroomFilterBound = true;
+        }
+
+        if (dashboardClassroomFilter) {
+            const classroomsQuery = query(
+                collection(db, "classrooms"),
+                where("schoolId", "==", currentUserSchoolId),
+                orderBy("className")
+            );
+            unsubscribeFromClassrooms = onSnapshot(classroomsQuery, (classroomsSnap) => {
+                const previousValue = dashboardClassroomFilter.value || 'all';
+                dashboardClassroomFilter.innerHTML = '';
+
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = 'All Classes';
+                dashboardClassroomFilter.appendChild(allOption);
+
+                let selectionStillValid = previousValue === 'all';
+                classroomsSnap.forEach(doc => {
+                    const classroom = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = classroom.className || 'Unnamed Class';
+                    dashboardClassroomFilter.appendChild(option);
+                    if (doc.id === previousValue) selectionStillValid = true;
+                });
+
+                dashboardClassroomFilter.value = selectionStillValid ? previousValue : 'all';
+                if (studentsLoaded || dashboardStudentsCache.length > 0) {
+                    applyClassroomFilter();
+                }
+            });
+        }
+
         // Query ALL students in the school
         const q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), orderBy("name"));
         
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
-             const grid = getStudentGrid();
-             if(grid) {
-                grid.innerHTML = '';
-                if (snapshot.empty) {
-                    grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">No students in school.</p>';
-                } else {
-                    snapshot.forEach(doc => {
-                         grid.appendChild(createRetroStudentCard(doc.data(), doc.id));
-                    });
-                }
-             }
+             studentsLoaded = true;
+             dashboardStudentsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+             applyClassroomFilter();
         });
         return;
     }

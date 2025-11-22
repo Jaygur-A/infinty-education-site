@@ -126,11 +126,14 @@
 							Add Anecdote
 						</button>
 					</div>
-				</div>
+					</div>
 
 				<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
 					<div class="lg:col-span-3 pt-4">
+						<select id="dashboard-classroom-filter" aria-label="Filter students by classroom" class="w-full mb-4 px-4 py-3 bg-[#f7f2ea] border-2 border-[#A85D26] rounded-xl font-semibold text-[#5A3822] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#A85D26] focus:ring-offset-2 uppercase tracking-wide">
+							<option value="all" selected>All Classes</option>
+						</select>
 						<div id="dashboard-left-student-grid" class="grid grid-cols-3 gap-y-6 gap-x-2">
 							<p class="col-span-3 text-center text-gray-400 italic">Loading students...</p>
 						</div>
