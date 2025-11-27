@@ -11,6 +11,10 @@ service cloud.firestore {
       allow read: if request.auth != null && (
         // Read own profile
         request.auth.uid == userId ||
+        // SuperAdmins and SchoolAdmins can read all user profiles
+        request.auth.token.role in ['superAdmin', 'schoolAdmin'] ||
+        // Teachers can always read parent profiles (for messaging) plus staff within their school
+        (request.auth.token.role == 'teacher' && resource.data.role == 'parent') ||
         // Staff can read users within their own school
         ((request.auth.token.role in ['admin','superAdmin','schoolAdmin','teacher']) &&
           request.auth.token.schoolId != null &&

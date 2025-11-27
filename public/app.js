@@ -2316,21 +2316,49 @@ async function listenForUsers() {
     userList.innerHTML = '<p class="text-gray-500 p-3">Loading users...</p>'; // Loading message
 
     const usersRef = collection(db, "users");
-    let queryPromise;
+    const currentUid = currentUser.uid;
+    const userMap = new Map();
+    const addUserFromSnap = (snap) => {
+        if (!snap || !snap.exists()) return;
+        const data = snap.data();
+        const uid = data.uid || snap.id;
+        if (!uid || uid === currentUid) return;
+        userMap.set(uid, { ...data, uid });
+    };
 
     if (currentUserRole === 'superAdmin') {
         // SuperAdmin sees all users (excluding self)
-        queryPromise = getDocs(query(usersRef, where("uid", "!=", currentUser.uid)));
         console.log("Fetching all users for superAdmin");
-    } else if (currentUserRole === 'schoolAdmin' || currentUserRole === 'teacher') {
-        // SchoolAdmin/Teacher sees users within their school (excluding self)
-        if (!currentUserSchoolId) {
-             console.error("SchoolAdmin/Teacher has no schoolId!");
-             userList.innerHTML = '<p class="text-red-500 p-3">Error: Cannot determine your school.</p>';
-             return;
+        try {
+            const snap = await getDocs(usersRef);
+            snap.forEach(addUserFromSnap);
+        } catch (err) {
+             console.error("Error fetching users for superAdmin:", err);
         }
-        queryPromise = getDocs(query(usersRef, where("schoolId", "==", currentUserSchoolId), where("uid", "!=", currentUser.uid)));
-        console.log("Fetching users for school:", currentUserSchoolId);
+    } else if (currentUserRole === 'schoolAdmin') {
+        // SchoolAdmin can message anyone
+        console.log("Fetching all users for schoolAdmin");
+        try {
+            const snap = await getDocs(usersRef);
+            snap.forEach(addUserFromSnap);
+        } catch (err) {
+             console.error("Error fetching users for schoolAdmin:", err);
+        }
+    } else if (currentUserRole === 'teacher') {
+        // Teachers can message any parent and their school's admin
+        console.log("Fetching parents for teacher");
+        const queries = [getDocs(query(usersRef, where("role", "==", "parent")))];
+        if (currentUserSchoolId) {
+            queries.push(getDocs(query(usersRef, where("role", "==", "schoolAdmin"), where("schoolId", "==", currentUserSchoolId))));
+        } else {
+            console.warn("Teacher has no schoolId; skipping schoolAdmin fetch.");
+        }
+        try {
+            const snaps = await Promise.all(queries);
+            snaps.forEach(snap => snap.forEach(addUserFromSnap));
+        } catch (err) {
+             console.error("Error fetching users for teacher:", err);
+        }
     } else if (currentUserRole === 'parent') {
         // Parent sees users they have existing chats with
         console.log("Fetching chat partners for parent:", currentUser.uid);
@@ -2384,23 +2412,38 @@ async function listenForUsers() {
         return;
     }
 
-    // --- Logic for Admin/Teacher (uses queryPromise) ---
+    // --- Merge in existing chat partners so inbound messages are visible immediately ---
     try {
-        const snapshot = await queryPromise;
-        userList.innerHTML = ''; // Clear loading
-        noUsersMessage.classList.toggle('hidden', !snapshot.empty);
-        if (snapshot.empty) {
-             noUsersMessage.textContent = "No other users found.";
-        }
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            // Ensure UID is present; fall back to document ID
-            renderUserCard({ ...data, uid: data.uid || docSnap.id });
+        const chatsRef = collection(db, "chats");
+        const chatSnap = await getDocs(query(chatsRef, where("participants", "array-contains", currentUid)));
+        const partnerIds = new Set();
+        chatSnap.forEach(chatDoc => {
+            const participants = chatDoc.data().participants || [];
+            participants.forEach(uid => { if (uid !== currentUid) partnerIds.add(uid); });
         });
-    } catch (error) {
-         console.error("Error fetching users:", error);
-         userList.innerHTML = '<p class="text-red-500 p-3">Error loading user list.</p>';
+        const missingProfiles = Array.from(partnerIds).filter(uid => !userMap.has(uid));
+        if (missingProfiles.length) {
+            const partnerSnaps = await Promise.all(missingProfiles.map(uid => getDoc(doc(db, "users", uid))));
+            partnerSnaps.forEach(addUserFromSnap);
+        }
+    } catch (err) {
+         console.error("Error fetching existing chat partners:", err);
     }
+
+    // --- Render combined list ---
+    userList.innerHTML = ''; // Clear loading
+    const usersToShow = Array.from(userMap.values()).sort((a, b) => {
+        const nameA = (a.displayName || a.email || '').toLowerCase();
+        const nameB = (b.displayName || b.email || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    if (usersToShow.length === 0) {
+         noUsersMessage.classList.remove('hidden');
+         noUsersMessage.textContent = "No other users found.";
+         return;
+    }
+     noUsersMessage.classList.add('hidden');
+    usersToShow.forEach(renderUserCard);
 }
 
 // Helper function to render a user card (to avoid duplication)
