@@ -1,6 +1,6 @@
 /* Color Palette from the image */
 :root {
-  --bg-primary: #f7f2ea;       /* Light cream background */
+  --bg-primary: #f5f0e1;       /* Default page background */
   --bg-secondary: #d4c1a7;     /* Muted light brown (for table headers) */
   --bg-surface: #ffffff;      /* White for card backgrounds */
   
