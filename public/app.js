@@ -1594,7 +1594,8 @@ function listenForStudentRecords() {
     const getStudentGrid = () => document.getElementById('dashboard-left-student-grid');
 
     // We must have a schoolId to fetch school-specific data.
-    if (!currentUserSchoolId) {
+    const activeSchoolId = getActiveSchoolId();
+    if (!activeSchoolId) {
         const grid = getStudentGrid();
         if(grid) grid.innerHTML = '<p class="col-span-3 text-center text-gray-400 italic">School not identified.</p>';
         return;
@@ -1626,7 +1627,7 @@ function listenForStudentRecords() {
     if (currentUserRole === 'teacher' && currentUserClassroomId) {
         const q = query(
             studentsRef,
-            where("schoolId", "==", currentUserSchoolId),
+            where("schoolId", "==", activeSchoolId),
             where("classroomId", "==", currentUserClassroomId)
         );
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
@@ -1682,7 +1683,7 @@ function listenForStudentRecords() {
         if (dashboardClassroomFilter) {
             const classroomsQuery = query(
                 collection(db, "classrooms"),
-                where("schoolId", "==", currentUserSchoolId),
+                where("schoolId", "==", activeSchoolId),
                 orderBy("className")
             );
             unsubscribeFromClassrooms = onSnapshot(classroomsQuery, (classroomsSnap) => {
@@ -1712,7 +1713,7 @@ function listenForStudentRecords() {
         }
 
         // Query ALL students in the school
-        const q = query(studentsRef, where("schoolId", "==", currentUserSchoolId), orderBy("name"));
+        const q = query(studentsRef, where("schoolId", "==", activeSchoolId), orderBy("name"));
         
         unsubscribeFromStudents = onSnapshot(q, (snapshot) => {
              studentsLoaded = true;
@@ -2968,6 +2969,8 @@ if (superadminSchoolSelect) {
         }
         // Update settings visibility based on selection
         showSettingsPage();
+        // Refresh dashboard data for the newly selected school context
+        listenForStudentRecords();
     });
 }
 if (closeAddTeacherModalBtn) {
